@@ -1,0 +1,33 @@
+# Nyx — dependências da EXPERIÊNCIA COMPLETA (Windows 11, RTX 3060 12GB)
+# Instalar APENAS na máquina Windows de destino:
+#   pip install -r requirements.txt -r requirements-windows.txt
+# Fixação final fica pra Fase 7 (empacotamento), conforme roadmap.
+#
+# NOTA: pywinauto só instala em Windows. No Linux/CI estes módulos são
+# importados de forma lazy (nunca no import do pacote), por isso o core
+# não quebra sem eles.
+
+# LLM local (n_gpu_layers=-1 → tudo na RTX 3060)
+llama-cpp-python>=0.3.1
+
+# STT
+faster-whisper>=1.0.3
+
+# Overlay UI (Fase 2)
+PyQt6>=6.7.0
+
+# Automação de UI (Fase 4) — Windows apenas
+pywinauto>=0.6.8
+pyautogui>=0.9.54
+
+# Áudio: captura de mic e TTS
+sounddevice>=0.4.7
+numpy>=1.26.4
+soundfile>=0.12.1
+
+# TTS local leve — voz pf_dora pt-BR (82M params, sem GPU)
+# Inclui espeak-ng como dependência de sistema (instalar separado no Windows)
+kokoro-onnx>=0.4.0
+
+# GPU telemetria (substitui pynvml legado — mesmo namespace, sem FutureWarning)
+nvidia-ml-py>=12.535.108

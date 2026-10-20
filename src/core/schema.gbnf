@@ -1,0 +1,34 @@
+# Nyx — gramática GBNF aplicada no llama.cpp (seção 3.3 do prompt mestre).
+# Toda saída do LLM é forçada a ser JSON válido aderente a este schema.
+# Regras em formato de linha única para compatibilidade universal com o parser C++ do llama.cpp.
+
+root ::= nyx-object
+
+nyx-object ::= "{" ws1 "\"reasoning\"" ws ":" ws string ws "," ws1 "\"alternative_suggestion\"" ws ":" ws nullable-string ws "," ws1 "\"emotion\"" ws ":" ws emotion ws "," ws1 "\"action\"" ws ":" ws action-object ws "," ws1 "\"requires_confirmation\"" ws ":" ws boolean ws "," ws1 "\"confirmation_prompt\"" ws ":" ws nullable-string ws "," ws1 "\"speech_output\"" ws ":" ws string ws1 "}"
+
+action-object ::= "{" ws1 "\"type\"" ws ":" ws action-type ws "," ws1 "\"params\"" ws ":" ws object ws1 "}"
+
+emotion ::= "\"idle\"" | "\"talk\"" | "\"think\"" | "\"surprised\"" | "\"listening\"" | "\"error\"" | "\"sleep\""
+
+action-type ::= "\"shell\"" | "\"read_file\"" | "\"write_file\"" | "\"find_files\"" | "\"ui_action\"" | "\"clipboard\"" | "\"macro_run\"" | "\"project_status\"" | "\"workspace\"" | "\"web\"" | "\"schedule\"" | "\"agent_team\"" | "\"evolution\"" | "\"none\""
+
+boolean ::= "true" | "false"
+
+nullable-string ::= "null" | string
+
+string ::= "\"" ( [^"\\\x7F\x00-\x1F] | "\\" ( ["\\bfnrt"] | "u" hex hex hex hex ) )* "\""
+
+hex ::= [0-9a-fA-F]
+
+object ::= "{" ws ( ws string ws ":" ws value ( ws "," ws string ws ":" ws value )* )? ws "}"
+
+array ::= "[" ws ( ws value ( ws "," ws value )* )? ws "]"
+
+value ::= object | array | string | number | boolean | "null"
+
+number ::= "-"? integer ( "." [0-9]+ )? ( [eE] [-+]? [0-9]+ )?
+
+integer ::= [0-9]+
+
+ws  ::= [ \t\n\r]*
+ws1 ::= [ \t\n\r]*

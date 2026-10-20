@@ -1,0 +1,57 @@
+# Nyx — .gitignore
+# REGRA ANTI-ALUCINAÇÃO (seção 1 do prompt mestre): NUNCA adicionar padrões
+# que escondam tests/, src/ ou qualquer código-fonte. Este arquivo ignora
+# apenas artefatos de ambiente, modelos e logs.
+
+# Ambientes virtuais
+venv/
+.venv/
+env/
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Modelos GGUF (pesados — baixados pelo usuário, nunca versionados)
+*.gguf
+models/
+ollama_models/
+
+# Logs de auditoria em runtime (append-only, locais por máquina)
+logs/*.jsonl
+logs/*.log
+data/nyx_schedule.db*
+data/nyx_chats.db*
+data/desktop.ini
+data/runtime.json*
+data/nyx_evolution.db*
+data/backups/
+data/backup-recovery.key
+data/cloud-backup/
+
+# Variáveis de ambiente / segredos
+.env
+*.token
+*_token*.txt
+
+# IDE / sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
+*.spec
+!packaging/Nyx.spec
+
+# Caches and Archives
+.cache/
+*.zip

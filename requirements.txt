@@ -1,0 +1,5 @@
+# Nyx — dependências do NÚCLEO (multiplataforma, usadas pelo CI Linux)
+# Fixadas (Fase 7 fará o freeze final). Testado com Python 3.11 no CI.
+pytest==8.3.3
+ruff==0.6.9
+cryptography>=44,<47

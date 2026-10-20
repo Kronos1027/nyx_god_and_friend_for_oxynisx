@@ -1,0 +1,51 @@
+name: Windows portable release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Confirm release tag matches app version
+        shell: pwsh
+        run: |
+          $source = Get-Content src/app_version.py -Raw
+          if ($source -notmatch '__version__\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"') {
+            throw "Could not read src/app_version.py"
+          }
+          if ($env:GITHUB_REF_NAME -ne "v$($Matches[1])") {
+            throw "Tag $env:GITHUB_REF_NAME does not match app version v$($Matches[1])"
+          }
+
+      - name: Install Windows runtime and build dependencies
+        shell: pwsh
+        run: |
+          python -m venv .venv
+          .\.venv\Scripts\python.exe -m pip install --upgrade pip
+          .\.venv\Scripts\python.exe -m pip install -r requirements.txt -r requirements-windows.txt -r requirements-build.txt
+
+      - name: Verify and package Nyx
+        shell: pwsh
+        run: .\packaging\build.ps1 -Clean
+
+      - name: Publish portable ZIP and SHA256
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $zip = "dist/Nyx-$($env:GITHUB_REF_NAME.TrimStart('v'))-windows-x64-portable.zip"
+          $sha = "$zip.sha256"
+          if (-not (Test-Path $zip) -or -not (Test-Path $sha)) { throw "Release assets are missing" }
+          gh release create $env:GITHUB_REF_NAME $zip $sha --title "Nyx $env:GITHUB_REF_NAME" --generate-notes
