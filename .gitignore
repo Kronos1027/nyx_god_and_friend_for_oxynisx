@@ -28,6 +28,7 @@ logs/*.jsonl
 logs/*.log
 data/nyx_schedule.db*
 data/nyx_chats.db*
+data/nyx_memory.db*
 data/desktop.ini
 data/runtime.json*
 data/nyx_evolution.db*

@@ -56,6 +56,20 @@ def run_self_check() -> dict:
             }
 
     try:
+        from core.backup import BackupVault
+
+        with tempfile.TemporaryDirectory(prefix="nyx-backup-check-") as folder:
+            vault = BackupVault(Path(folder))
+            snapshot = vault.create()
+            manifest = vault.inspect(snapshot, vault.key_path.read_bytes())
+            report["checks"]["encrypted_backup"] = {"ok": manifest["schema_version"] == 1}
+    except Exception as exc:
+        report["checks"]["encrypted_backup"] = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+
+    pet = resource_path("assets/oxynisx/spritesheet.png")
+    report["checks"]["companion_resource"] = {"ok": pet.is_file()}
+
+    try:
         from PyQt6.QtWidgets import QApplication
 
         app = QApplication.instance() or QApplication([])
