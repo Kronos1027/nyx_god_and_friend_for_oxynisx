@@ -54,6 +54,7 @@ class LoopResult:
     confirmation_prompt: str | None = None
     tool_result: ToolResult | None = None
     pending_action: dict | None = None  # ação aguardando confirmação do usuário
+    verified: bool | None = None
 
 
 class AgentLoop:
@@ -134,15 +135,23 @@ class AgentLoop:
     # Ciclo principal
     # ------------------------------------------------------------------
 
-    def process(self, user_input: str, session_id: str = "default") -> LoopResult:
+    def process(self, user_input: str, session_id: str = "default", *, raw_response: str | None = None,
+                synthesize: bool = True, record_history: bool = True, before_execute=None) -> LoopResult:
         self._enforce_autonomy_timeout()
 
         # 1) LLM com gramática GBNF ou Ollama com contexto de memória
         mem_ctx = self.memory.build_system_prompt_context() if self.memory else None
-        try:
-            raw = self.llm.generate(user_input, history=self.history, memory_context=mem_ctx)
-        except TypeError:
-            raw = self.llm.generate(user_input, history=self.history)
+        if raw_response is None:
+            try:
+                raw = self.llm.generate(user_input, history=self.history, memory_context=mem_ctx)
+            except TypeError:
+                raw = self.llm.generate(user_input, history=self.history)
+        else:
+            raw = raw_response
+
+        def remember(*args):
+            if record_history:
+                self._remember(*args)
 
         # 2) Validação estrutural — parse incerto => ação none (seção 3.3)
         from core.llm_client import parse_response  # import local evita ciclo
@@ -167,7 +176,7 @@ class AgentLoop:
                     f"Aviso do Grande Sábio: Detectei uma anomalia na estrutura da resposta ({response.parse_error}). "
                     "A ação foi isolada por segurança. Pode reformular a instrução ou pedir para tentar de outra forma."
                 )
-            self._remember(user_input, response)
+            remember(user_input, response)
             return LoopResult(response=response, executed=False)
 
         # 3) Política de confirmação (seção 4.2)
@@ -237,7 +246,7 @@ class AgentLoop:
                 result_output=None,
                 mode=self.mode_name,
             )
-            self._remember(user_input, response)
+            remember(user_input, response)
             return LoopResult(response=response, executed=False)
 
         # Circuit Breaker check
@@ -267,6 +276,8 @@ class AgentLoop:
             return LoopResult(response=response, executed=False, tool_result=result)
 
         # 4) Execução via registry (única porta de execução)
+        if before_execute:
+            before_execute(action.type, action.params)
         result = self.registry.execute(action.type, action.params)
 
         # 5) Verificação Empírica de Estado Real (Fase 1: Verifier)
@@ -295,7 +306,7 @@ class AgentLoop:
         # Se for modelo real e a ação gerou saída ou erro, alimenta a observação de volta
         # para a IA gerar a resposta conclusiva baseada nos fatos reais apurados.
         from core.llm_client import OfflineLLM
-        if not isinstance(self.llm, OfflineLLM) and action.type != "none":
+        if synthesize and not isinstance(self.llm, OfflineLLM) and action.type != "none":
             if verification.verified:
                 obs_text = (
                     f"Observação Verificada da ferramenta '{action.type}':\n"
@@ -352,14 +363,15 @@ class AgentLoop:
             mode=self.mode_name,
         )
 
-        self._remember(user_input, response, result)
-        return LoopResult(response=response, executed=True, tool_result=result)
+        remember(user_input, response, result)
+        return LoopResult(response=response, executed=True, tool_result=result, verified=verification.verified)
 
     # ------------------------------------------------------------------
     # Confirmação pendente (chamada pela UI após o usuário aprovar)
     # ------------------------------------------------------------------
 
-    def confirm_pending(self, pending: dict, approved: bool) -> LoopResult:
+    def confirm_pending(self, pending: dict, approved: bool, *, synthesize: bool = True,
+                        record_history: bool = True, before_execute=None) -> LoopResult:
         """Executa (ou descarta) ação previamente marcada para confirmação.
 
         A aprovação vem de um clique no permission_dialog — NUNCA de texto.
@@ -372,7 +384,8 @@ class AgentLoop:
             self.audit.log_event("confirmation_denied_by_user", action_type=a_type,
                                  action_params=params)
             resp = NyxResponse(emotion="idle", speech_output="Beleza, não fiz nada.")
-            self._remember(user_input, resp)
+            if record_history:
+                self._remember(user_input, resp)
             return LoopResult(response=resp, executed=False)
 
         if a_type in self.disabled_tools:
@@ -386,6 +399,8 @@ class AgentLoop:
                 tool_result=ToolResult(ok=False, error=f"Circuit breaker ativo para '{a_type}'."),
             )
 
+        if before_execute:
+            before_execute(a_type, params)
         result = self.registry.execute(a_type, params)
         verification = self.verifier.verify(a_type, params, result)
         if not result.ok or not verification.verified:
@@ -412,7 +427,7 @@ class AgentLoop:
         )
 
         from core.llm_client import OfflineLLM
-        if not isinstance(self.llm, OfflineLLM):
+        if synthesize and not isinstance(self.llm, OfflineLLM):
             mem_ctx = self.memory.build_system_prompt_context() if self.memory else None
             obs_text = (
                 f"Observação da ferramenta '{a_type}' (após confirmação):\n"
@@ -436,8 +451,9 @@ class AgentLoop:
             except Exception as exc:
                 log.info(f"Síntese ReAct pós-confirmação ignorada: {exc}")
 
-        self._remember(user_input, resp, result)
-        return LoopResult(response=resp, executed=True, tool_result=result)
+        if record_history:
+            self._remember(user_input, resp, result)
+        return LoopResult(response=resp, executed=True, tool_result=result, verified=verification.verified)
 
     def reset_circuit_breaker(self, tool_name: str | None = None) -> None:
         """Reinicia o contador de falhas e desbloqueia ferramentas no circuit breaker."""

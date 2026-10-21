@@ -313,6 +313,10 @@ class DesktopWindow(QMainWindow):
         self.voice_button.clicked.connect(self.controller._on_mic_clicked)
         controls.addWidget(self.voice_button)
         controls.addStretch()
+        self.cancel_task_button = QPushButton("Interromper")
+        self.cancel_task_button.setEnabled(False)
+        self.cancel_task_button.clicked.connect(self.controller.cancel_task)
+        controls.addWidget(self.cancel_task_button)
         self.send_button = QPushButton("Enviar  ↑")
         self.send_button.setObjectName("Primary")
         self.send_button.clicked.connect(self.send_prompt)
@@ -738,6 +742,7 @@ class DesktopWindow(QMainWindow):
         self.panel_button.setMenu(menu)
 
     def _connect_controller(self) -> None:
+        self.controller.task_progress.connect(self._on_task_progress)
         self.controller.message_received.connect(self._on_message)
         self.controller.processing_changed.connect(self._on_processing)
         self.controller.emotion_changed.connect(self._on_emotion)
@@ -854,8 +859,24 @@ class DesktopWindow(QMainWindow):
     def _scroll_to_latest(self) -> None:
         self.scroll.verticalScrollBar().setValue(self.scroll.verticalScrollBar().maximum())
 
+    def _on_task_progress(self, progress: dict) -> None:
+        phase = progress["phase"]
+        step = progress["step"]
+        if phase == "planning":
+            self.busy_label.setText(f"Avaliando a próxima etapa · {step}")
+        elif phase == "executing":
+            self.busy_label.setText(f"Etapa {step} · executando {progress['tool']}")
+        elif phase == "confirmation":
+            self.busy_label.setText(f"Etapa {step} · aguardando sua confirmação")
+        elif phase == "observed":
+            state = "Verificado" if progress.get("verified") else "Sem confirmação do resultado"
+            if not progress.get("ok"):
+                state = "Falhou"
+            self._add_activity(f"Etapa {step} · {progress['tool']} · {state}\n{progress.get('preview', '')}")
+
     def _on_processing(self, busy: bool) -> None:
         self._busy = busy
+        self.cancel_task_button.setEnabled(busy and getattr(self.controller.loop, "task_runner", None) is not None)
         self._last_interaction = time.monotonic()
         if busy:
             self._research_cancel.set()
@@ -863,7 +884,7 @@ class DesktopWindow(QMainWindow):
         self.voice_button.setEnabled(not busy)
         self.busy_label.setVisible(busy)
         self.chat_list.setEnabled(not busy)
-        self._add_activity("Pedido em andamento" if busy else "Pedido concluído")
+        self._add_activity("Pedido em andamento" if busy else "Pedido encerrado")
         self._refresh_status()
 
     def _on_emotion(self, emotion: str) -> None:
@@ -1008,6 +1029,7 @@ class DesktopWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         self._closing = True
+        self.controller.cancel_task()
         self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("dock_state", self.saveState())
         self.settings.sync()

@@ -87,6 +87,8 @@ def run_gui(args: argparse.Namespace) -> int:
         memory=memory,
     )
 
+    from core.task_runner import TaskRunner
+    loop.task_runner = TaskRunner(loop)
     overlay = OverlayWindow(loop=loop)
     desktop = None
     if getattr(args, "overlay", False):

@@ -2,6 +2,16 @@
 
 Última atualização: 2026-10-21
 
+## Executor de tarefas com vários passos
+
+- TaskRunner conectado à interface nativa: decisão → política → ferramenta → verificação → observação → próxima decisão. Até seis ações e prazo cooperativo de 180 segundos; operações já iniciadas não são interrompidas à força.
+- Confirmações vinculadas à tarefa e parâmetros, retomada após cada aprovação, interrupção por recusa, cancelamento na interface, proteção contra repetição e feedback por etapa. Leitura/alteração/releitura permitida para conferir resultados. Histórico final sem mensagens intermediárias fabricadas como pedidos do usuário.
+- **254 testes passaram**, um foi ignorado e permanece o aviso conhecido de COM do pywinauto. Ruff aprovado. Testes com arquivos temporários e planejador roteirizado validaram execução e controles; a UI também exibiu duas leituras reais e suas observações em demonstração explicitamente roteirizada (`build/previews/desktop-task-demo.png`).
+- Planejamento com modelo real ainda não validado nesta revisão: o roteador recusou carregar modelos nas tentativas com RAM livre variando entre aproximadamente 0,7 e 1,9 GiB. Nenhum modelo estava residente em Ollama. O limite foi preservado e aplicativos do usuário continuaram funcionando. Relatório de adiamento: `build/previews/task-live-smoke.json`.
+- Detalhes e lacunas em `docs/TASK_EXECUTION.md`; diagnóstico real reproduzível em `tools/verify_task_runner.py`. A CLI ainda usa uma ação por ciclo. Retomada de tarefas após reinício, filas de pedidos e conversa concorrente com tarefas continuam pendentes.
+- Executável reconstruído e autoteste do pacote aprovado, incluindo duas ações reais sobre arquivos temporários com planejador roteirizado. ZIP SHA256: `2fb780f76bde3b08eaf015bf16a625d45193384c9090c1a0b470c20210ae688b`.
+- Próximas inconsistências confirmadas: os fatos iniciais da memória ainda contêm a persona antiga de viseira/kuudere e hardware fixo; a rota do modelo é escolhida no início e falta recuperação automática quando a RAM volta a ficar disponível. Devem ser corrigidas preservando preferências e dados reais do usuário.
+
 ## Pesquisa ociosa verificada
 
 - Implementada fila persistente de estudos com cancelamento transacional, lease para retomada após falhas, deduplicação de pendências e orçamento diário persistente. Quatro tentativas/dia UTC, intervalo de 15 minutos e uma leitura por vez; UI aguarda 60 segundos sem pedidos e verifica RAM/CPU.

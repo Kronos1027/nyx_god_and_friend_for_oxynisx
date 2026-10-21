@@ -42,6 +42,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true", help="Exercise the real local model through the desktop")
     parser.add_argument("--research-live", action="store_true", help="Exercise idle research through the native UI with real HTTPS")
+    parser.add_argument("--task-demo", action="store_true", help="Render a scripted multi-step task with real temporary file reads")
     args = parser.parse_args()
     audio.tts.TextToSpeech = SilentVoice
     from ui.desktop import DesktopWindow
@@ -76,6 +77,28 @@ def main() -> None:
         if args.live:
             client.keep_alive = "0"
         loop = AgentLoop(client, registry, AuditLogger(temporary / "logs", session_id="preview"))
+        if args.task_demo:
+            if args.live:
+                raise ValueError("Use --task-demo separado de --live")
+            from core.task_runner import TaskRunner
+            from tools.registry import ToolSpec, ToolResult
+            first, second = temporary / "a.txt", temporary / "b.txt"
+            first.write_text("Quantidade A: 12", encoding="utf-8")
+            second.write_text("Quantidade B: 7", encoding="utf-8")
+
+            def read_fixture(params):
+                path = Path(params.get("path", "")).resolve()
+                if path not in {first.resolve(), second.resolve()}:
+                    return ToolResult(False, error="Fora do diagnóstico")
+                return ToolResult(True, path.read_text(encoding="utf-8"))
+
+            registry.register(ToolSpec("read_file", "Diagnóstico"), read_fixture)
+            for path in (first, second, None):
+                client.queue(json.dumps({"reasoning": "Demonstração roteirizada", "alternative_suggestion": None,
+                                         "emotion": "talk", "action": {"type": "read_file" if path else "none", "params": {"path": str(path)} if path else {}},
+                                         "requires_confirmation": False, "confirmation_prompt": None,
+                                         "speech_output": "Li os dois arquivos: A = 12 e B = 7. A soma é 19. Este é um teste com planejamento roteirizado."}))
+            loop.task_runner = TaskRunner(loop)
         controller = OverlayWindow(loop)
         from ui.chat_store import ChatStore
 
@@ -95,6 +118,20 @@ def main() -> None:
             output = destination / f"desktop-{theme}{'-live' if args.live else ''}.png"
             if not window.grab().save(str(output)):
                 raise RuntimeError(f"Não foi possível salvar {output}")
+            print(output)
+        if args.task_demo:
+            window.theme_combo.setCurrentIndex(window.theme_combo.findData("midnight"))
+            window.composer.setPlainText("Demonstração: leia os dois arquivos de teste e some as quantidades.")
+            window.send_prompt()
+            deadline = time.monotonic() + 5
+            while window._busy and time.monotonic() < deadline:
+                app.processEvents()
+                time.sleep(0.01)
+            app.processEvents()
+            if window._busy or len(loop.task_runner.steps) != 2:
+                raise RuntimeError("Demonstração de tarefa não terminou")
+            output = destination / "desktop-task-demo.png"
+            window.grab().save(str(output))
             print(output)
         if args.live:
             # No tools are registered; any accidental action request is denied

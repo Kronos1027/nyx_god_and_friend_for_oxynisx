@@ -70,6 +70,32 @@ def run_self_check() -> dict:
     report["checks"]["companion_resource"] = {"ok": pet.is_file()}
 
     try:
+        from audit.logger import AuditLogger
+        from core.agent_loop import AgentLoop
+        from core.llm_client import OfflineLLM
+        from core.task_runner import TaskRunner
+        from tools.registry import ToolRegistry, ToolResult, ToolSpec
+
+        with tempfile.TemporaryDirectory(prefix="nyx-task-check-") as folder:
+            root = Path(folder)
+            paths = [root / "a.txt", root / "b.txt"]
+            llm = OfflineLLM()
+            for index, path in enumerate(paths):
+                path.write_text(str(index + 1), encoding="utf-8")
+            for path in [*paths, None]:
+                llm.queue(json.dumps({"reasoning": "self-check", "alternative_suggestion": None,
+                                     "emotion": "talk", "action": {"type": "read_file" if path else "none", "params": {"path": str(path)} if path else {}},
+                                     "requires_confirmation": False, "confirmation_prompt": None, "speech_output": "self-check"}))
+            registry = ToolRegistry()
+            registry.register(ToolSpec("read_file", "self-check"), lambda p: ToolResult(True, Path(p["path"]).read_text(encoding="utf-8")))
+            runner = TaskRunner(AgentLoop(llm, registry, AuditLogger(root / "logs", session_id="self-check")))
+            runner.start("Read two fixture files")
+            report["checks"]["multi_step_task"] = {"ok": [s["output"] for s in runner.steps] == ["1", "2"] and not runner.active,
+                                                     "planner": "scripted", "actions": len(runner.steps)}
+    except Exception as exc:
+        report["checks"]["multi_step_task"] = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+
+    try:
         from PyQt6.QtWidgets import QApplication
 
         app = QApplication.instance() or QApplication([])

@@ -87,6 +87,65 @@ def test_research_controls_persist_cancel_and_display_collected_text(desktop, tm
     assert window._research_cancel.is_set()
 
 
+def test_desktop_task_resumes_multiple_confirmations_and_records_progress(desktop, monkeypatch):
+    from core.task_runner import TaskRunner
+    from tools.registry import ToolSpec, ToolResult
+    from ui.permission_dialog import PermissionDialog
+
+    window, app, llm = desktop
+    loop = window.controller.loop
+    loop.task_runner = TaskRunner(loop)
+    executed = []
+    loop.registry.register(ToolSpec("shell", "test", destructive=True), lambda p: (executed.append(p) or ToolResult(True, "ok")))
+    for number in (1, 2, 0):
+        llm.queue(json.dumps({"reasoning": "test", "alternative_suggestion": None, "emotion": "talk",
+                             "action": {"type": "shell" if number else "none", "params": {"n": number} if number else {}},
+                             "requires_confirmation": False, "confirmation_prompt": None, "speech_output": "Final"}))
+    approvals = []
+    monkeypatch.setattr(PermissionDialog, "ask_confirmation", staticmethod(lambda pending, **kwargs: (approvals.append(pending) or True)))
+    window.composer.setPlainText("Duas etapas")
+    window.send_prompt()
+    _wait(app, lambda: not window._busy)
+    assert executed == [{"n": 1}, {"n": 2}]
+    assert len(approvals) == 2
+    assert len(loop.history) == 2
+    assert not window.cancel_task_button.isEnabled()
+    assert any("Etapa 2" in window.activity.item(i).text() for i in range(window.activity.count()))
+
+
+def test_desktop_cancel_during_generation_prevents_action(desktop):
+    import threading
+    from core.task_runner import TaskRunner
+    from tools.registry import ToolSpec, ToolResult
+
+    window, app, llm = desktop
+    loop = window.controller.loop
+    loop.task_runner = TaskRunner(loop)
+    started, release = threading.Event(), threading.Event()
+    calls = []
+    loop.registry.register(ToolSpec("read_file", "read"), lambda p: (calls.append(p) or ToolResult(True, "data")))
+
+    def generate(*args, **kwargs):
+        started.set()
+        release.wait(2)
+        return json.dumps({"reasoning": "test", "alternative_suggestion": None, "emotion": "talk",
+                           "action": {"type": "read_file", "params": {}}, "requires_confirmation": False,
+                           "confirmation_prompt": None, "speech_output": "read"})
+
+    llm.generate = generate
+    window.composer.setPlainText("Leia")
+    window.send_prompt()
+    try:
+        _wait(app, started.is_set)
+        assert window.cancel_task_button.isEnabled()
+        window.cancel_task_button.click()
+    finally:
+        release.set()
+    _wait(app, lambda: not window._busy)
+    assert calls == []
+    assert "interrompido" in window.store.messages(window.chat_id)[-1]["content"]
+
+
 def test_desktop_submission_runs_real_controller_and_restores_chat_context(desktop):
     window, app, llm = desktop
     llm.queue(json.dumps({

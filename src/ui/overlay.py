@@ -39,6 +39,7 @@ log = logging.getLogger(__name__)
 
 class _PromptSignals(QObject):
     finished = pyqtSignal(str, object, object)
+    progress = pyqtSignal(object)
 
 
 class _PromptWorker(QRunnable):
@@ -52,7 +53,9 @@ class _PromptWorker(QRunnable):
 
     def run(self) -> None:
         try:
-            self.signals.finished.emit(self.prompt, self.loop.process(self.prompt), None)
+            runner = getattr(self.loop, "task_runner", None)
+            result = runner.start(self.prompt, self.signals.progress.emit) if runner else self.loop.process(self.prompt)
+            self.signals.finished.emit(self.prompt, result, None)
         except Exception as exc:
             self.signals.finished.emit(self.prompt, None, exc)
 
@@ -68,7 +71,8 @@ class _ConfirmationWorker(QRunnable):
 
     def run(self) -> None:
         try:
-            result = self.loop.confirm_pending(self.pending_action, True)
+            runner = getattr(self.loop, "task_runner", None)
+            result = runner.resume(self.pending_action, True, self.signals.progress.emit) if runner else self.loop.confirm_pending(self.pending_action, True)
             self.signals.finished.emit("", result, None)
         except Exception as exc:
             self.signals.finished.emit("", None, exc)
@@ -151,6 +155,7 @@ class OverlayWindow(QWidget):
     processing_changed = pyqtSignal(bool)
     emotion_changed = pyqtSignal(str)
     action_observed = pyqtSignal(object)
+    task_progress = pyqtSignal(object)
     mode_hotkey_requested = pyqtSignal()
     screen_stop_requested = pyqtSignal()
 
@@ -518,13 +523,14 @@ class OverlayWindow(QWidget):
         from tools.ui_tool import set_kill_switch
 
         set_kill_switch(True)
+        self.cancel_task()
         if self.loop:
             if self.loop.mode_name != "assistida":
                 self.loop.deactivate_autonomous(source="ui_hotkey")
                 self.current_mode = "assistida"
                 self._update_mode_button_style()
             self.loop.audit.log_event("kill_switch_triggered", source="hotkey_ctrl_alt_k")
-        self.say("Controle da tela bloqueado. A geração de texto e tarefas já em execução podem continuar.", emotion="error")
+        self.say("Controle da tela bloqueado e cancelamento solicitado. Uma operação já em curso pode precisar terminar.", emotion="error")
 
     def _center_on_screen_bottom_right(self) -> None:
         from PyQt6.QtGui import QGuiApplication
@@ -562,6 +568,7 @@ class OverlayWindow(QWidget):
             self.hide()
             return
         if hasattr(self, "tts") and self.tts:
+            self.cancel_task()
             self.tts.shutdown()
         super().closeEvent(event)
 
@@ -631,6 +638,7 @@ class OverlayWindow(QWidget):
         self.think()
         worker = _PromptWorker(self.loop, user_prompt)
         worker.signals.finished.connect(self._prompt_signals.finished)
+        worker.signals.progress.connect(self._on_task_progress)
         self._prompt_pool.start(worker)
 
     def _on_prompt_finished(self, user_prompt: str, result: object, error: object) -> None:
@@ -667,11 +675,13 @@ class OverlayWindow(QWidget):
                 parent=self.interaction_parent,
             )
             if not approved:
-                conf_result = self.loop.confirm_pending(result.pending_action, False)
+                runner = getattr(self.loop, "task_runner", None)
+                conf_result = runner.resume(result.pending_action, False) if runner else self.loop.confirm_pending(result.pending_action, False)
                 self._show_confirmation_result(conf_result, resp.alternative_suggestion)
                 return False
             worker = _ConfirmationWorker(self.loop, result.pending_action)
             worker.signals.finished.connect(self._confirmation_signals.finished)
+            worker.signals.progress.connect(self._on_task_progress)
             self._prompt_pool.start(worker)
             return True
 
@@ -688,15 +698,30 @@ class OverlayWindow(QWidget):
         return False
 
     def _on_confirmation_finished(self, _unused: str, result: object, error: object) -> None:
+        keep_processing = False
         try:
             if error is not None:
                 self.show_error(str(error))
             elif result is not None:
-                self._show_confirmation_result(result, None)
+                keep_processing = self._render_prompt_result(result)
         except Exception as exc:
             self.show_error(str(exc))
         finally:
-            self._finish_prompt()
+            if not keep_processing:
+                self._finish_prompt()
+
+    def _on_task_progress(self, progress: dict) -> None:
+        self.task_progress.emit(progress)
+        if progress["phase"] == "observed" and progress["tool"] == "workspace":
+            self._open_workspace_if_needed()
+        if progress["phase"] == "executing":
+            self.bubble.set_message(f"Etapa {progress['step']}: {progress['tool']}")
+
+    def cancel_task(self) -> None:
+        runner = getattr(self.loop, "task_runner", None)
+        if runner and runner.active:
+            runner.cancel()
+            self.bubble.set_message("Cancelamento solicitado. A operação em curso pode precisar terminar.")
 
     def _show_confirmation_result(self, result: object, suggestion: str | None) -> None:
         self.action_observed.emit(result)

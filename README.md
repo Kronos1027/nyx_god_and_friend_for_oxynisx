@@ -12,6 +12,7 @@ Nyx é um projeto Python para um assistente desktop que usa modelos locais por O
 - Agenda local de lembretes únicos com persistência, listagem, cancelamento e aviso no overlay.
 - Equipe inicial de microagentes: até duas investigações simultâneas, com inferência serializada e papéis somente de leitura para web, arquivos ou estado do sistema. Escritas, shell e automação de interface continuam no agente principal, com confirmação.
 - Ferramentas para arquivos em sandbox, pesquisa web, automação Windows, clipboard, macros, projetos e workspace.
+- Na interface Windows, tarefas podem encadear até seis ações com observação entre etapas, confirmações individuais e botão Interromper. Prazo cooperativo de 180 segundos; uma operação já iniciada pode precisar terminar. [Limites e validação do executor](docs/TASK_EXECUTION.md).
 - Memória SQLite, trilha de auditoria e modo assistido como padrão.
 - Inferência e ações aprovadas rodam em segundo plano. Todas as inferências Ollama da Nyx usam uma fila FIFO limitada: uma ativa e no máximo duas aguardando; a próxima é recusada até haver espaço. O limite vale para chamadas originadas pela Nyx, não para outros aplicativos que compartilham o mesmo serviço Ollama.
 - Fila de fala limitada para não acumular áudio indefinidamente.
