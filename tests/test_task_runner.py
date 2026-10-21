@@ -25,6 +25,51 @@ def make_runner(tmp_path, responses, **kwargs):
     return runner, loop, registry
 
 
+def test_task_catalog_reaches_model_and_internal_typeerror_is_not_retried(tmp_path):
+    runner, loop, registry = make_runner(tmp_path, [])
+    registry.register(ToolSpec("read_file", "Read a file"), lambda p: ToolResult(True, "ok"))
+    calls = []
+    class Broken:
+        def generate(self, prompt, history=None, memory_context=None, task_tools=None):
+            calls.append(task_tools)
+            raise TypeError("internal model error")
+    loop.llm = Broken()
+    result = runner.start("Leia")
+    assert calls == [[{"name": "read_file", "description": "Read a file"}]]
+    assert "internal model error" in result.response.speech_output
+    assert not runner.active
+
+
+def test_planner_retains_all_six_steps_including_first_failure(tmp_path):
+    runner, loop, registry = make_runner(tmp_path, [])
+    histories = []
+    def generate(prompt, history=None, **kwargs):
+        histories.append(history)
+        n = len(histories)
+        return reply("read_file", {"path": str(n)}) if n <= 6 else reply()
+    loop.llm.generate = generate
+    registry.register(ToolSpec("read_file", "read"),
+                      lambda p: ToolResult(p["path"] != "1", output="value-" + p["path"], error="first failed"))
+    runner.start("Leia seis arquivos")
+    ledger = json.loads(histories[-1][-1]["content"].split("\n", 1)[1])
+    assert len(ledger) == 6
+    assert ledger[0]["ok"] is False and ledger[0]["output"] == "first failed"
+    assert ledger[-1]["output"] == "value-6"
+
+
+def test_planning_ledger_is_bounded_and_marks_truncation(tmp_path):
+    runner, loop, _ = make_runner(tmp_path, [])
+    loop.history = [{"role": "user", "content": "x" * 10000}] * 20
+    runner.steps = [{"tool": "read_file", "params": {"path": "p" * 8000},
+                     "ok": True, "verified": True, "output": "a" * 1600,
+                     "output_truncated": True} for _ in range(12)]
+    history = runner._planning_history()
+    assert sum(len(item["content"]) for item in history) < 6500
+    ledger = json.loads(history[-1]["content"].split("\n", 1)[1])
+    assert len(ledger) == 12
+    assert all(item["output_truncated"] and item["params_truncated"] for item in ledger)
+
+
 def test_two_real_files_then_answer_with_observations(tmp_path):
     first, second = tmp_path / "a.txt", tmp_path / "b.txt"
     first.write_text("alpha")

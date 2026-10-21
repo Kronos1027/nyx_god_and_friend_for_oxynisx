@@ -2,6 +2,24 @@
 
 Última atualização: 2026-10-21
 
+## Novo modelo local — Qwen3.5 4B
+
+- Modelo oficial Qwen3.5:4b Q4_K_M baixado e selecionado automaticamente quando cabe nas reservas de RAM/VRAM. Modo interativo sem thinking explícito ativado somente após confirmar suporte nos metadados do runtime.
+- Dois ensaios reais de leitura de dois arquivos e soma aprovados com valores novos: 67 + 65 = 132 em 11,67 s; 36 + 85 = 121 em 12,02 s. Uma tentativa anterior respondeu corretamente 81 + 20 = 101, mas encontrou um erro de pontuação no avaliador, agora corrigido.
+- Conversa real pela UI: 2,58 s, 127 eventos processados, nenhuma ferramenta indevida. Telemetria pontual: 2,86 GiB na GPU e cerca de 3,97 GiB de RAM livres, contexto 2048. Não representa pico prolongado.
+- Executor preserva registro compacto de todas as etapas e falhas; diagnóstico guarda tentativas e exige leituras verificadas e números completos. **279 testes passaram**, um ignorado e aviso COM conhecido; Ruff aprovado.
+- Aplicativo reconstruído e instalado; autotestes do pacote e da instalação aprovados. SHA256 ZIP: `0bf3a303f0cca482ee22e0b7da824c9c6f2c76c14c6321d992d080ac3cf27a18`; executável: `add57d4bb0022667673ac2570c01432f3a3a669bfb543e2ec30c89c6943d7460`.
+- Evidências, fontes, alterações de metodologia e limitações em docs/MODEL_EVALUATION.md. Não atribuir ganho de velocidade só ao modelo: o diagnóstico também passou a mantê-lo carregado entre etapas.
+
+## Diagnóstico real de planejamento — 2026-10-21
+
+- O teste voltou a executar com Ollama/qwen2.5:0.5b. Primeira tentativa: 13,58 s, uma leitura verificada e interrupção aguardando confirmação; não concluiu o pedido. Após compactação das instruções e restrição de ferramentas: 3,00 s, JSON válido, nenhuma leitura, afirmação não fundamentada de arquivos ausentes. **Diagnóstico reprovado**, não demonstra capacidade de tarefas com vários passos.
+- RAM livre observada posteriormente: 2.311.368.704 bytes; orçamento conservador de pesos: 327.770.112 bytes. Nenhum aplicativo do usuário foi encerrado e os limites não foram afrouxados.
+- Alteração no código: TaskRunner passa o catálogo real; Ollama restringe o enum de ações a esse catálogo e usa instruções compactas. Conversas fora de TaskRunner preservam o contrato anterior. RecoveringLLM encaminha esse catálogo. TypeError interno no planejador não provoca segunda geração automática.
+- **274 passed, 1 skipped, 1 warning** em 10,59 s; Ruff aprovado. Novos casos verificam isolamento do schema, catálogo vazio e ausência de repetição após TypeError.
+- Esta seção registra o diagnóstico anterior à troca do modelo. A revisão Qwen3.5 acima inclui as alterações no pacote instalado; a validação ampla de planejamento continua pendente.
+- Referências oficiais consultadas: https://docs.ollama.com/capabilities/structured-outputs (schema restringe o formato, não prova correção semântica) e https://docs.ollama.com/context-length (contextos maiores exigem mais memória). O teste evidencia a necessidade de avaliar qualidade por modelo e orçamento, não apenas JSON válido.
+
 ## Interface e Oxynisx — revisão de 2026-10-21
 
 - Atlas estendido original integrado: 1536 × 2288 RGBA, nove estados animados e 16 olhares. Direções do cursor correspondem ao mapa QA fornecido. Quatro diagonais têm ressalvas visuais na origem: 135°, 157,5°, 202,5° e 337,5°.

@@ -7,6 +7,48 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from core.llm_client import OLLAMA_MAX_OUTPUT_TOKENS, OllamaClient
 
 
+def test_task_tools_narrow_schema_without_mutating_shared_schema(monkeypatch):
+    from core.llm_client import NYX_JSON_SCHEMA
+    captured = []
+    def post(url, payload, timeout):
+        captured.append(payload)
+        return {"message": {"content": "{}"}}
+    monkeypatch.setattr("core.runtime_budget.post_ollama_json", post)
+    client = OllamaClient()
+    client.generate("Leia", task_tools=[{"name": "read_file", "description": "Read"}])
+    payload = captured[-1]
+    assert payload["format"]["properties"]["action"]["properties"]["type"]["enum"] == ["none", "read_file"]
+    assert len(payload["messages"][0]["content"]) < 1000
+    assert "shell" in NYX_JSON_SCHEMA["properties"]["action"]["properties"]["type"]["enum"]
+    client.generate("Converse")
+    assert captured[-1]["format"] is NYX_JSON_SCHEMA
+
+
+def test_empty_task_registry_only_allows_conversation(monkeypatch):
+    captured = []
+    monkeypatch.setattr("core.runtime_budget.post_ollama_json", lambda url, payload, timeout: captured.append(payload) or {})
+    OllamaClient().generate("Oi", task_tools=[])
+    assert captured[0]["format"]["properties"]["action"]["properties"]["type"]["enum"] == ["none"]
+
+
+def test_fast_thinking_mode_requires_runtime_metadata(monkeypatch):
+    import io
+    import urllib.request
+    metadata = {"thinking": {"values": [False, True], "default": True}}
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: io.BytesIO(json.dumps(metadata).encode()))
+    client = OllamaClient(model="qwen3.5:4b")
+    client.configure_thinking()
+    assert client.think is False
+    captured = []
+    monkeypatch.setattr("core.runtime_budget.post_ollama_json", lambda url, payload, timeout: captured.append(payload) or {})
+    client.generate("Oi")
+    assert captured[-1]["think"] is False
+    metadata["thinking"]["values"] = ["low", "high"]
+    client.configure_thinking()
+    client.generate("Oi")
+    assert "think" not in captured[-1]
+
+
 def test_ollama_generation_has_hard_output_token_limit(monkeypatch):
     import urllib.request
 
