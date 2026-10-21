@@ -193,23 +193,42 @@ class ActionVerifier:
         return self._verify_generic(params, result)
 
     def _verify_write_file(self, params: dict, result: ToolResult) -> VerificationResult:
+        from tools.file_tool import MAX_WRITE_BYTES
+
         path_str = params.get("path", "")
-        if path_str:
-            p = Path(path_str)
-            if p.exists() and p.stat().st_size >= 0:
-                return VerificationResult(
-                    verified=True,
-                    action_type="write_file",
-                    check_type="file_verified",
-                    details=f"Arquivo '{path_str}' verificado em disco ({p.stat().st_size} bytes).",
-                )
+        content = params.get("content", "")
+        details = "Não foi possível confirmar o conteúdo escrito."
+        try:
+            if not isinstance(path_str, str) or not path_str or not isinstance(content, str):
+                raise ValueError("Caminho ou conteúdo inválido")
+            expected = content.encode("utf-8")
+            if len(expected) > MAX_WRITE_BYTES:
+                raise ValueError("Conteúdo excede o limite de escrita")
+            path = Path(path_str)
+            if not path.is_absolute():
+                resolved = result.meta.get("path")
+                if not isinstance(resolved, str) or not Path(resolved).is_absolute():
+                    raise ValueError("Ferramenta não informou caminho absoluto resolvido")
+                path = Path(resolved)
+            if not path.is_file():
+                details = f"Arquivo '{path_str}' não foi encontrado após escrita."
+            elif path.stat().st_size != len(expected):
+                details = "O tamanho do arquivo difere do conteúdo solicitado."
+            else:
+                with path.open("rb") as stream:
+                    matches = stream.read(len(expected) + 1) == expected
+                if matches:
+                    return VerificationResult(
+                        verified=True, action_type="write_file", check_type="file_content_verified",
+                        details=f"Arquivo '{path_str}' verificado em disco: conteúdo UTF-8 idêntico ({len(expected)} bytes).",
+                    )
+                details = "O conteúdo em disco difere do conteúdo solicitado."
+        except (OSError, ValueError, UnicodeError) as exc:
+            details = f"Não foi possível verificar a escrita: {type(exc).__name__}."
         return VerificationResult(
-            verified=False,
-            action_type="write_file",
-            check_type="file_missing",
-            details=f"Arquivo '{path_str}' não foi encontrado após escrita.",
-            taxonomy_error=ErrorTaxonomy.INVALID_OUTPUT,
-            suggested_recovery_route="Verificar se o caminho está correto e se o diretório pai existe.",
+            verified=False, action_type="write_file", check_type="file_content_mismatch",
+            details=details, taxonomy_error=ErrorTaxonomy.INVALID_OUTPUT,
+            suggested_recovery_route="Confira o arquivo e os parâmetros antes de repetir a escrita.",
         )
 
     def _verify_web(self, params: dict, result: ToolResult) -> VerificationResult:

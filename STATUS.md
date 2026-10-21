@@ -2,6 +2,14 @@
 
 Última atualização: 2026-10-21
 
+## Escrita verificada e replanejamento limitado
+
+- Corrigido falso positivo de verificação: write_file agora compara bytes UTF-8 solicitados com o arquivo real; rejeita conteúdo antigo, diretórios e caminhos relativos sem resolução informada pela ferramenta.
+- Duas tentativas de replanejamento por tarefa para propostas repetidas, antes de pedir confirmação novamente; nenhuma repetição é executada durante a correção. A resposta final deve entregar a informação solicitada.
+- Fluxo real Qwen3.5 4B aprovado em 19,56 s: escrita exata, releitura e código correto na resposta, com aprovação roteirizada restrita ao teste temporário. Nova tentativa selecionou Qwen2.5 3B e falhou sem executar a escrita recusada. Não se afirma estabilidade geral; o roteador ainda precisa considerar competência, além de memória.
+- Aplicativo reconstruído e instalado; autotestes aprovados. ZIP SHA256 `af0bbce95c099a1e76fca80d1965e4cc587b655f461b3c77b42a403a67025d84`; executável `26bfe32e6375f52e31f437b9760062b8967602453feb63c9730851a49d64df3d`.
+- **283 passed, 1 skipped, 1 warning**, Ruff aprovado. Detalhes, falhas intermediárias e limites em docs/TASK_EXECUTION.md.
+
 ## Novo modelo local — Qwen3.5 4B
 
 - Modelo oficial Qwen3.5:4b Q4_K_M baixado e selecionado automaticamente quando cabe nas reservas de RAM/VRAM. Modo interativo sem thinking explícito ativado somente após confirmar suporte nos metadados do runtime.

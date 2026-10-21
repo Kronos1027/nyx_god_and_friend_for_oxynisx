@@ -37,7 +37,7 @@ def test_verifier_write_file(tmp_path):
 
     # Arquivo existe -> verificado
     res_ok = ToolResult(ok=True, output=f"Escrito em {target}")
-    check_ok = v.verify("write_file", {"path": str(target)}, res_ok)
+    check_ok = v.verify("write_file", {"path": str(target), "content": "conteúdo real"}, res_ok)
     assert check_ok.verified is True
     assert "verificado em disco" in check_ok.details.lower()
 
@@ -53,3 +53,30 @@ def test_verifier_empty_output():
     check = v.verify("generic_tool", {}, res_empty)
     assert check.verified is False
     assert check.taxonomy_error == ErrorTaxonomy.INVALID_OUTPUT
+
+
+def test_write_verification_rejects_stale_content_and_directories(tmp_path):
+    verifier = ActionVerifier()
+    target = tmp_path / "existing.txt"
+    target.write_bytes(b"old")
+    result = ToolResult(ok=True, output="claimed success")
+    assert not verifier.verify("write_file", {"path": str(target), "content": "new"}, result).verified
+    assert not verifier.verify("write_file", {"path": str(tmp_path), "content": ""}, result).verified
+    assert not verifier.verify("write_file", {"path": str(target), "content": ""}, result).verified
+
+
+def test_write_verification_accepts_exact_utf8_and_empty_file(tmp_path):
+    verifier = ActionVerifier()
+    target = tmp_path / "text.txt"
+    result = ToolResult(ok=True, output="written")
+    for content in ("", "Olá\nNyx 🌙"):
+        target.write_bytes(content.encode("utf-8"))
+        assert verifier.verify("write_file", {"path": str(target), "content": content}, result).verified
+
+
+def test_write_verification_uses_sandbox_resolved_relative_path(tmp_path):
+    from tools.file_tool import FileTool
+    params = {"path": "relative.txt", "content": "inside sandbox"}
+    result = FileTool([tmp_path]).write_file(params)
+    assert ActionVerifier().verify("write_file", params, result).verified
+    assert not ActionVerifier().verify("write_file", params, ToolResult(True, "claimed")).verified

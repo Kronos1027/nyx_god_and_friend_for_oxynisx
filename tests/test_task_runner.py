@@ -114,12 +114,30 @@ def test_pending_action_cannot_be_changed_or_replayed(tmp_path):
 
 
 def test_repeat_is_blocked_before_second_execution(tmp_path):
-    runner, _, registry = make_runner(tmp_path, [reply("read_file", {"path": "same"})] * 2)
+    runner, _, registry = make_runner(tmp_path, [reply("read_file", {"path": "same"})] * 4)
     calls = []
     registry.register(ToolSpec("read_file", "read"), lambda p: (calls.append(p) or ToolResult(True, "result")))
     result = runner.start("Leia")
     assert len(calls) == 1
     assert "repetição" in result.response.speech_output
+
+
+def test_replans_duplicate_write_before_asking_for_second_confirmation(tmp_path):
+    target = tmp_path / "note.txt"
+    write = reply("write_file", {"path": str(target), "content": "hello"})
+    runner, loop, registry = make_runner(tmp_path, [write, write, reply("read_file", {"path": str(target)}), reply(speech="hello")])
+    from tools.file_tool import FileTool
+    files = FileTool([tmp_path])
+    registry.register(ToolSpec("write_file", "write", sensitive=True), files.write_file)
+    registry.register(ToolSpec("read_file", "read"), files.read_file)
+    pending = runner.start("Grave e releia")
+    assert pending.needs_confirmation
+    result = runner.resume(pending.pending_action, True)
+    assert not result.needs_confirmation and not runner.active
+    assert runner.replans == 1
+    assert [step["tool"] for step in runner.steps] == ["write_file", "read_file"]
+    assert all(step["verified"] for step in runner.steps)
+    assert "NÃO foi executada" in loop.llm.received[2]
 
 
 def test_read_modify_read_is_allowed_for_verification(tmp_path):
