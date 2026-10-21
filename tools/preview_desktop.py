@@ -14,7 +14,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from PyQt6.QtCore import QSettings, QTimer  # noqa: E402
+from PyQt6.QtCore import QSettings, QTimer, Qt  # noqa: E402
 from PyQt6.QtWidgets import QApplication  # noqa: E402
 from PyQt6.QtGui import QFont, QFontDatabase  # noqa: E402
 from audit.logger import AuditLogger  # noqa: E402
@@ -41,6 +41,7 @@ class SilentVoice:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true", help="Exercise the real local model through the desktop")
+    parser.add_argument("--research-live", action="store_true", help="Exercise idle research through the native UI with real HTTPS")
     args = parser.parse_args()
     audio.tts.TextToSpeech = SilentVoice
     from ui.desktop import DesktopWindow
@@ -59,6 +60,11 @@ def main() -> None:
         temporary = Path(directory)
         registry = ToolRegistry()
         registry.reminder_scheduler = ReminderScheduler(temporary / "schedule.db")
+        from core.evolution import EvolutionLab
+        from core.research import ResearchQueue
+        registry.evolution_lab = EvolutionLab(temporary / "evolution.db")
+        registry.research_queue = ResearchQueue(registry.evolution_lab)
+        registry.research_queue.seed_curiosity()
         if args.live:
             from core.ollama_service import ensure_local_ollama
 
@@ -78,6 +84,7 @@ def main() -> None:
             QSettings(str(temporary / "ui.ini"), QSettings.Format.IniFormat),
         )
         window.motion_check.setChecked(False)
+        window.research_timer.stop()  # Screenshots never initiate background network work.
         window.resize(1440, 920)
         window.show()
         for theme in ("midnight", "daylight", "aurora"):
@@ -138,6 +145,39 @@ def main() -> None:
             print(output)
             if not report["completed"] or not report["schema_valid"] or report["ui_event_ticks"] < 2 or report["confirmation_requests"] or report["tools_executed"]:
                 raise RuntimeError("Live desktop smoke check did not pass; inspect live-ui-smoke.json.")
+        if args.research_live:
+            window.set_page(3)
+            ticks = []
+            heartbeat = QTimer(window)
+            heartbeat.setInterval(20)
+            heartbeat.timeout.connect(lambda: ticks.append(time.monotonic()))
+            heartbeat.start()
+            window._last_interaction = time.monotonic() - 61
+            started = time.monotonic()
+            window._research_tick()
+            deadline = started + 30
+            while window._research_busy and time.monotonic() < deadline:
+                app.processEvents()
+                time.sleep(0.01)
+            heartbeat.stop()
+            jobs = registry.research_queue.list_jobs()
+            report = {"completed": any(job["state"] == "completed" for job in jobs),
+                      "seconds": round(time.monotonic() - started, 2), "ui_ticks": len(ticks),
+                      "jobs": jobs, "knowledge_count": registry.evolution_lab.overview()["knowledge_count"]}
+            (destination / "research-ui-smoke.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+            print(json.dumps(report, ensure_ascii=False))
+            if not report["completed"] or report["ui_ticks"] < 2:
+                raise RuntimeError("Idle UI research did not finish; inspect resource pressure and report")
+        window.set_page(3)
+        for index in range(window.study_jobs.count()):
+            item = window.study_jobs.item(index)
+            if item.data(Qt.ItemDataRole.UserRole)["state"] == "completed":
+                window._show_study(item)
+                break
+        app.processEvents()
+        output = destination / "desktop-learning.png"
+        window.grab().save(str(output))
+        print(output)
         window.set_page(2)
         app.processEvents()
         output = destination / "desktop-settings.png"

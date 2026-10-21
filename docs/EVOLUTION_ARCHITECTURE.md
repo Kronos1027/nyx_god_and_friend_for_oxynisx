@@ -15,6 +15,11 @@ A capacidade vem do modelo local, ferramentas observáveis, memória recuperáve
 
 ## O que existe nesta revisão
 
+- Fila persistente de estudo ocioso no mesmo banco do laboratório: currículo inicial Python/Windows/Ollama, inclusão e cancelamento pela UI ou ferramenta evolution. Inicia após 60 segundos sem pedidos à Nyx, com pelo menos 2 GiB livres e CPU abaixo de 85%; limita quatro tentativas/dia UTC e intervalo mínimo de 15 minutos. Não depende de inferência adicional.
+- Download HTTPS limitado a 512 KiB, com prazo e timeout, apenas dos três hosts de documentação permitidos e com redirects validados. Não executa JavaScript nem conteúdo recebido. Guarda até 5800 caracteres extraídos como conteúdo externo não verificado; ainda não produz síntese, comparação de fontes ou compreensão demonstrada.
+- Lease e orçamento transacionais impedem trabalho duplicado concorrente; cancelamento e commit da nota são serializados no banco. Trabalho interrompido pode ser retomado após expiração da lease e respeita o orçamento persistente. Falhas terminam com estado visível, sem retentativa infinita.
+- Painel de estudos mostra fila, fonte e prévia textual do que foi coletado. Não faz vigilância geral da atividade do usuário: o critério de intervalo observa pedidos à Nyx, CPU e RAM.
+
 - EvolutionLab com notas de fonte declarada, busca literal, deduplicação, propostas limitadas e simulação estrutural. Está conectado ao schema, personalidade, registro de ferramentas e painel Aprendizado.
 - BackupVault recupera cópia consistente dos quatro bancos permitidos, confere autenticação e integridade SQLite e restaura em pasta nova; não substitui bancos abertos. A UI cria backups e exporta a chave. Restauração ainda usa a API Python e precisa de uma experiência guiada.
 - CloudBackup usa credenciais do Git já configuradas, sem extrair tokens, sem interação de login e sem force push. Branch separada preserva desenvolvimento. Falha remota deixa cópia local e aviso; divergências exigem reconciliação. Git deve estar instalado no computador de destino. Não há retenção automática do histórico remoto: versões anteriores permanecem no Git e consomem espaço.
@@ -23,7 +28,7 @@ A capacidade vem do modelo local, ferramentas observáveis, memória recuperáve
 
 ## Próximas etapas obrigatórias
 
-- Fila persistente de objetivos e pesquisa ociosa com orçamento diário, fontes permitidas, cancelamento e proteção contra instruções em páginas.
+- Expandir a fila de estudos para objetivos de pesquisa, busca de fontes, síntese verificável e critérios de qualidade. Ingestão de texto não demonstra aprendizagem de pesos; páginas continuam sendo dados não confiáveis.
 - Diagnóstico por eventos e verificações específicas, evitando monitoramento de tela contínuo caro; consertos devem exigir pós-condições verificáveis.
 - Ambiente isolado real para candidatos de código, benchmark de regressão independente, promoção atômica e reversão de habilidade.
 - Visão e controle de tela em ciclo fechado com verificação entre ações; medir latência/precisão por aplicativo antes de anunciar capacidades.

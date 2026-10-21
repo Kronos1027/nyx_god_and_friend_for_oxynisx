@@ -1,6 +1,16 @@
 # Nyx — estado verificado
 
-Última atualização: 2026-10-20
+Última atualização: 2026-10-21
+
+## Pesquisa ociosa verificada
+
+- Implementada fila persistente de estudos com cancelamento transacional, lease para retomada após falhas, deduplicação de pendências e orçamento diário persistente. Quatro tentativas/dia UTC, intervalo de 15 minutos e uma leitura por vez; UI aguarda 60 segundos sem pedidos e verifica RAM/CPU.
+- Três fontes HTTPS permitidas: documentação oficial Python, Windows e Ollama. Downloads limitados, redirects validados, HTML sem execução. Trechos ficam como conteúdo não verificado, recuperáveis no laboratório e visíveis na UI.
+- Testes reais pela interface: leitura Ollama concluída em 0,23–0,78 s, interface respondendo enquanto o worker operava, uma nota salva e duas fontes permanecendo na fila. Último ensaio: 0,23 s e 11 eventos de UI. Relatório `build/previews/research-ui-smoke.json`; imagem `build/previews/desktop-learning.png`.
+- Testes: **240 passed, 1 skipped, 1 warning**. Casos cobrem trabalhadores concorrentes, cancelamento durante download, interrupção por pedido principal, orçamento após reinício, falha terminal e controles da UI. Ruff aprovado.
+- Pacote com estudos e correção de contraste do painel reconstruído, instalado e validado por autoteste com código 0. SHA256 do ZIP: `4104fa4d262c184c2dec117c041e5992255c111884a60d49665cc8379bc04a5e`. O aplicativo instalado inclui a revisão visual final.
+- Ainda falta pesquisa aberta com seleção de fontes, síntese/correlação e avaliação de conhecimento; essa implementação coleta trechos e preserva proveniência, sem treinar pesos ou comprovar autonomia geral.
+- Próxima lacuna confirmada no código: `AgentLoop.process` executa uma ação e usa a próxima geração para síntese final; ações subsequentes propostas nessa síntese não são executadas. É necessário um ciclo de tarefa com passos limitados, confirmação/retomada, progresso e cancelamento para cumprir tarefas compostas.
 
 ## Revisão mais recente: interface, aprendizado e recuperação
 

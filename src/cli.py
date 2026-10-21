@@ -166,6 +166,8 @@ def build_registry(cfg: NyxConfig) -> ToolRegistry:
 
     from core.evolution import EvolutionLab, make_evolution_tool_func
     registry.evolution_lab = EvolutionLab(Path("data/nyx_evolution.db"))
+    from core.research import ResearchQueue
+    registry.research_queue = ResearchQueue(registry.evolution_lab)
     registry.register(
         ToolSpec(name="evolution", description="Pesquisa persistente e simulação de habilidades propostas", sensitive=False),
         make_evolution_tool_func(registry.evolution_lab, registry),

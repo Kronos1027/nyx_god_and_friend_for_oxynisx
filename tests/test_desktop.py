@@ -58,6 +58,35 @@ def _wait(app, predicate, timeout=3):
     assert predicate()
 
 
+def test_research_controls_persist_cancel_and_display_collected_text(desktop, tmp_path):
+    from core.evolution import EvolutionLab
+    from core.research import ResearchQueue
+
+    window, app, _ = desktop
+    lab = EvolutionLab(tmp_path / "research.db")
+    queue = ResearchQueue(lab)
+    window.controller.loop.registry.evolution_lab = lab
+    window.controller.loop.registry.research_queue = queue
+    window.set_page(3)
+    window.study_topic.setText("Meu estudo")
+    window._enqueue_study()
+    assert len(queue.list_jobs()) == 1
+    assert window.study_jobs.count() == 1
+    queue.run_one(lambda url: (url, "Texto externo <script>não executar</script>"))
+    window._refresh_learning()
+    window._show_study(window.study_jobs.item(0))
+    assert "<script>não executar</script>" in window.study_preview.toPlainText()
+    window.study_topic.setText("Novo estudo")
+    window.study_source.setCurrentIndex(1)
+    window._enqueue_study()
+    window.study_jobs.setCurrentRow(0)
+    window._cancel_study()
+    assert queue.list_jobs()[0]["state"] == "cancelled"
+    window.research_check.setChecked(False)
+    assert window.settings.value("idle_research", type=bool) is False
+    assert window._research_cancel.is_set()
+
+
 def test_desktop_submission_runs_real_controller_and_restores_chat_context(desktop):
     window, app, llm = desktop
     llm.queue(json.dumps({

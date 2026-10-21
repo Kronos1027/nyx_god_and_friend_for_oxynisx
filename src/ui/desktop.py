@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 import shutil
+import time
 from datetime import datetime
 
 from PyQt6.QtCore import QDateTime, QEasingCurve, QPropertyAnimation, QRectF, QSettings, Qt, QTimer, QUrl, pyqtSignal
@@ -153,6 +154,7 @@ class CompanionStage(QWidget):
 class DesktopWindow(QMainWindow):
     shutdown_requested = pyqtSignal()
     backup_finished = pyqtSignal(str)
+    research_finished = pyqtSignal(object)
 
     def __init__(self, controller, store: ChatStore | None = None, settings: QSettings | None = None) -> None:
         super().__init__()
@@ -167,6 +169,10 @@ class DesktopWindow(QMainWindow):
         self.settings = settings or QSettings(str(user_data_dir() / "data" / "desktop.ini"), QSettings.Format.IniFormat)
         self.chat_id = ""
         self._busy = False
+        self._research_busy = False
+        self._closing = False
+        self._research_cancel = threading.Event()
+        self._last_interaction = time.monotonic()
         self._cards: list[QWidget] = []
         self._animation: QPropertyAnimation | None = None
         self._animated_page: QWidget | None = None
@@ -193,6 +199,11 @@ class DesktopWindow(QMainWindow):
         self.backup_timer.setInterval(30 * 60 * 1000)
         self.backup_timer.timeout.connect(self._start_backup)
         self.backup_timer.start()
+        self.research_finished.connect(self._research_done)
+        self.research_timer = QTimer(self)
+        self.research_timer.setInterval(30_000)
+        self.research_timer.timeout.connect(self._research_tick)
+        self.research_timer.start()
         QShortcut(QKeySequence("Ctrl+N"), self, activated=self.new_chat)
         QShortcut(QKeySequence("Ctrl+K"), self, activated=lambda: self.search.setFocus())
 
@@ -391,8 +402,40 @@ class DesktopWindow(QMainWindow):
     def _build_evolution_page(self) -> None:
         page, layout = self._page()
         layout.addWidget(self._muted("Conhecimento com fontes e propostas de habilidades. Simulações não executam ações nem comprovam resultados."))
+        self.research_check = QCheckBox("Estudar documentação durante os intervalos")
+        self.research_check.setChecked(self.settings.value("idle_research", True, type=bool))
+        self.research_check.toggled.connect(self._research_enabled_changed)
+        layout.addWidget(self.research_check)
+        self.research_status = self._muted("Até 4 leituras por dia, uma a cada 15 minutos; começa após um minuto sem pedidos. Fontes: Python, Windows e Ollama.")
+        layout.addWidget(self.research_status)
+        self.study_topic = QLineEdit()
+        self.study_topic.setPlaceholderText("Tema do estudo — por exemplo: gerenciar memória no Ollama")
+        self.study_topic.setMaxLength(160)
+        layout.addWidget(self.study_topic)
+        self.study_source = QComboBox()
+        from core.research import SOURCES
+        for name, url in SOURCES.items():
+            self.study_source.addItem(name, url)
+        layout.addWidget(self.study_source)
+        enqueue = QPushButton("Adicionar estudo à fila")
+        enqueue.clicked.connect(self._enqueue_study)
+        layout.addWidget(enqueue)
+        self.study_jobs = QListWidget()
+        self.study_jobs.setMaximumHeight(140)
+        self.study_jobs.itemClicked.connect(self._show_study)
+        layout.addWidget(self.study_jobs)
+        cancel_study = QPushButton("Cancelar estudo selecionado")
+        cancel_study.clicked.connect(self._cancel_study)
+        layout.addWidget(cancel_study)
+        self.study_preview = SafeMarkdown()
+        self.study_preview.setObjectName("StudyPreview")
+        self.study_preview.setPlaceholderText("Selecione um estudo para ver a fonte e o trecho coletado.")
+        self.study_preview.setMinimumHeight(120)
+        self.study_preview.setMaximumHeight(200)
+        layout.addWidget(self.study_preview)
         self.learning_list = QListWidget()
         self.learning_list.setWordWrap(True)
+        self.learning_list.setMaximumHeight(100)
         layout.addWidget(self.learning_list, 1)
         refresh = QPushButton("Atualizar laboratório")
         refresh.clicked.connect(self._refresh_learning)
@@ -413,7 +456,81 @@ class DesktopWindow(QMainWindow):
         recovery.clicked.connect(self._export_recovery_key)
         layout.addWidget(recovery)
         layout.addWidget(self._muted("Guarde a chave separada do backup: ela é necessária para recuperar os dados e permite ler seu conteúdo."))
-        self.pages.addWidget(page)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(page)
+        self.pages.addWidget(scroll)
+
+    def _research_enabled_changed(self, enabled: bool) -> None:
+        self.settings.setValue("idle_research", enabled)
+        if not enabled:
+            self._research_cancel.set()
+        self.research_status.setText("Estudo durante intervalos ativado." if enabled else "Estudo automático pausado.")
+
+    def _enqueue_study(self) -> None:
+        queue = getattr(self.controller.loop.registry, "research_queue", None)
+        if queue is None:
+            return
+        try:
+            queue.enqueue(self.study_topic.text(), self.study_source.currentData())
+            self.study_topic.clear()
+            self.research_status.setText("Estudo salvo na fila. Será lido quando houver tempo e recursos disponíveis.")
+            self._refresh_learning()
+        except ValueError as exc:
+            self.research_status.setText(str(exc))
+
+    def _cancel_study(self) -> None:
+        item = self.study_jobs.currentItem()
+        queue = getattr(self.controller.loop.registry, "research_queue", None)
+        if item and queue:
+            queue.cancel(item.data(Qt.ItemDataRole.UserRole)["id"])
+            self._refresh_learning()
+
+    def _show_study(self, item) -> None:
+        job = item.data(Qt.ItemDataRole.UserRole)
+        text = f"{job['topic']}\nFonte: {job['url']}\n{job['detail']}"
+        lab = getattr(self.controller.loop.registry, "evolution_lab", None)
+        if lab and job["note_id"]:
+            with lab.connect() as db:
+                note = db.execute("SELECT content,source FROM knowledge WHERE id=?", (job["note_id"],)).fetchone()
+                if note:
+                    text += f"\n\nConteúdo externo não verificado — fonte final: {note['source']}\n\n{note['content']}"
+        self.study_preview.setPlainText(text)
+
+    def _research_tick(self) -> None:
+        queue = getattr(self.controller.loop.registry, "research_queue", None)
+        if (queue is None or not self.research_check.isChecked() or self._busy or self._backup_busy
+                or self._research_busy or time.monotonic() - self._last_interaction < 60):
+            return
+        try:
+            import psutil
+            if psutil.virtual_memory().available < 2 * 1024 ** 3 or psutil.cpu_percent() > 85:
+                self.research_status.setText("Estudo adiado para liberar recursos ao computador.")
+                return
+        except ImportError:
+            return
+        queue.seed_curiosity()
+        self._research_busy = True
+        self._research_cancel.clear()
+
+        def worker():
+            try:
+                result = queue.run_one(cancelled=self._research_cancel.is_set)
+            except Exception as exc:
+                result = {"state": "failed", "topic": "Pesquisa", "error": str(exc)}
+            if not self._closing:
+                self.research_finished.emit(result)
+
+        threading.Thread(target=worker, name="nyx-idle-study", daemon=True).start()
+
+    def _research_done(self, result) -> None:
+        self._research_busy = False
+        if result:
+            labels = {"completed": "Trecho coletado", "failed": "Estudo falhou", "cancelled": "Estudo cancelado", "deferred": "Estudo adiado"}
+            message = f"{labels.get(result['state'], result['state'])}: {result['topic']}"
+            self.research_status.setText(message)
+            self._add_activity(message)
+        self._refresh_learning()
 
     def _refresh_learning(self) -> None:
         self.learning_list.clear()
@@ -422,6 +539,14 @@ class DesktopWindow(QMainWindow):
             self.learning_list.addItem("Laboratório não disponível nesta sessão de diagnóstico.")
             return
         data = lab.overview()
+        queue = getattr(self.controller.loop.registry, "research_queue", None)
+        if queue:
+            self.study_jobs.clear()
+            states = {"queued": "Na fila", "running": "Lendo fonte", "completed": "Coletado", "failed": "Falhou", "cancelled": "Cancelado"}
+            for job in queue.list_jobs():
+                item = QListWidgetItem(f"{states.get(job['state'], job['state'])} · {job['topic']}")
+                item.setData(Qt.ItemDataRole.UserRole, job)
+                self.study_jobs.addItem(item)
         self.learning_list.addItem(f"{data['knowledge_count']} notas de pesquisa armazenadas com fontes · conteúdo externo não verificado")
         for proposal in data["proposals"]:
             self.learning_list.addItem(f"{proposal['name']} · {proposal['status']}\n{proposal['id']}")
@@ -449,7 +574,8 @@ class DesktopWindow(QMainWindow):
                         message += f" Cópia na nuvem pendente: {exc}"
             except Exception as exc:
                 message = f"Falha no backup: {exc}"
-            self.backup_finished.emit(message)
+            if not self._closing:
+                self.backup_finished.emit(message)
 
         threading.Thread(target=worker, name="nyx-backup", daemon=True).start()
 
@@ -730,6 +856,9 @@ class DesktopWindow(QMainWindow):
 
     def _on_processing(self, busy: bool) -> None:
         self._busy = busy
+        self._last_interaction = time.monotonic()
+        if busy:
+            self._research_cancel.set()
         self.send_button.setEnabled(not busy)
         self.voice_button.setEnabled(not busy)
         self.busy_label.setVisible(busy)
@@ -878,11 +1007,14 @@ class DesktopWindow(QMainWindow):
             self._refresh_reminders()
 
     def closeEvent(self, event) -> None:
+        self._closing = True
         self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("dock_state", self.saveState())
         self.settings.sync()
         self.telemetry_timer.stop()
         self.backup_timer.stop()
+        self.research_timer.stop()
+        self._research_cancel.set()
         self.companion.timer.stop()
         self._stop_transition()
         self.controller._closing_with_desktop = True

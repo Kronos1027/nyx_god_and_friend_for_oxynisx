@@ -143,6 +143,16 @@ def make_evolution_tool_func(lab: EvolutionLab, registry):
             result = lab.simulate(params.get("id"), registry)
         elif operation == "status":
             result = lab.overview()
+        elif operation in {"study", "studies", "cancel_study"}:
+            queue = getattr(registry, "research_queue", None)
+            if queue is None:
+                raise ValueError("Fila de estudos indisponível nesta sessão")
+            if operation == "study":
+                result = {"id": queue.enqueue(params.get("topic"), params.get("url")), "state": "queued"}
+            elif operation == "cancel_study":
+                result = {"cancelled": queue.cancel(params.get("id"))}
+            else:
+                result = queue.list_jobs()
         else:
             raise ValueError("Operação inválida: learn, search, propose, simulate, status")
         return ToolResult(ok=True, output=json.dumps(result, ensure_ascii=False))

@@ -45,6 +45,7 @@ def desktop_stylesheet(theme: str = "midnight", accent: str = "violet", font_siz
     QFrame#UserCard {{ background: {p['card']}; border-radius: 15px; }}
     QFrame#ErrorCard {{ background: {p['card']}; border-left: 3px solid #e58a96; border-radius: 10px; }}
     QTextBrowser#MessageBody {{ background: transparent; border: none; padding: 0px; selection-background-color: {a}; }}
+    QTextBrowser#StudyPreview {{ background: {p['card']}; color: {p['text']}; border: 1px solid {p['line']}; border-radius: 9px; padding: 10px; selection-background-color: {a}; }}
     QListWidget {{ background: transparent; border: none; outline: none; }}
     QListWidget::item {{ padding: 11px 9px; border-radius: 8px; }}
     QListWidget::item:selected {{ background: {p['card']}; color: {ink}; }}
