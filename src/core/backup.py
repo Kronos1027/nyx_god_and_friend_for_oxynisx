@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import errno
 import os
 import sqlite3
 import tempfile
 import threading
 import time
 import zipfile
+import uuid
 from pathlib import Path
 
 from cryptography.fernet import Fernet
@@ -77,7 +79,31 @@ class BackupVault:
             target = self.directory / "latest.nyxbackup"
             pending = target.with_suffix(".pending")
             pending.write_bytes(encrypted)
-            os.replace(pending, target)
+            try:
+                os.replace(pending, target)
+            except OSError as exc:
+                if exc.errno != errno.EXDEV and getattr(exc, "winerror", None) != 17:
+                    raise
+                # Some Windows encrypted directories reject a same-directory rename.
+                # Preserve the previous archive; publish only a fully verified new file.
+                target = self.directory / f"snapshot-{uuid.uuid4().hex}.nyxbackup"
+                with target.open("xb") as stream:
+                    stream.write(encrypted)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                self.inspect(target, self._key())
+                snapshots = sorted(
+                    (p for p in self.directory.glob("snapshot-*.nyxbackup")
+                     if len(p.stem) == 41 and all(c in "0123456789abcdef" for c in p.stem[9:]) and not p.is_symlink()),
+                    key=lambda p: p.stat().st_mtime,
+                    reverse=True,
+                )
+                for old in snapshots[5:]:
+                    if old != target:
+                        try:
+                            old.unlink()
+                        except OSError:
+                            pass
             return target
         finally:
             self._lock.release()

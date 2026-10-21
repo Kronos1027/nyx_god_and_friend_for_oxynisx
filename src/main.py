@@ -49,6 +49,17 @@ def build_llm_for_app(args: argparse.Namespace, cfg: NyxConfig):
         log.info("Runtime local: %s", service.reason)
     client, backend = create_llm_client(model_arg=args.model, offline=args.offline, cfg=cfg)
     log.info(f"Cérebro da Nyx ativo via: {backend}")
+    if not args.offline:
+        from core.recovering_llm import RecoveringLLM
+
+        def refresh():
+            if not (args.model and Path(args.model).is_file()):
+                from core.ollama_service import ensure_local_ollama
+                ensure_local_ollama()
+            refreshed, _ = create_llm_client(model_arg=args.model, cfg=cfg)
+            return refreshed
+
+        return RecoveringLLM(client, refresh)
     return client
 
 

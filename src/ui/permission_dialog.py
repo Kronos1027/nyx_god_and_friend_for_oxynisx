@@ -47,6 +47,13 @@ class PermissionDialog(QDialog):
         self.setFixedWidth(460)
 
         self._init_ui(prompt)
+        from ui.desktop_theme import desktop_stylesheet
+        for child in self.findChildren(QWidget):
+            child.setStyleSheet("")
+        self.setStyleSheet(parent.styleSheet() if parent and parent.styleSheet() else desktop_stylesheet())
+        self.btn_approve.setObjectName("Danger" if is_destructive else "Primary")
+        self.btn_deny.setDefault(True)
+        self.btn_approve.setAutoDefault(False)
 
     def _init_ui(self, prompt: str | None) -> None:
         outer_layout = QVBoxLayout(self)
@@ -54,6 +61,7 @@ class PermissionDialog(QDialog):
 
         # Card de fundo com estilo cyberpunk / dark mode
         card = QFrame(self)
+        card.setObjectName("PermissionSurface")
         border_color = "#EF4444" if self.is_destructive else "#10B981"
         card.setStyleSheet(
             f"""
@@ -75,6 +83,7 @@ class PermissionDialog(QDialog):
         title_color = "#EF4444" if self.is_destructive else "#10B981"
 
         header_lbl = QLabel(f"{icon} {title_text}", card)
+        header_lbl.setObjectName("Eyebrow")
         header_lbl.setStyleSheet(
             f"color: {title_color}; font-weight: bold; font-size: 14px; border: none;"
         )
@@ -102,6 +111,7 @@ class PermissionDialog(QDialog):
 
         # Bloco de código com o comando/parâmetros exatos
         details_box = QTextEdit(card)
+        details_box.setObjectName("ActionDetails")
         details_box.setReadOnly(True)
         details_box.setFixedHeight(120)
         formatted_json = json.dumps(self.pending_action, indent=2, ensure_ascii=False)

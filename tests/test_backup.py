@@ -6,6 +6,32 @@ from cryptography.fernet import Fernet, InvalidToken
 from core.backup import BackupVault
 
 
+def test_cross_device_rename_keeps_previous_and_verifies_new_snapshot(tmp_path, monkeypatch):
+    import errno
+    vault = BackupVault(tmp_path)
+    previous = vault.create()
+    original = previous.read_bytes()
+    def cannot_replace(*args):
+        raise OSError(errno.EXDEV, "rename rejected")
+    monkeypatch.setattr("core.backup.os.replace", cannot_replace)
+    for _ in range(7):
+        snapshot = vault.create()
+        assert snapshot != previous
+        assert vault.inspect(snapshot, vault.key_path.read_bytes())["schema_version"] == 1
+    assert previous.read_bytes() == original
+    assert len(list(vault.directory.glob("snapshot-*.nyxbackup"))) == 5
+
+
+def test_permission_error_does_not_trigger_rename_fallback(tmp_path, monkeypatch):
+    vault = BackupVault(tmp_path)
+    def denied(*args):
+        raise PermissionError("denied")
+    monkeypatch.setattr("core.backup.os.replace", denied)
+    with pytest.raises(PermissionError):
+        vault.create()
+    assert not list(vault.directory.glob("snapshot-*.nyxbackup"))
+
+
 def test_encrypted_backup_restores_committed_wal_without_keys_or_secrets(tmp_path):
     data = tmp_path / "data"
     data.mkdir()

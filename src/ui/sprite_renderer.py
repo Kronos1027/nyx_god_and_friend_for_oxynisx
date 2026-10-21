@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from PyQt6.QtCore import Qt, QRect
 from PyQt6.QtGui import QColor, QImage, QPainter, QPixmap
@@ -76,6 +77,28 @@ class SpriteRenderer:
         )
         self._cache[key] = scaled_pix
         return scaled_pix
+
+    @staticmethod
+    def direction_index(dx: float, dy: float) -> int:
+        """Clockwise from screen up, matching the source QA direction map."""
+        return int((math.degrees(math.atan2(dx, -dy)) % 360 + 11.25) // 22.5) % 16
+
+    def look_at(self, dx: float, dy: float) -> QPixmap:
+        if self._atlas.height() != 2288 or dx * dx + dy * dy < 24 * 24:
+            return self.get_pixmap("idle")
+        direction = self.direction_index(dx, dy)
+        key = ("look", direction)
+        if key not in self._cache:
+            cell = self._atlas.copy((direction % 8) * 192, (9 + direction // 8) * 208, 192, 208)
+            cell = cell.scaled(36 * self.scale, 36 * self.scale,
+                               Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            pix = QPixmap(36 * self.scale, 36 * self.scale)
+            pix.fill(Qt.GlobalColor.transparent)
+            painter = QPainter(pix)
+            painter.drawPixmap((pix.width() - cell.width()) // 2, (pix.height() - cell.height()) // 2, cell)
+            painter.end()
+            self._cache[key] = pix
+        return self._cache[key]
 
     render = get_pixmap
 

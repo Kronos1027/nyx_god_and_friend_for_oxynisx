@@ -9,13 +9,13 @@ import time
 from datetime import datetime
 
 from PyQt6.QtCore import QDateTime, QEasingCurve, QPropertyAnimation, QRectF, QSettings, Qt, QTimer, QUrl, pyqtSignal
-from PyQt6.QtGui import QColor, QDesktopServices, QKeySequence, QPainter, QPen, QShortcut
+from PyQt6.QtGui import QCursor, QColor, QDesktopServices, QKeySequence, QPainter, QPen, QShortcut
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDateTimeEdit, QDockWidget, QFormLayout,
     QFileDialog, QFrame, QGraphicsOpacityEffect, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
     QListWidget, QListWidgetItem, QMainWindow, QMenu, QMessageBox, QProgressBar,
     QPushButton, QScrollArea, QSlider, QStackedWidget, QTextBrowser, QTextEdit,
-    QToolButton, QVBoxLayout, QWidget, QSizePolicy,
+    QToolButton, QVBoxLayout, QWidget, QSizePolicy, QTabWidget,
 )
 
 from app_paths import user_data_dir
@@ -148,6 +148,9 @@ class CompanionStage(QWidget):
         painter.drawArc(ring, angle, 74 * 16)
         painter.drawArc(ring.adjusted(7, 7, -7, -7), -angle, 38 * 16)
         pixmap = self.renderer.get_pixmap("waving" if self._reaction else self.emotion, self.mode, self.frame)
+        if self.emotion == "idle" and not self._reaction and self.motion:
+            delta = QCursor.pos() - self.mapToGlobal(self.rect().center())
+            pixmap = self.renderer.look_at(delta.x(), delta.y())
         painter.drawPixmap((self.width() - pixmap.width()) // 2, (self.height() - pixmap.height()) // 2, pixmap)
 
 
@@ -243,6 +246,11 @@ class DesktopWindow(QMainWindow):
         self.panel_button.setText("Painéis  ▾")
         self.panel_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         header.addWidget(self.panel_button)
+        self.focus_button = QPushButton("Foco")
+        self.focus_button.setCheckable(True)
+        self.focus_button.setToolTip("Recolher painéis para ampliar a conversa")
+        self.focus_button.toggled.connect(self._toggle_focus)
+        header.addWidget(self.focus_button)
         root.addWidget(bar)
         self.pages = QStackedWidget()
         root.addWidget(self.pages, 1)
@@ -251,6 +259,16 @@ class DesktopWindow(QMainWindow):
         self._build_agenda_page()
         self._build_settings_page()
         self._build_evolution_page()
+
+    def _toggle_focus(self, enabled: bool) -> None:
+        docks = (self.sidebar, self.companion_dock, self.activity_dock)
+        if enabled:
+            self._focus_visibility = [dock.isVisible() for dock in docks]
+            for dock in docks:
+                dock.hide()
+        else:
+            for dock, visible in zip(docks, getattr(self, "_focus_visibility", [True] * 3), strict=True):
+                dock.setVisible(visible)
 
     def _model_name(self) -> str:
         llm = getattr(getattr(self.controller, "loop", None), "llm", None)
@@ -270,13 +288,18 @@ class DesktopWindow(QMainWindow):
         self.feed_layout.setSpacing(18)
         self.hero = QWidget()
         hero_layout = QVBoxLayout(self.hero)
-        hero_layout.setContentsMargins(12, 50, 12, 25)
-        eyebrow = QLabel("SEU ESPAÇO DE POSSIBILIDADES")
+        hero_layout.setContentsMargins(24, 30, 24, 25)
+        self.hero_companion = CompanionStage()
+        self.hero_companion.setFixedHeight(170)
+        hero_layout.addWidget(self.hero_companion)
+        eyebrow = QLabel("NYX / OXYNISX")
         eyebrow.setObjectName("Eyebrow")
+        eyebrow.setAlignment(Qt.AlignmentFlag.AlignCenter)
         hero_layout.addWidget(eyebrow)
         title = QLabel("O que vamos fazer juntos?")
         title.setObjectName("HeroTitle")
         title.setWordWrap(True)
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         hero_layout.addWidget(title)
         hero_layout.addWidget(self._muted("Converse, pesquise ou transforme uma ideia em trabalho.\nA Nyx usa os modelos e as ferramentas disponíveis no seu computador."))
         hero_layout.addSpacing(22)
@@ -403,8 +426,19 @@ class DesktopWindow(QMainWindow):
         layout.addWidget(self.queue_label)
         self.companion_dock = self._dock("Companhia e sistema", "companion", body, Qt.DockWidgetArea.RightDockWidgetArea)
 
+    def _tab_section(self, tabs: QTabWidget, title: str) -> QVBoxLayout:
+        section, layout = self._page()
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(section)
+        tabs.addTab(scroll, title)
+        return layout
+
     def _build_evolution_page(self) -> None:
-        page, layout = self._page()
+        page, outer = self._page()
+        self.learning_tabs = QTabWidget()
+        outer.addWidget(self.learning_tabs)
+        layout = self._tab_section(self.learning_tabs, "Estudos")
         layout.addWidget(self._muted("Conhecimento com fontes e propostas de habilidades. Simulações não executam ações nem comprovam resultados."))
         self.research_check = QCheckBox("Estudar documentação durante os intervalos")
         self.research_check.setChecked(self.settings.value("idle_research", True, type=bool))
@@ -437,9 +471,10 @@ class DesktopWindow(QMainWindow):
         self.study_preview.setMinimumHeight(120)
         self.study_preview.setMaximumHeight(200)
         layout.addWidget(self.study_preview)
+        layout = self._tab_section(self.learning_tabs, "Conhecimento")
         self.learning_list = QListWidget()
         self.learning_list.setWordWrap(True)
-        self.learning_list.setMaximumHeight(100)
+        self.learning_list.setMinimumHeight(180)
         layout.addWidget(self.learning_list, 1)
         refresh = QPushButton("Atualizar laboratório")
         refresh.clicked.connect(self._refresh_learning)
@@ -447,6 +482,7 @@ class DesktopWindow(QMainWindow):
         research = QPushButton("Pesquisar e registrar um aprendizado")
         research.clicked.connect(lambda: self._prefill("Quero estudar um assunto. Pergunte qual tema; pesquise fontes reais, leia e registre notas com URLs usando evolution. Separe fatos de hipóteses."))
         layout.addWidget(research)
+        layout = self._tab_section(self.learning_tabs, "Backups")
         self.backup_status = self._muted("Backup criptografado a cada 30 minutos enquanto a Nyx estiver aberta. GitHub usa as credenciais do Git deste computador.")
         layout.addWidget(self.backup_status)
         self.cloud_backup_check = QCheckBox("Copiar backup criptografado ao repositório privado autorizado")
@@ -460,10 +496,8 @@ class DesktopWindow(QMainWindow):
         recovery.clicked.connect(self._export_recovery_key)
         layout.addWidget(recovery)
         layout.addWidget(self._muted("Guarde a chave separada do backup: ela é necessária para recuperar os dados e permite ler seu conteúdo."))
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(page)
-        self.pages.addWidget(scroll)
+        layout.addStretch()
+        self.pages.addWidget(page)
 
     def _research_enabled_changed(self, enabled: bool) -> None:
         self.settings.setValue("idle_research", enabled)
@@ -643,7 +677,10 @@ class DesktopWindow(QMainWindow):
         self.pages.addWidget(page)
 
     def _build_settings_page(self) -> None:
-        page, layout = self._page()
+        page, outer = self._page()
+        self.settings_tabs = QTabWidget()
+        outer.addWidget(self.settings_tabs)
+        layout = self._tab_section(self.settings_tabs, "Aparência e voz")
         layout.addWidget(self._muted("Faça este espaço funcionar do seu jeito. As preferências e a posição dos painéis são salvas automaticamente."))
         form = QFormLayout()
         form.setSpacing(18)
@@ -668,6 +705,8 @@ class DesktopWindow(QMainWindow):
         self.speech_check.setChecked(self.settings.value("speech", True, type=bool))
         form.addRow(self.speech_check)
         layout.addLayout(form)
+        layout.addStretch()
+        layout = self._tab_section(self.settings_tabs, "Modelo local")
         from core.ollama_service import load_runtime_config
 
         runtime = load_runtime_config()
@@ -700,10 +739,7 @@ class DesktopWindow(QMainWindow):
         layout.addWidget(reset)
         layout.addStretch()
         layout.addWidget(self._muted("Painéis podem ser arrastados, ocultados e destacados. Use o menu Painéis para reabri-los.\nA aparência muda a interface; as capacidades continuam dependendo do modelo local e das ferramentas instaladas."))
-        settings_scroll = QScrollArea()
-        settings_scroll.setWidgetResizable(True)
-        settings_scroll.setWidget(page)
-        self.pages.addWidget(settings_scroll)
+        self.pages.addWidget(page)
         self.theme_combo.currentIndexChanged.connect(self._apply_preferences)
         self.accent_combo.currentIndexChanged.connect(self._apply_preferences)
         self.font_slider.valueChanged.connect(self._apply_preferences)
@@ -754,6 +790,10 @@ class DesktopWindow(QMainWindow):
         self.setStyleSheet(desktop_stylesheet(theme, accent, self.font_slider.value()))
         self.companion.accent = QColor(ACCENTS[accent])
         self.companion.set_motion(self.motion_check.isChecked())
+        self.hero_companion.accent = QColor(ACCENTS[accent])
+        self.hero_companion.set_motion(self.motion_check.isChecked())
+        self.controller.setStyleSheet(desktop_stylesheet(theme, accent, self.font_slider.value()))
+        self.controller.set_motion(self.motion_check.isChecked())
         if not self.motion_check.isChecked():
             self._stop_transition()
         options = QMainWindow.DockOption.AllowTabbedDocks | QMainWindow.DockOption.AllowNestedDocks
@@ -1007,6 +1047,9 @@ class DesktopWindow(QMainWindow):
         self.controller.setVisible(not self.controller.isVisible())
 
     def _refresh_status(self) -> None:
+        self.model_badge.setText(self._model_name())
+        llm = getattr(getattr(self.controller, "loop", None), "llm", None)
+        self.model_badge.setToolTip(getattr(llm, "unavailable_reason", "") or "Modelo executado neste computador.")
         if not self.isVisible():
             return
         try:

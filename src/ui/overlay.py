@@ -16,13 +16,14 @@ import logging
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QObject, QPoint, QRunnable, QThreadPool, Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QMouseEvent
+from PyQt6.QtGui import QMouseEvent, QCursor
 from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
+    QMenu,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -134,9 +135,16 @@ class SpeechBubble(QFrame):
         )
         self.lbl_suggestion.setVisible(False)
         layout.addWidget(self.lbl_suggestion)
+        self.setStyleSheet("")
+        self.setObjectName("SpeechSurface")
+        for label in (self.lbl_speaker, self.lbl_text, self.lbl_suggestion):
+            label.setStyleSheet("")
+            label.setTextFormat(Qt.TextFormat.PlainText)
+        self.lbl_speaker.setObjectName("Eyebrow")
+        self.lbl_suggestion.setObjectName("Muted")
 
     def set_message(self, text: str, suggestion: str | None = None) -> None:
-        self.lbl_text.setText(text)
+        self.lbl_text.setText(text if len(text) <= 600 else text[:597] + "…")
         if suggestion:
             self.lbl_suggestion.setText(f"💡 Sugestão: {suggestion}")
             self.lbl_suggestion.setVisible(True)
@@ -206,170 +214,114 @@ class OverlayWindow(QWidget):
 
         self._init_ui()
         self._init_timer()
+        self.adjustSize()
         self._center_on_screen_bottom_right()
 
     def _init_ui(self) -> None:
+        from ui.desktop_theme import desktop_stylesheet
+        self.setStyleSheet(desktop_stylesheet())
+        self.motion_enabled = True
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(10, 10, 10, 10)
-        self.main_layout.setSpacing(6)
-
-        # 1. Balão de fala
+        self.main_layout.setContentsMargins(12, 12, 12, 12)
+        self.main_layout.setSpacing(8)
         self.bubble = SpeechBubble(self)
         self.main_layout.addWidget(self.bubble)
-
-        # 2. Linha do Avatar e Controles
-        avatar_row = QHBoxLayout()
-        avatar_row.setSpacing(10)
-
-        # Label onde o sprite pixel art é renderizado
+        self.bubble.hide()
         self.avatar_label = QLabel(self)
         self.avatar_label.setFixedSize(180, 180)
         self.avatar_label.setCursor(Qt.CursorShape.OpenHandCursor)
+        self.avatar_label.setToolTip("Arraste para mover · botão direito para ações")
+        self.avatar_label.setAccessibleName("Oxynisx, companheira animada")
+        self.main_layout.addWidget(self.avatar_label, alignment=Qt.AlignmentFlag.AlignHCenter)
         self._update_avatar_pixmap()
-        avatar_row.addWidget(self.avatar_label)
-
-        # Painel lateral de status e ações rápidas
-        side_panel = QVBoxLayout()
-        side_panel.setSpacing(6)
-        side_panel.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-
-        # Botão indicador do modo (Assistida / Autônoma)
+        self.pet_controls = QFrame(self)
+        self.pet_controls.setObjectName("ComposerFrame")
+        controls = QVBoxLayout(self.pet_controls)
+        controls.setContentsMargins(12, 10, 12, 10)
+        bar = QHBoxLayout()
+        self.btn_mic = QPushButton("Voz")
+        self.btn_mic.clicked.connect(self._on_mic_clicked)
+        bar.addWidget(self.btn_mic)
+        self.btn_sage = QPushButton("Criar ↗")
+        self.btn_sage.clicked.connect(self._toggle_workspace)
+        bar.addWidget(self.btn_sage)
+        self.btn_close = QPushButton("Recolher")
+        self.btn_close.clicked.connect(self.close)
+        bar.addWidget(self.btn_close)
+        controls.addLayout(bar)
+        self.txt_input = QLineEdit()
+        self.txt_input.setPlaceholderText("Converse com a Nyx…")
+        self.txt_input.setAccessibleName("Mensagem para a Nyx flutuante")
+        self.txt_input.returnPressed.connect(self._on_send_prompt)
+        controls.addWidget(self.txt_input)
+        self.main_layout.addWidget(self.pet_controls)
+        self.pet_controls.hide()
         self.btn_mode = QPushButton(self)
-        self.btn_mode.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_mode.hide()
         self.btn_mode.clicked.connect(self._toggle_mode_clicked)
         self._update_mode_button_style()
-        side_panel.addWidget(self.btn_mode)
-
-        # Botão de voz (Push-to-talk / Toggle)
-        self.btn_mic = QPushButton("🎙️ Ouvir", self)
-        self.btn_mic.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #1E293B;
-                color: #38BDF8;
-                border: 1px solid #334155;
-                border-radius: 6px;
-                padding: 6px 10px;
-                font-weight: bold;
-                font-size: 11px;
-            }
-            QPushButton:hover {
-                background-color: #0284C7;
-                color: #FFFFFF;
-            }
-            """
-        )
-        self.btn_mic.clicked.connect(self._on_mic_clicked)
-        side_panel.addWidget(self.btn_mic)
-
-        # Botão Grande Sábio (Workspace Sub-Window)
-        self.btn_sage = QPushButton("🧙 Sábio", self)
-        self.btn_sage.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #1E293B;
-                color: #10B981;
-                border: 1px solid #059669;
-                border-radius: 6px;
-                padding: 6px 10px;
-                font-weight: bold;
-                font-size: 11px;
-            }
-            QPushButton:hover {
-                background-color: #059669;
-                color: #FFFFFF;
-            }
-            """
-        )
-        self.btn_sage.clicked.connect(self._toggle_workspace)
-        side_panel.addWidget(self.btn_sage)
-
-        from core.updater import updater_supported
-
-        self.btn_update = QPushButton("⟳ Atualizações", self)
-        self.btn_update.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_update.setToolTip("Verifica uma nova versão e instala com validação e rollback")
-        self.btn_update.setVisible(updater_supported())
+        self.btn_update = QPushButton(self)
+        self.btn_update.hide()
         self.btn_update.clicked.connect(self._check_for_updates)
-        side_panel.addWidget(self.btn_update)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._pet_menu)
+        self._bubble_timer = QTimer(self)
+        self._bubble_timer.setSingleShot(True)
+        self._bubble_timer.timeout.connect(self._hide_bubble)
 
-        # Botão Minimizar/Fechar overlay
-        self.btn_close = QPushButton("✕ Sair", self)
-        self.btn_close.setStyleSheet(
-            """
-            QPushButton {
-                background-color: transparent;
-                color: #64748B;
-                border: none;
-                font-size: 10px;
-                padding: 4px;
-            }
-            QPushButton:hover {
-                color: #EF4444;
-            }
-            """
-        )
-        self.btn_close.clicked.connect(self.close)
-        side_panel.addWidget(self.btn_close)
+    def _hide_bubble(self) -> None:
+        self.bubble.hide()
+        self.adjustSize()
 
-        avatar_row.addLayout(side_panel)
-        avatar_row.addStretch()
-        self.main_layout.addLayout(avatar_row)
+    def _pet_menu(self, position) -> None:
+        menu = QMenu(self)
+        menu.addAction("Conversar", self._toggle_pet_controls)
+        menu.addAction("Ouvir minha voz", self._on_mic_clicked)
+        menu.addAction("Espaço de criação", self._toggle_workspace)
+        menu.addAction("Abrir Nyx", self._show_desktop)
+        menu.addSeparator()
+        menu.addAction(self.btn_mode.text(), self._toggle_mode_clicked)
+        menu.addAction("Interromper tarefa", self.cancel_task)
+        from core.updater import updater_supported
+        update = menu.addAction("Verificar atualizações", self._check_for_updates)
+        update.setEnabled(updater_supported())
+        menu.addAction("Recolher pet", self.hide)
+        menu.exec(self.mapToGlobal(position))
 
-        # 3. Barra de entrada de texto
-        input_container = QFrame(self)
-        input_container.setStyleSheet(
-            """
-            QFrame {
-                background-color: rgba(30, 41, 59, 230);
-                border: 1px solid #475569;
-                border-radius: 8px;
-            }
-            """
-        )
-        input_layout = QHBoxLayout(input_container)
-        input_layout.setContentsMargins(8, 4, 8, 4)
-        input_layout.setSpacing(6)
+    def _show_desktop(self) -> None:
+        if self.interaction_parent is not self:
+            self.interaction_parent.showNormal()
+            self.interaction_parent.raise_()
+            self.interaction_parent.activateWindow()
 
-        self.txt_input = QLineEdit(input_container)
-        self.txt_input.setPlaceholderText("Comando ou mensagem para Nyx...")
-        self.txt_input.setStyleSheet(
-            """
-            QLineEdit {
-                background: transparent;
-                border: none;
-                color: #F8FAFC;
-                font-size: 12px;
-                padding: 4px;
-            }
-            QLineEdit:focus {
-                outline: none;
-            }
-            """
-        )
-        self.txt_input.returnPressed.connect(self._on_send_prompt)
-        input_layout.addWidget(self.txt_input)
+    def _toggle_pet_controls(self) -> None:
+        self.pet_controls.setVisible(not self.pet_controls.isVisible())
+        if self.pet_controls.isVisible():
+            self.txt_input.setFocus()
+        self.adjustSize()
 
-        btn_send = QPushButton("➔", input_container)
-        btn_send.setFixedSize(28, 28)
-        btn_send.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #7C3AED;
-                color: #FFFFFF;
-                border-radius: 6px;
-                font-weight: bold;
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: #8B5CF6;
-            }
-            """
-        )
-        btn_send.clicked.connect(self._on_send_prompt)
-        input_layout.addWidget(btn_send)
+    def mouseDoubleClickEvent(self, event) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._toggle_pet_controls()
+            event.accept()
 
-        self.main_layout.addWidget(input_container)
+    def set_motion(self, enabled: bool) -> None:
+        self.motion_enabled = enabled
+        if enabled and self.isVisible():
+            self.timer.start(160)
+        else:
+            self.timer.stop()
+        self._update_avatar_pixmap()
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if hasattr(self, "timer") and self.motion_enabled:
+            self.timer.start(160)
+
+    def hideEvent(self, event) -> None:
+        if hasattr(self, "timer"):
+            self.timer.stop()
+        super().hideEvent(event)
 
     def _check_for_updates(self) -> None:
         if self._update_busy:
@@ -444,7 +396,7 @@ class OverlayWindow(QWidget):
         """Timer de animação periódica para respiração e micro-movimentos."""
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._tick_animation)
-        self.timer.start(550)
+        self.timer.setInterval(160)
 
     def _tick_animation(self) -> None:
         if not self.isVisible():
@@ -458,6 +410,10 @@ class OverlayWindow(QWidget):
             mode=self.current_mode,
             frame=self.anim_frame,
         )
+        if self.current_emotion == "idle" and self.motion_enabled and not self._is_dragging:
+            center = self.avatar_label.mapToGlobal(self.avatar_label.rect().center())
+            delta = QCursor.pos() - center
+            pix = self.renderer.look_at(delta.x(), delta.y())
         self.avatar_label.setPixmap(pix)
 
     def _update_mode_button_style(self) -> None:
@@ -511,7 +467,7 @@ class OverlayWindow(QWidget):
             # Ativação autônoma legítima por fonte UI
             self.loop.activate_autonomous(source=source)
             self.current_mode = "autonoma"
-            self.say("Modo autônomo ativado (30min). Viseira âmbar ligada.", emotion="think")
+            self.say("Modo autônomo ativado por 30 minutos.", emotion="think")
         else:
             self.loop.deactivate_autonomous(source=source)
             self.current_mode = "assistida"
@@ -538,8 +494,8 @@ class OverlayWindow(QWidget):
         screen = QGuiApplication.primaryScreen()
         if screen:
             geo = screen.availableGeometry()
-            x = geo.width() - self.width() - 30
-            y = geo.height() - self.height() - 40
+            x = geo.right() - self.width() - 30
+            y = geo.bottom() - self.height() - 40
             self.move(x, y)
 
     # ----------------------------------------------------------------------
@@ -583,6 +539,8 @@ class OverlayWindow(QWidget):
     def say(self, text: str, emotion: str = "talk", suggestion: str | None = None) -> None:
         self.set_emotion(emotion)
         self.bubble.set_message(text, suggestion)
+        self.bubble.show()
+        self._bubble_timer.start(20_000)
         self.message_received.emit("assistant", text)
         if hasattr(self, "tts") and self.tts:
             self.tts.speak(text)
@@ -716,6 +674,8 @@ class OverlayWindow(QWidget):
             self._open_workspace_if_needed()
         if progress["phase"] == "executing":
             self.bubble.set_message(f"Etapa {progress['step']}: {progress['tool']}")
+            self.bubble.show()
+            self._bubble_timer.start(20_000)
 
     def cancel_task(self) -> None:
         runner = getattr(self.loop, "task_runner", None)
@@ -757,6 +717,7 @@ class OverlayWindow(QWidget):
         try:
             from ui.workspace_window import WorkspaceWindow
             ws = WorkspaceWindow.get_instance()
+            ws.setStyleSheet(self.styleSheet())
             ws.show()
             ws.raise_()
             ws.activateWindow()
@@ -768,6 +729,7 @@ class OverlayWindow(QWidget):
         try:
             from ui.workspace_window import WorkspaceWindow
             ws = WorkspaceWindow.get_instance()
+            ws.setStyleSheet(self.styleSheet())
             if ws.isVisible():
                 ws.hide()
             else:

@@ -58,6 +58,28 @@ def _wait(app, predicate, timeout=3):
     assert predicate()
 
 
+def test_pet_motion_controls_focus_and_transparency(desktop):
+    window, app, _ = desktop
+    pet = window.controller
+    pet.show()
+    app.processEvents()
+    assert pet.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+    assert not pet.pet_controls.isVisible()
+    assert pet.timer.isActive()
+    pet._toggle_pet_controls()
+    assert pet.txt_input.isVisible()
+    window.motion_check.setChecked(False)
+    assert not pet.timer.isActive()
+    assert not window.hero_companion.timer.isActive()
+    window.motion_check.setChecked(True)
+    pet.hide()
+    assert not pet.timer.isActive()
+    window.focus_button.setChecked(True)
+    assert not window.sidebar.isVisible()
+    window.focus_button.setChecked(False)
+    assert window.sidebar.isVisible()
+
+
 def test_research_controls_persist_cancel_and_display_collected_text(desktop, tmp_path):
     from core.evolution import EvolutionLab
     from core.research import ResearchQueue

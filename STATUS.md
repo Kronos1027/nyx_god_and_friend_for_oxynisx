@@ -2,6 +2,17 @@
 
 Última atualização: 2026-10-21
 
+## Interface e Oxynisx — revisão de 2026-10-21
+
+- Atlas estendido original integrado: 1536 × 2288 RGBA, nove estados animados e 16 olhares. Direções do cursor correspondem ao mapa QA fornecido. Quatro diagonais têm ressalvas visuais na origem: 135°, 157,5°, 202,5° e 337,5°.
+- Pet flutuante com fundo transparente, controles recolhíveis, menu contextual, duplo clique para conversar, arraste, voz, criação e interrupção. Timer de animação desligado quando oculto ou com movimento desativado; cache direcional limitado a 16 poses.
+- Conversa com Oxynisx na abertura e modo Foco; aprendizado separado em Estudos, Conhecimento e Backups; personalização separada em Aparência e voz / Modelo local; estilo compartilhado com Estúdio, confirmação e pet. As telas continuam em refinamento; não se afirma reprodução completa das funções do pet do ChatGPT.
+- Recuperação do modelo em pedido posterior com intervalo mínimo de 30 segundos, sem repetir geração que falhou. Migração apenas dos fatos antigos exatos de sistema; preferências personalizadas preservadas e conexões SQLite fechadas explicitamente.
+- Validação: **271 passed, 1 skipped, 1 warning** em 13,01 s; Ruff aprovado. Capturas dos três temas, 920 × 640 em modo Foco, estudos, conhecimento, backups, personalização, agenda, estúdio, confirmação e pet geradas em build/previews. Renderização offscreen não comprova composição/DPI em todos os monitores Windows ou qualidade de voz.
+- Corrigida falha real de backup com WinError 17 na pasta de dados Windows criptografada: alternativa grava arquivo exclusivo, sincroniza e valida antes de retornar, preserva latest anterior e retém cinco snapshots alternativos. Backup dos quatro bancos nativos criado e validado. Autoteste também revelou e permitiu corrigir acesso ao modelo ausente na renderização sem controlador de inferência.
+- Pacote reconstruído e instalado em `%LOCALAPPDATA%/Programs/Nyx/Nyx.exe`; autoteste do pacote e da instalação aprovados (exit 0). SHA256 ZIP: `d6adc08d681df38a822f1a1cf6722792199047d50f13cd999a4c2e786f082236`. Executável instalado idêntico ao pacote: `391504e98c1356575fd767cf5da31751ccce7f36553a8a428069433ec63d13eb`.
+- A revisão não treina pesos, não comprova AGI nem paridade com Astra. Testes reais prolongados de voz, automação geral e desempenho permanecem pendentes.
+
 ## Executor de tarefas com vários passos
 
 - TaskRunner conectado à interface nativa: decisão → política → ferramenta → verificação → observação → próxima decisão. Até seis ações e prazo cooperativo de 180 segundos; operações já iniciadas não são interrompidas à força.
@@ -10,7 +21,7 @@
 - Planejamento com modelo real ainda não validado nesta revisão: o roteador recusou carregar modelos nas tentativas com RAM livre variando entre aproximadamente 0,7 e 1,9 GiB. Nenhum modelo estava residente em Ollama. O limite foi preservado e aplicativos do usuário continuaram funcionando. Relatório de adiamento: `build/previews/task-live-smoke.json`.
 - Detalhes e lacunas em `docs/TASK_EXECUTION.md`; diagnóstico real reproduzível em `tools/verify_task_runner.py`. A CLI ainda usa uma ação por ciclo. Retomada de tarefas após reinício, filas de pedidos e conversa concorrente com tarefas continuam pendentes.
 - Executável reconstruído e autoteste do pacote aprovado, incluindo duas ações reais sobre arquivos temporários com planejador roteirizado. ZIP SHA256: `2fb780f76bde3b08eaf015bf16a625d45193384c9090c1a0b470c20210ae688b`.
-- Próximas inconsistências confirmadas: os fatos iniciais da memória ainda contêm a persona antiga de viseira/kuudere e hardware fixo; a rota do modelo é escolhida no início e falta recuperação automática quando a RAM volta a ficar disponível. Devem ser corrigidas preservando preferências e dados reais do usuário.
+- As inconsistências de persona inicial e recuperação da rota foram tratadas na revisão de interface acima; validação da recuperação sob carga prolongada permanece pendente.
 
 ## Pesquisa ociosa verificada
 

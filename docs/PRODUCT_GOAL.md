@@ -33,3 +33,7 @@ O objetivo completo permanece ativo. Recursos já implementados precisam ser ava
 ## Critério de conclusão
 
 Validar conversas e tarefas reais com modelos locais, ações Windows, agenda entre reinícios, áudio e recuperação de falhas; verificar desempenho em sessões prolongadas e cargas concorrentes; renderizar e exercitar a interface em diferentes tamanhos e temas; testar instalação e atualização entre versões. Qualquer requisito sem evidência mantém a meta em andamento. O arquivo STATUS.md registra resultados e lacunas atuais.
+
+## Refinamento solicitado em 2026-10-21
+
+Recriar todas as interfaces (conversa, agenda, personalização, aprendizado, criação, confirmações e pet flutuante) com composição minimalista, tecnológica, modular e animada. Usar a Oxynisx original de work/oxynisx, incluindo o atlas estendido e o mapa qa/direction-semantics.json. Olhares, reações, voz e atividade devem corresponder ao estado real, com opção sem movimento e pausa quando oculto.

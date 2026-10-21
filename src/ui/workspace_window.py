@@ -47,95 +47,25 @@ class WorkspaceWindow(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent, Qt.WindowType.Window)
-        self.setWindowTitle("Nyx — O Grande Sábio (Workspace)")
+        self.setWindowTitle("Nyx — Estúdio")
         self.resize(750, 520)
-        self.setStyleSheet(
-            """
-            QWidget {
-                background-color: #0F172A;
-                color: #F8FAFC;
-                font-family: 'Segoe UI', sans-serif;
-            }
-            QTabWidget::pane {
-                border: 1px solid #334155;
-                background-color: #1E293B;
-                border-radius: 6px;
-            }
-            QTabBar::tab {
-                background: #0F172A;
-                color: #94A3B8;
-                padding: 8px 16px;
-                border: 1px solid #1E293B;
-                border-bottom: none;
-                border-top-left-radius: 6px;
-                border-top-right-radius: 6px;
-                font-weight: bold;
-                font-size: 12px;
-            }
-            QTabBar::tab:selected {
-                background: #1E293B;
-                color: #10B981;
-                border: 1px solid #334155;
-                border-bottom: 2px solid #10B981;
-            }
-            QTabBar::tab:hover {
-                color: #F8FAFC;
-            }
-            QPushButton {
-                background-color: #10B981;
-                color: #022C22;
-                border-radius: 6px;
-                padding: 6px 12px;
-                font-weight: bold;
-                font-size: 11px;
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: #34D399;
-            }
-            QPushButton#btnSecondary {
-                background-color: #334155;
-                color: #F8FAFC;
-            }
-            QPushButton#btnSecondary:hover {
-                background-color: #475569;
-            }
-            QTableWidget {
-                background-color: #0F172A;
-                gridline-color: #334155;
-                border: 1px solid #334155;
-                border-radius: 4px;
-            }
-            QHeaderView::section {
-                background-color: #1E293B;
-                color: #10B981;
-                font-weight: bold;
-                padding: 6px;
-                border: 1px solid #334155;
-            }
-            QPlainTextEdit, QTextBrowser {
-                background-color: #0B0F19;
-                border: 1px solid #334155;
-                border-radius: 6px;
-                color: #E2E8F0;
-                padding: 8px;
-            }
-            """
-        )
+        from ui.desktop_theme import desktop_stylesheet
+        self.setObjectName("WorkspaceSurface")
+        self.setStyleSheet(parent.styleSheet() if parent and parent.styleSheet() else desktop_stylesheet())
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 14, 14, 14)
-        layout.setSpacing(10)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(20)
 
         # Cabeçalho Cyberpunk
         header_layout = QHBoxLayout()
-        lbl_title = QLabel("🔮 GRANDE SÁBIO — WORKSPACE INTEGRADO", self)
-        lbl_title.setStyleSheet("color: #10B981; font-weight: bold; font-size: 13px; letter-spacing: 1px;")
+        lbl_title = QLabel("Estúdio / Nyx", self)
+        lbl_title.setObjectName("PageTitle")
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
 
         self.lbl_status = QLabel("Pronto para sintetizar.", self)
-        self.lbl_status.setStyleSheet("color: #64748B; font-size: 11px;")
+        self.lbl_status.setObjectName("Muted")
         header_layout.addWidget(self.lbl_status)
         layout.addLayout(header_layout)
 
@@ -228,11 +158,11 @@ class WorkspaceWindow(QWidget):
     def _init_telemetry_tab(self) -> None:
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        layout.setContentsMargins(14, 14, 14, 14)
-        layout.setSpacing(10)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(20)
 
         self.lbl_hw_info = QLabel("Carregando telemetria de hardware...", tab)
-        self.lbl_hw_info.setStyleSheet("font-size: 13px; line-height: 1.6; color: #E2E8F0;")
+        self.lbl_hw_info.setObjectName("Muted")
         layout.addWidget(self.lbl_hw_info)
 
         btn_refresh = QPushButton("🔄 Atualizar Diagnóstico", tab)

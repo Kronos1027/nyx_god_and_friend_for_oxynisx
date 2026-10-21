@@ -3,6 +3,25 @@
 from core.memory import MemoryManager
 
 
+def test_legacy_seed_migration_preserves_custom_facts(tmp_path):
+    import sqlite3
+    import pytest
+    from core.memory import CoreMemory, EpisodicStore, DEFAULT_CORE_FACTS
+    store = EpisodicStore(tmp_path / "legacy.db")
+    store.set_fact("system_os", "Windows 11", category="system")
+    store.set_fact("hardware_gpu", "My custom GPU", category="user_profile")
+    store.set_fact("nyx_persona", "My custom persona", category="system")
+    core = CoreMemory(store)
+    assert core.get("system_os") == DEFAULT_CORE_FACTS["system_os"]
+    assert core.get("hardware_gpu") == "My custom GPU"
+    assert core.get("nyx_persona") == "My custom persona"
+    assert CoreMemory(store).all() == core.all()
+    with store._get_conn() as conn:
+        conn.execute("SELECT 1")
+    with pytest.raises(sqlite3.ProgrammingError):
+        conn.execute("SELECT 1")
+
+
 def test_episodic_store_and_core_memory(tmp_path):
     mgr = MemoryManager(data_dir=tmp_path, session_id="test_sess")
 

@@ -12,6 +12,7 @@ import json
 import logging
 import re
 import sqlite3
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,9 +20,9 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 DEFAULT_CORE_FACTS = {
-    "system_os": "Windows 11",
-    "hardware_gpu": "NVIDIA GeForce RTX 3060 (12GB VRAM)",
-    "nyx_persona": "Nyx: IA desktop kuudere, perspicaz, protetora e direta. Viseira verde (assistida) / ambar (autonoma).",
+    "system_os": "Consultar telemetria para confirmar o sistema atual.",
+    "hardware_gpu": "Consultar telemetria para confirmar GPU e memória disponíveis.",
+    "nyx_persona": "Nyx: parceira local amigável, curiosa, calma e direta, representada pela companheira Oxynisx. Reconhece incertezas e verifica resultados.",
     "security_policy": "Acoes destrutivas sempre exigem confirmacao humana explicita via dialog.",
 }
 
@@ -46,10 +47,15 @@ class EpisodicStore:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 
-    def _get_conn(self) -> sqlite3.Connection:
+    @contextmanager
+    def _get_conn(self):
         conn = sqlite3.connect(str(self.db_path), timeout=10.0)
         conn.row_factory = sqlite3.Row
-        return conn
+        try:
+            with conn:
+                yield conn
+        finally:
+            conn.close()
 
     def _init_db(self) -> None:
         with self._get_conn() as conn:
@@ -241,11 +247,20 @@ class CoreMemory:
         self._load()
 
     def _load(self) -> None:
+        legacy = {
+            "system_os": "Windows 11",
+            "hardware_gpu": "NVIDIA GeForce RTX 3060 (12GB VRAM)",
+            "nyx_persona": "Nyx: IA desktop kuudere, perspicaz, protetora e direta. Viseira verde (assistida) / ambar (autonoma).",
+        }
+        # Only replace exact seeded system defaults, preserving user-provided facts.
+        with self.store._get_conn() as conn:
+            for key, value in DEFAULT_CORE_FACTS.items():
+                conn.execute("INSERT OR IGNORE INTO facts(key,value,category,updated_at) VALUES (?,?,'system',?)",
+                             (key, value, datetime.now(timezone.utc).isoformat()))
+                if key in legacy:
+                    conn.execute("UPDATE facts SET value=?,updated_at=? WHERE key=? AND value=? AND category='system'",
+                                 (value, datetime.now(timezone.utc).isoformat(), key, legacy[key]))
         stored = self.store.get_all_facts()
-        if not stored:
-            for k, v in DEFAULT_CORE_FACTS.items():
-                self.store.set_fact(k, v, category="system")
-            stored = self.store.get_all_facts()
         self._facts = stored
 
     def set(self, key: str, value: str, category: str = "general") -> None:

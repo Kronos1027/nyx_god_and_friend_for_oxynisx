@@ -1,7 +1,7 @@
 """Themes for the native, dockable Nyx desktop workspace."""
 
 PALETTES = {
-    "midnight": {"bg": "#101116", "panel": "#171920", "card": "#20232d", "text": "#f1f2f7", "muted": "#9da3b5", "line": "#303440"},
+    "midnight": {"bg": "#111215", "panel": "#18191d", "card": "#23252b", "text": "#f1f2f7", "muted": "#9da3b5", "line": "#303440"},
     "aurora": {"bg": "#101724", "panel": "#141f30", "card": "#1c2b42", "text": "#f0f5ff", "muted": "#9cacc4", "line": "#2d405b"},
     "daylight": {"bg": "#f6f7fb", "panel": "#ffffff", "card": "#e9edf5", "text": "#192235", "muted": "#536179", "line": "#d6ddea"},
 }
@@ -14,7 +14,7 @@ def desktop_stylesheet(theme: str = "midnight", accent: str = "violet", font_siz
     a = ACCENTS.get(accent, ACCENTS["violet"])
     ink = {"violet": "#6650c8", "cyan": "#087f91", "mint": "#187955", "amber": "#8a6512"}.get(accent, "#6650c8") if theme == "daylight" else a
     return f"""
-    QMainWindow#NyxDesktop, QWidget#DesktopPage {{ background: {p['bg']}; }}
+    QWidget#WorkspaceSurface, QMainWindow#NyxDesktop, QWidget#DesktopPage {{ background: {p['bg']}; }}
     QWidget {{ color: {p['text']}; font-family: 'Segoe UI'; font-size: {font_size}px; }}
     QDockWidget {{ background: {p['panel']}; border: none; }}
     QDockWidget::title {{ background: {p['panel']}; color: {p['muted']}; padding: 10px 14px; font-size: 11px; }}
@@ -23,12 +23,12 @@ def desktop_stylesheet(theme: str = "midnight", accent: str = "violet", font_siz
     QFrame#TopBar {{ background: {p['bg']}; border-bottom: 1px solid {p['line']}; }}
     QLabel#Brand {{ font-size: 24px; font-weight: 700; color: {ink}; }}
     QLabel#PageTitle {{ font-size: 22px; font-weight: 600; }}
-    QLabel#HeroTitle {{ font-size: 32px; font-weight: 600; }}
+    QLabel#HeroTitle {{ font-size: 30px; font-weight: 600; }}
     QLabel#Eyebrow {{ color: {ink}; font-size: 11px; letter-spacing: 2px; font-weight: 600; }}
     QLabel#Muted, QLabel#MessageRole {{ color: {p['muted']}; }}
     QLabel#MessageRole {{ font-size: 11px; font-weight: 600; }}
     QLabel#Badge {{ background: {p['card']}; color: {ink}; padding: 6px 12px; border-radius: 12px; font-size: 11px; }}
-    QPushButton, QToolButton {{ background: {p['card']}; border: 1px solid transparent; border-radius: 9px; padding: 9px 13px; }}
+    QPushButton, QToolButton {{ background: {p['card']}; border: 1px solid transparent; border-radius: 12px; padding: 9px 13px; }}
     QPushButton:hover, QToolButton:hover {{ border: 1px solid {a}; }}
     QPushButton:disabled {{ color: {p['muted']}; }}
     QPushButton#Primary {{ background: {a}; color: #151a25; font-weight: 700; }}
@@ -36,7 +36,7 @@ def desktop_stylesheet(theme: str = "midnight", accent: str = "violet", font_siz
     QPushButton#Nav:checked {{ background: {p['card']}; color: {ink}; }}
     QPushButton#Quiet {{ background: transparent; color: {p['muted']}; padding: 4px 8px; font-size: 11px; }}
     QPushButton#Suggestion {{ background: {p['panel']}; border: 1px solid {p['line']}; text-align: left; padding: 16px; }}
-    QLineEdit, QTextEdit#Composer, QComboBox, QDateTimeEdit {{ background: {p['card']}; border: 1px solid {p['line']}; border-radius: 9px; padding: 9px; selection-background-color: {a}; }}
+    QLineEdit, QTextEdit#Composer, QComboBox, QDateTimeEdit {{ background: {p['card']}; border: 1px solid {p['line']}; border-radius: 12px; padding: 9px; selection-background-color: {a}; }}
     QLineEdit:focus, QTextEdit#Composer:focus {{ border: 1px solid {a}; }}
     QFrame#ComposerFrame {{ background: {p['panel']}; border: 1px solid {p['line']}; border-radius: 18px; }}
     QTextEdit#Composer {{ background: transparent; border: none; padding: 8px; }}
@@ -45,7 +45,7 @@ def desktop_stylesheet(theme: str = "midnight", accent: str = "violet", font_siz
     QFrame#UserCard {{ background: {p['card']}; border-radius: 15px; }}
     QFrame#ErrorCard {{ background: {p['card']}; border-left: 3px solid #e58a96; border-radius: 10px; }}
     QTextBrowser#MessageBody {{ background: transparent; border: none; padding: 0px; selection-background-color: {a}; }}
-    QTextBrowser#StudyPreview {{ background: {p['card']}; color: {p['text']}; border: 1px solid {p['line']}; border-radius: 9px; padding: 10px; selection-background-color: {a}; }}
+    QTextBrowser#StudyPreview {{ background: {p['card']}; color: {p['text']}; border: 1px solid {p['line']}; border-radius: 12px; padding: 10px; selection-background-color: {a}; }}
     QListWidget {{ background: transparent; border: none; outline: none; }}
     QListWidget::item {{ padding: 11px 9px; border-radius: 8px; }}
     QListWidget::item:selected {{ background: {p['card']}; color: {ink}; }}
@@ -61,6 +61,13 @@ def desktop_stylesheet(theme: str = "midnight", accent: str = "violet", font_siz
     QMenu::item {{ padding: 7px 18px; }}
     QMenu::item:selected {{ background: {p['card']}; color: {a}; }}
     QStatusBar {{ background: {p['panel']}; color: {p['muted']}; font-size: 11px; }}
+    QFrame#PermissionSurface, QFrame#SpeechSurface {{ background: {p['panel']}; border: 1px solid {p['line']}; border-radius: 18px; }}
+    QTabWidget::pane {{ border: none; background: {p['panel']}; }}
+    QTabBar::tab {{ padding: 12px 18px; background: transparent; color: {p['muted']}; }}
+    QTabBar::tab:selected {{ color: {ink}; border-bottom: 2px solid {ink}; }}
+    QPlainTextEdit, QTextEdit#ActionDetails, QTableWidget {{ background: {p['card']}; color: {p['text']}; border: 1px solid {p['line']}; border-radius: 12px; padding: 12px; selection-background-color: {a}; }}
+    QHeaderView::section {{ background: {p['panel']}; color: {p['muted']}; padding: 10px; border: none; }}
+    QPushButton#Danger {{ background: #bd344b; color: white; }}
     QScrollBar:vertical {{ width: 8px; background: transparent; }}
     QScrollBar::handle:vertical {{ background: {p['line']}; border-radius: 4px; min-height: 30px; }}
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0px; }}
