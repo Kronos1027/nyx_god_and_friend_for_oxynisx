@@ -25,3 +25,13 @@ Os testes simulados cobrem carregamento único, CPU int8, cache, VRAM/RAM insufi
 ## Ainda pendente
 
 Microfone real, sotaques/ruído, fala longa, conversa por voz de ponta a ponta, qualidade da voz sintetizada e latência sustentada. A fila coordena STT e chamadas Ollama desta aplicação; TTS, llama.cpp e processos externos ainda não têm a mesma coordenação. O modelo STT permanece em cache; não há descarregamento por inatividade. Limites não interrompem instantaneamente uma chamada nativa travada.
+
+## Interrupção da fala e uso do microfone
+
+A fila de TTS agora usa gerações e eventos por fala. Parar em repouso não descarta a próxima resposta; parar invalida itens antigos, inclusive os já retirados da fila pelo worker. Não há mais uma thread observadora por frase. O worker sobrevive a erros, shutdown é idempotente e novas falas após encerramento são ignoradas. Texto para síntese fica limitado a 3 mil caracteres e oito itens pendentes.
+
+O fluxo gráfico abre uma sessão de microfone que cancela a fala atual, suprime novas falas e aguarda até três segundos pelo worker ficar ocioso. Se não terminar, a captura não começa e a interface informa a causa. A suspensão dura até terminar a transcrição. Isso é coordenação de turnos, não cancelamento acústico de eco; áudio de outros aplicativos continua possível.
+
+SAPI usa Speak assíncrono com texto simples, consulta WaitUntilDone a cada 50 ms e solicita purge ao cancelar. Referências oficiais: https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ee125223(v=vs.85) e https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ee125654(v=vs.85) . Kokoro ainda não interrompe a chamada nativa create no meio; uma síntese demorada pode impedir temporariamente a captura, mas o resultado cancelado não inicia reprodução.
+
+Validação: 345 testes aprovados, um ignorado, aviso conhecido COM; Ruff aprovado. Casos cobrem parada ociosa, cancelamento, fila, pausa aninhada, timeout antes da captura, erros e encerramento. Teste com SAPI real redirecionado para WAV: fala de 23 mil caracteres cancelada por timer de 150 ms, chamada async seguida de purge, duração total 0,234 s. Esse ensaio do backend excedeu deliberadamente o limite público de 3 mil caracteres para manter fala pendente. A primeira tentativa falhou por assinatura incorreta do wrapper de teste; corrigida na segunda tentativa. Relatórios preservados em build/previews/sapi-cancel.json e sapi-cancel-corrected.json. Nenhum som foi reproduzido nem microfone capturado nesse teste.

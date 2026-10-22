@@ -18,6 +18,7 @@ import queue
 import re
 import sys
 import threading
+from contextlib import contextmanager
 from app_paths import user_data_dir
 
 log = logging.getLogger(__name__)
@@ -141,7 +142,11 @@ class _Sapi5Backend:
                     break
 
             if not stop_event.is_set():
-                speaker.Speak(text)
+                speaker.Speak(text, 1 | 16)  # async, plain text
+                while not speaker.WaitUntilDone(50):
+                    if stop_event.is_set():
+                        speaker.Speak("", 1 | 2 | 16)  # purge pending speech
+                        break
         except Exception as exc:
             log.warning(f"Erro no TTS SAPI5: {exc}")
         finally:
@@ -161,8 +166,14 @@ class TextToSpeech:
     def __init__(self, enabled: bool = True) -> None:
         self.enabled = enabled
         # Bound pending speech so bursts of responses cannot grow RAM forever.
-        self._queue: queue.Queue[str | None] = queue.Queue(maxsize=8)
-        self._stop_event = threading.Event()
+        self._queue: queue.Queue[tuple[int, str] | None] = queue.Queue(maxsize=8)
+        self._state_lock = threading.RLock()
+        self._generation = 0
+        self._current_stop = None
+        self._idle = threading.Event()
+        self._idle.set()
+        self._paused = 0
+        self._closed = False
         self._kokoro = _KokoroBackend()
         self._sapi5 = _Sapi5Backend()
         self._worker_thread = threading.Thread(
@@ -174,71 +185,97 @@ class TextToSpeech:
         """Loop de consumo da fila de falas."""
         while True:
             item = self._queue.get()
-            if item is None:  # sinal de encerramento
-                break
-            if not self._stop_event.is_set():
-                self._synthesize(item)
-            self._queue.task_done()
+            try:
+                if item is None:
+                    return
+                generation, text = item
+                with self._state_lock:
+                    if self._closed or self._paused or generation != self._generation:
+                        continue
+                    stop = threading.Event()
+                    self._current_stop = stop
+                    self._idle.clear()
+                try:
+                    self._synthesize(text, stop)
+                except Exception:
+                    log.exception("Falha na fala; worker continua disponível")
+                finally:
+                    with self._state_lock:
+                        self._current_stop = None
+                        self._idle.set()
+            finally:
+                self._queue.task_done()
 
-    def _synthesize(self, text: str) -> None:
+    def _synthesize(self, text: str, stop: threading.Event) -> None:
         """Escolhe o backend e sintetiza o texto."""
-        stop = threading.Event()
-        # Compartilha o stop_event global com o backend
-        # para responder a stop_current()
-        self._current_stop = stop
-
-        def _watch_global():
-            """Propaga o stop_event global para o stop local."""
-            while not self._stop_event.is_set() and not stop.is_set():
-                stop.wait(timeout=0.05)
-            stop.set()
-
-        watcher = threading.Thread(target=_watch_global, daemon=True)
-        watcher.start()
-
-        try:
-            if self._kokoro.is_available():
-                self._kokoro.speak(text, stop)
-            elif sys.platform == "win32":
-                self._sapi5.speak(text, stop)
-        finally:
-            stop.set()
-            self._stop_event.clear()
+        if stop.is_set():
+            return
+        available = self._kokoro.is_available()
+        if stop.is_set():
+            return
+        if available:
+            self._kokoro.speak(text, stop)
+        elif sys.platform == "win32":
+            self._sapi5.speak(text, stop)
 
     def speak(self, text: str) -> None:
         """Enfileira texto para síntese assíncrona."""
         if not self.enabled or not text:
             return
-        clean = _clean_text_for_speech(text)
+        clean = _clean_text_for_speech(text[:12000])[:3000]
         if not clean:
             return
-        try:
-            self._queue.put_nowait(clean)
-        except queue.Full:
-            # Keep the newest conversational reply; stale queued speech is less useful.
+        with self._state_lock:
+            if self._closed or self._paused:
+                return
+            item = (self._generation, clean)
             try:
-                self._queue.get_nowait()
-                self._queue.task_done()
-            except queue.Empty:
-                pass
-            try:
-                self._queue.put_nowait(clean)
+                self._queue.put_nowait(item)
             except queue.Full:
-                log.debug("Fila de TTS permaneceu cheia; fala descartada.")
+                try:
+                    self._queue.get_nowait()
+                    self._queue.task_done()
+                except queue.Empty:
+                    pass
+                self._queue.put_nowait(item)
 
     def stop_current(self) -> None:
         """Para a fala atual imediatamente e limpa a fila."""
-        self._stop_event.set()
-        # Esvazia fila
-        while not self._queue.empty():
-            try:
-                self._queue.get_nowait()
-                self._queue.task_done()
-            except queue.Empty:
-                break
+        with self._state_lock:
+            self._generation += 1
+            if self._current_stop is not None:
+                self._current_stop.set()
+            while True:
+                try:
+                    item = self._queue.get_nowait()
+                    self._queue.task_done()
+                    if item is None:
+                        self._queue.put_nowait(None)
+                        break
+                except queue.Empty:
+                    break
+
+    @contextmanager
+    def microphone_session(self, timeout: float = 3.0):
+        """Suppress new speech and wait for playback to stop before recording."""
+        with self._state_lock:
+            if self._closed:
+                raise RuntimeError("A saída de voz está encerrada.")
+            self._paused += 1
+            self.stop_current()
+        try:
+            if not self._idle.wait(timeout):
+                raise TimeoutError("A fala ainda está encerrando. Tente o microfone novamente.")
+            yield
+        finally:
+            with self._state_lock:
+                self._paused -= 1
 
     def shutdown(self) -> None:
         """Encerra o worker de forma limpa."""
-        self.stop_current()
-        self._queue.put(None)
+        with self._state_lock:
+            if not self._closed:
+                self._closed = True
+                self.stop_current()
+                self._queue.put_nowait(None)
         self._worker_thread.join(timeout=3.0)

@@ -121,8 +121,9 @@ def run_gui(args: argparse.Namespace) -> int:
 
         def _worker():
             try:
-                overlay.voice_state_changed.emit("Ouvindo... Fale agora.", "listening")
-                text = stt.record_and_transcribe(duration_seconds=3.5)
+                with overlay.tts.microphone_session():
+                    overlay.voice_state_changed.emit("Ouvindo... Fale agora.", "listening")
+                    text = stt.record_and_transcribe(duration_seconds=3.5)
                 if text:
                     has_wake, prompt = stt.process_wake_word(text)
                     overlay.prompt_submitted.emit(prompt if has_wake else text)
@@ -131,7 +132,7 @@ def run_gui(args: argparse.Namespace) -> int:
             except Exception as e:
                 log.error(f"Erro no reconhecimento de voz: {e}")
                 from core.runtime_budget import InferenceBusyError, InferencePressureError
-                message = str(e) if isinstance(e, (InferenceBusyError, InferencePressureError)) else "Falha ao capturar áudio. Confira o microfone e o modelo de voz."
+                message = str(e) if isinstance(e, (InferenceBusyError, InferencePressureError, TimeoutError)) else "Falha ao capturar áudio. Confira o microfone e o modelo de voz."
                 overlay.voice_state_changed.emit(message, "error")
             finally:
                 listen_lock.release()
