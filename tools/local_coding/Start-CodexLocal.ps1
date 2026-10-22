@@ -1,6 +1,7 @@
 param([string]$Project = 'E:\projeto\Nova pasta')
 $ErrorActionPreference = 'Stop'
 & (Join-Path $PSScriptRoot 'Start-LocalServer.ps1')
+& (Join-Path $PSScriptRoot 'Ensure-CoderModel.ps1')
 $previousCodexHome = $env:CODEX_HOME
 try {
     $env:CODEX_HOME = Join-Path $PSScriptRoot 'codex-home'

@@ -21,6 +21,7 @@ def source_manifest() -> list[Path]:
     for folder in ("src", "tests", "docs", "tools", "packaging", ".github"):
         files.extend(p for p in (ROOT / folder).rglob("*") if p.is_file() and p.suffix in EXTENSIONS)
     files += [ROOT / "assets/README.md", ROOT / "assets/oxynisx/spritesheet.png"]
+    files.append(ROOT / "tools/local_coding/Modelfile")
     selected = []
     for path in sorted(set(files)):
         if not path.is_file() or "__pycache__" in path.parts:

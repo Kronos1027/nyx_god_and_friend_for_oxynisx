@@ -1,5 +1,13 @@
 # Programação local — 22/10/2026
 
+Validação desta revisão: 435 testes passaram, 1 ignorado; Ruff aprovado.
+Executável e autoteste aprovados. SHA256 do executável:
+`88dd83936d0f3d340321f12089d17d4b909b121fb1a4c0f45554e943457371c2`.
+O servidor estava parado e o alias local estava incompleto na conferência
+final. Serviço iniciado, alias recriado e resposta real `LOCAL_OK` recebida.
+Os inicializadores agora conferem o alias e podem reconstruí-lo a partir do
+modelo base já instalado, sem download automático de outro modelo.
+
 Modelo instalado: `nyx-coder:9b`, baseado em Qwen3.5 9B quantizado,
 Ollama 0.40.6, contexto 65536. Observação na RTX 3060 12 GB:
 aproximadamente 6,9 GB de VRAM alocados, totalmente na GPU.
