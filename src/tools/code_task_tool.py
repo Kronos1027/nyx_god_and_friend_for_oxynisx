@@ -13,7 +13,6 @@ import logging
 import os
 import re
 import shutil
-import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -99,9 +98,11 @@ class CodeTaskRunner:
         try:
             repo = self._resolve_repo(params.get("path"))
             task = self._clean_task(params.get("task"))
-            apply_changes = bool(params.get("apply"))
+            apply_changes = params.get("apply", False)
+            if type(apply_changes) is not bool:
+                raise CodeTaskError("apply precisa ser um booleano explícito.")
             max_rounds = int(params.get("max_rounds") or 2)
-        except (CodeTaskError, ValueError) as exc:
+        except (CodeTaskError, ValueError, TypeError) as exc:
             return ToolResult(False, error=str(exc), meta={"action": "code_task"})
         max_rounds = max(1, min(MAX_ROUNDS, max_rounds))
 
@@ -109,6 +110,16 @@ class CodeTaskRunner:
         last_output = ""
         rounds = 0
         try:
+            if params.get("operation") == "propose":
+                if apply_changes:
+                    raise CodeTaskError("Uma proposta não pode aplicar alterações.")
+                output = params.get("test_output")
+                if not isinstance(output, str) or not output.strip() or len(output) > 12000:
+                    raise CodeTaskError("Forneça test_output com 1 a 12000 caracteres; ele não será executado.")
+                edits = self._propose(repo, task, output, 1)
+                return ToolResult(True, "Proposta criada a partir do relatório fornecido; testes não executados.",
+                                  meta={"action": "code_task", "applied": False, "tests_executed": False,
+                                        "proposed": [{"path": e.relative, "content": e.content} for e in edits]})
             python = self._resolve_python(repo, params.get("python"))
             code, output = self._runner(repo, python)
             last_output = output
@@ -118,7 +129,7 @@ class CodeTaskRunner:
                     True,
                     f"Testes passaram na rodada {rounds}.\n\n{_tail(output)}",
                     meta={"action": "code_task", "rounds": rounds, "repo": str(repo),
-                          "applied": apply_changes, "passed": True},
+                          "applied": False, "passed": True},
                 )
             for attempt in range(1, max_rounds + 1):
                 edits = self._propose(repo, task, output, attempt)
@@ -149,9 +160,12 @@ class CodeTaskRunner:
                         meta={"action": "code_task", "rounds": rounds, "repo": str(repo),
                               "applied": True, "passed": True},
                     )
-        except CodeTaskError as exc:
-            return ToolResult(False, error=str(exc),
-                              meta={"action": "code_task", "rounds": rounds, "applied": apply_changes})
+        except Exception as exc:
+            restored = self._restore(backups)
+            detail = str(exc) if isinstance(exc, CodeTaskError) else f"{type(exc).__name__}: {exc}"
+            return ToolResult(False, error=detail,
+                              meta={"action": "code_task", "rounds": rounds, "applied": bool(backups),
+                                    "reverted": restored if backups else None})
 
         restored = self._restore(backups)
         detail = "Todas as edições foram revertidas." if restored else "Reversão parcial."
@@ -211,20 +225,12 @@ class CodeTaskRunner:
         return self.python_executable()
 
     def _run_tests(self, repo: Path, python: str | None = None) -> tuple[int, str]:
-        try:
-            completed = subprocess.run(
-                [python or self.python_executable(), "-m", "pytest", "-q", "--tb=short"],
-                cwd=repo,
-                capture_output=True,
-                text=True,
-                timeout=TEST_TIMEOUT_SECONDS,
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-            )
-        except subprocess.TimeoutExpired:
-            return 124, f"Os testes excederam {TEST_TIMEOUT_SECONDS} s e foram interrompidos."
-        except OSError as exc:
-            return 125, f"Não consegui executar os testes: {exc}"
-        return completed.returncode, (completed.stdout or "") + (completed.stderr or "")
+        # Repository tests (including conftest.py/plugins) are arbitrary code.
+        # A working directory and approval alone do not provide isolation.
+        raise CodeTaskError(
+            "Execução de testes bloqueada: nenhum executor com isolamento real está configurado. "
+            "Use operation='propose' e test_output para obter uma proposta sem executar código."
+        )
 
 
 
@@ -270,6 +276,10 @@ class CodeTaskRunner:
             content = item.get("content")
             if not relative or not isinstance(content, str):
                 raise CodeTaskError("Cada edição precisa de path e content.")
+            if Path(relative).is_absolute() or ":" in relative or any(
+                part.lower() in {".git", ".venv", "venv", ".env"} for part in Path(relative).parts
+            ):
+                raise CodeTaskError(f"Caminho protegido ou absoluto: {relative}")
             target = (repo / relative).resolve()
             if target != repo and repo not in target.parents:
                 raise CodeTaskError(f"Caminho fora do repositório: {relative}")

@@ -274,9 +274,8 @@ def main(argv: list[str] | None = None) -> int:
             name="code_task",
             description="Roda a suíte de testes de um projeto e propõe ou aplica correções em rodadas, com backup e reversão",
             destructive=False,
-            sensitive=False,
+            sensitive=True,
             destructive_probe=lambda p: bool(p.get("apply")),
-            sensitive_probe=lambda p: bool(p.get("apply")),
         ),
         make_code_task_tool_func(llm, cfg.allowed_roots),
     )

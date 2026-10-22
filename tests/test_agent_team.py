@@ -212,7 +212,7 @@ def test_browser_agent_cannot_click_or_open_local_files(tmp_path):
     assert any("http(s)" in detail for detail in details)
 
 
-def test_patch_role_allows_code_task_proposal(tmp_path):
+def test_patch_role_blocks_test_execution_even_without_apply(tmp_path):
     registry = ToolRegistry()
     registry.register(
         ToolSpec(
@@ -232,8 +232,8 @@ def test_patch_role_allows_code_task_proposal(tmp_path):
             return response({"type": "code_task", "params": {"task": "conserte", "path": "repo"}})
 
     result = AgentTeam(PatchLLM(), registry, audit).run([{"role": "patch", "task": "investigue e proponha"}])
-    assert result.ok is True
-    assert "Plano proposto" in result.output
+    assert result.ok is False
+    assert any("executar testes também executa código" in str(e) for e in audit.read_all())
 
 
 def test_patch_role_blocks_direct_code_task_apply(tmp_path):

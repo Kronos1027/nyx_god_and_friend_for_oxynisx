@@ -5,30 +5,25 @@ from core.codeact import CodeActEngine
 from tools.codeact_tool import CodeActTool
 
 
-def test_codeact_engine_sandbox_success(tmp_path):
-    engine = CodeActEngine(base_workspace=tmp_path)
-    res = engine.execute_and_heal(
-        task_name="task_success",
-        code="print('Hello from CodeAct!')",
-        language="python",
-    )
-    assert res.ok is True
-    assert "Hello from CodeAct!" in res.output
-    assert res.meta.get("attempts") == 1
+def test_codeact_blocks_host_execution(tmp_path):
+    marker = tmp_path / "forbidden.txt"
+    engine = CodeActEngine(base_workspace=tmp_path / "workspace")
+    result = engine.execute_and_heal("task", f"open({str(marker)!r}, 'w').write('unsafe')")
+    assert not result.ok
+    assert result.meta["reason"] == "isolation_unavailable"
+    assert not marker.exists()
 
 
-def test_codeact_engine_deterministic_healing(tmp_path):
+def test_codeact_deterministic_repair_is_only_text(tmp_path):
     engine = CodeActEngine(base_workspace=tmp_path)
-    # Código com import faltando propositalmente
-    broken_code = "data = json.loads('{\"status\": \"ok\"}')\nprint(data['status'])"
-    res = engine.execute_and_heal(
-        task_name="task_healing",
-        code=broken_code,
-        language="python",
-    )
-    assert res.ok is True
-    assert "ok" in res.output
-    assert res.meta.get("attempts") == 2  # Corrigiu na segunda tentativa!
+    assert engine._attempt_repair("print(json.dumps(1))", "name 'json' is not defined", "") == "import json\nprint(json.dumps(1))"
+
+
+def test_codeact_rejects_task_and_file_escape(tmp_path):
+    engine = CodeActEngine(base_workspace=tmp_path)
+    assert not engine.execute_and_heal("../escape", "pass").ok
+    assert not engine.execute_and_heal("task", "pass", filename="../../escape.py").ok
+    assert not (tmp_path.parent / "escape.py").exists()
 
 
 def test_codeact_tool_planning_and_steps(tmp_path):

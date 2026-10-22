@@ -1,6 +1,7 @@
 """Code loop: proposals, safe paths, backups and rollback."""
 
 import json
+import pytest
 
 
 from tools.code_task_tool import CodeTaskRunner
@@ -177,3 +178,51 @@ def test_explicit_interpreter_must_exist(tmp_path):
 
     assert result.ok is False
     assert "interpretador" in result.error.lower()
+
+
+@pytest.mark.parametrize("apply", [False, True])
+def test_default_backend_never_imports_untrusted_conftest(tmp_path, apply):
+    marker = tmp_path / "outside.txt"
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "conftest.py").write_text(f"open({str(marker)!r}, 'w').write('unsafe')", encoding="utf-8")
+    runner = CodeTaskRunner(FakeLLM([]), [repo])
+    result = runner.run({"path": str(repo), "task": "teste", "apply": apply})
+    assert not result.ok
+    assert "isolamento real" in result.error
+    assert not marker.exists()
+
+
+def test_proposal_uses_supplied_evidence_without_executing_tests(tmp_path):
+    runner, repo, _, calls = build(tmp_path, [(0, "unused")], [plan([{"path": "x.py", "content": "x=1"}])])
+    result = runner.run({"path": str(repo), "task": "corrija", "operation": "propose", "test_output": "AssertionError"})
+    assert result.ok and result.meta["tests_executed"] is False
+    assert calls["count"] == 0
+    assert not (repo / "x.py").exists()
+
+
+def test_model_error_after_first_edit_rolls_back(tmp_path):
+    runner, repo, _, _ = build(tmp_path, [(1, "fail")], [plan([{"path": "x.py", "content": "bad"}]), "not json"])
+    (repo / "x.py").write_bytes(b"original\r\n")
+    result = runner.run({"path": str(repo), "task": "corrija", "apply": True})
+    assert not result.ok and result.meta["reverted"] is True
+    assert (repo / "x.py").read_bytes() == b"original\r\n"
+
+
+def test_executor_error_after_edit_rolls_back_new_file(tmp_path):
+    runner, repo, _, _ = build(tmp_path, [(1, "fail")], [plan([{"path": "x.py", "content": "bad"}])])
+    def execute(*args):
+        if (repo / "x.py").exists():
+            raise OSError("executor unavailable")
+        return 1, "fail"
+    runner._runner = execute
+    result = runner.run({"path": str(repo), "task": "corrija", "apply": True})
+    assert not result.ok and result.meta["reverted"] is True
+    assert not (repo / "x.py").exists()
+
+
+@pytest.mark.parametrize("value", ["false", 1, None, {}])
+def test_apply_requires_boolean(tmp_path, value):
+    runner, repo, _, calls = build(tmp_path, [(0, "passed")], [])
+    assert not runner.run({"path": str(repo), "task": "corrija", "apply": value}).ok
+    assert calls["count"] == 0

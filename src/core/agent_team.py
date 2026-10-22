@@ -57,7 +57,7 @@ ROLES = {
     ),
     "patch": AgentRole(
         "Analise falhas de teste e elabore propostas de correção sem aplicar alterações diretas no disco. "
-        "Use code_task em modo de proposta ou leitura de arquivos para estruturar a solução.",
+        "Leia arquivos e relate propostas textuais. Não execute testes nem code_task: testes também executam código.",
         frozenset({"read_file", "find_files", "code_task"}),
     ),
 }
@@ -263,6 +263,8 @@ class AgentTeam:
 
         if tool_name == "code_task" and bool(params.get("apply")):
             return "microagente não tem permissão para aplicar alterações diretamente no disco; requer supervisão da Nyx"
+        if tool_name == "code_task":
+            return "executar testes também executa código; requer isolamento e autorização do agente principal"
         return None
 
 

@@ -2,6 +2,29 @@
 
 Última atualização: 2026-10-22
 
+## Evolution 2.0 — Fase A
+
+Branch `codex/nyx-evolution-2`, baseada no HEAD correto `f1fb9a5`.
+Baseline: 435 aprovados / 1 ignorado. Após as correções: **445 aprovados / 1
+ignorado**, 22,68 s; Ruff aprovado. Evidências em `build/evolution-baseline`.
+
+- `code_task` exige confirmação também sem `apply`; microagente patch não executa
+  testes. O executor padrão recusa execução sem sandbox real. Propostas funcionam
+  com `operation="propose"` e `test_output`, sem executar ou gravar código.
+- CodeAct mantém planejamento e reparos textuais, mas bloqueia execução irrestrita
+  e caminhos fora do workspace. Um diretório de trabalho não é isolamento.
+- CodeTask restaura arquivos após exceções do modelo/executor e exige `apply`
+  booleano. Testes comprovam recusa de conftest com efeito externo e rollback.
+- Diagnóstico real Qwen3.5 4B **falhou** após a primeira leitura (16,75 s), por
+  recusa de memória na chamada seguinte. Não houve troca por modelo inferior.
+- Ao retomar, o arquivo da referência da branch continha 41 bytes nulos. Foi
+  preservado em `build/evolution-baseline/corrupt-branch-ref.bin` e recuperado do
+  reflog para `9c6415c77f9a21bd21613c0e9dc71345bbe14056`; objetos e conectividade
+  conferidos com Git. Nenhum conteúdo do usuário foi descartado.
+
+Esta seção substitui alegações anteriores de segurança por CWD. Sandbox real,
+demais fases e aceitações completas continuam pendentes.
+
 ## Atualização: Navegador Avançado, Papel Patch com Escrita Supervisionada e Ciclo de Código com Modelo Real — 2026-10-22
 
 - **Estabilização da IA Local e Inferência GPU**:

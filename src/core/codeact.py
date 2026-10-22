@@ -1,18 +1,8 @@
-"""Nyx — core/codeact.py (Motor CodeAct e Planejador Estilo Manus/Kimi K3)
-
-Permite ao agente:
-1. Executar código Python e scripts PowerShell em um diretório de workspace isolado (workspace/<tarefa>/).
-2. Manter um arquivo de planejamento vivo (todo.md) para tarefas complexas de múltiplos passos.
-3. Ciclo de auto-cura: executa -> lê stderr -> diagnostica causa raiz -> corrige -> repete (máx 3 tentativas).
-4. Execução segura em subprocess com timeout, restrição de CWD e sem rede desnecessária.
-"""
+"""Task planning and repair helpers. Generated-code execution requires real isolation."""
 
 from __future__ import annotations
 
 import logging
-import os
-import subprocess
-import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -85,7 +75,9 @@ class CodeActEngine:
         """Inicializa um novo ambiente de tarefa isolado com todo.md."""
         clean_name = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in task_name).strip("_")
         clean_name = clean_name or "tarefa_nyx"
-        task_dir = self.base_workspace / clean_name
+        task_dir = (self.base_workspace / clean_name).resolve()
+        if task_dir == self.base_workspace or self.base_workspace not in task_dir.parents:
+            raise ValueError("Pasta da tarefa fora do workspace")
         task_dir.mkdir(parents=True, exist_ok=True)
 
         todo_file = task_dir / "todo.md"
@@ -107,40 +99,11 @@ class CodeActEngine:
         language: str = "python",
         filename: Optional[str] = None,
     ) -> tuple[int, str, str]:
-        """Executa o código em um subprocesso isolado com CWD restrito."""
-        task_dir = Path(task_dir).resolve()
-        task_dir.mkdir(parents=True, exist_ok=True)
-
-        if language.lower() in ("python", "py"):
-            target_file = task_dir / (filename or "script.py")
-            target_file.write_text(code, encoding="utf-8")
-            python_bin = sys.executable
-            cmd = [python_bin, str(target_file.name)]
-        elif language.lower() in ("powershell", "ps1"):
-            target_file = task_dir / (filename or "script.ps1")
-            target_file.write_text(code, encoding="utf-8")
-            cmd = ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", target_file.name]
-        else:
-            return 1, "", f"Linguagem não suportada para CodeAct: {language}"
-
-        env = os.environ.copy()
-        env["PYTHONUTF8"] = "1"
-        env["PYTHONUNBUFFERED"] = "1"
-
-        try:
-            res = subprocess.run(
-                cmd,
-                cwd=str(task_dir),
-                capture_output=True,
-                text=True,
-                timeout=self.timeout_seconds,
-                env=env,
-            )
-            return res.returncode, res.stdout, res.stderr
-        except subprocess.TimeoutExpired:
-            return 124, "", f"Timeout expirado após {self.timeout_seconds} segundos."
-        except Exception as exc:
-            return 1, "", f"Falha na execução do processo: {exc}"
+        """Fail closed until a real isolated execution backend is configured."""
+        return 126, "", (
+            "Execução bloqueada: sandbox real indisponível. "
+            "Um subprocesso com CWD separado não isola arquivos, rede ou credenciais."
+        )
 
     def execute_and_heal(
         self,
@@ -150,8 +113,13 @@ class CodeActEngine:
         filename: Optional[str] = None,
     ) -> ToolResult:
         """Executa o código e, se falhar, tenta auto-diagnosticar e corrigir em loop reflexivo."""
-        task_dir = self.base_workspace / task_name
-        task_dir.mkdir(parents=True, exist_ok=True)
+        task_dir = (self.base_workspace / task_name).resolve()
+        if task_dir == self.base_workspace or self.base_workspace not in task_dir.parents:
+            return ToolResult(False, error="Pasta da tarefa fora do workspace")
+        if filename:
+            target = (task_dir / filename).resolve()
+            if Path(filename).is_absolute() or ":" in filename or task_dir not in target.parents:
+                return ToolResult(False, error="Arquivo fora da pasta da tarefa")
 
         current_code = code
         history: List[CodeActStep] = []
@@ -164,6 +132,8 @@ class CodeActEngine:
                 filename=filename,
             )
 
+            if exit_code == 126:
+                return ToolResult(False, error=stderr, meta={"blocked": True, "reason": "isolation_unavailable", "attempts": attempt})
             is_ok = (exit_code == 0)
             step = CodeActStep(
                 step_num=attempt,

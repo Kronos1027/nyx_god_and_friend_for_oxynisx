@@ -1,5 +1,21 @@
 # LIMITACOES.md — limitações reais, sem contorno silencioso
 
+## Estado atual — Evolution 2.0 (22/10/2026)
+
+O ambiente atual é Windows com RTX 3060. As seções L1–L4 abaixo são histórico
+do desenvolvimento inicial, não descrevem a máquina atual.
+
+- Não há executor isolado real configurado. CodeAct e execução de testes por
+  code_task estão bloqueados; propostas textuais continuam disponíveis. A
+  aprovação de uma ação não transforma subprocesso comum em sandbox.
+- Testes automatizados de rollback usam executor roteirizado. O teste adversarial
+  atual comprova que o executor padrão não inicia código; não prova isolamento
+  de um backend que ainda não existe.
+- Diagnóstico Qwen3.5 4B com dois arquivos falhou por admissão de memória após
+  uma leitura. Relatório: build/evolution-baseline/task-live.json.
+- Spotify com login, microfone real, sessão prolongada e novas fases A–J ainda
+  exigem evidência específica. Ver docs/EVOLUTION_2_BASELINE.md.
+
 > Regra do prompt mestre (seção 1): bloqueio real vai pra cá com o erro
 > exato, depois de ~2 tentativas de abordagens diferentes. Nada de solução
 > fake pra "seguir em frente".
