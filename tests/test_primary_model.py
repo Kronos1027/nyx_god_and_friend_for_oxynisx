@@ -11,7 +11,8 @@ def routing(monkeypatch):
     monkeypatch.setattr(llm_client.OllamaClient, "list_model_inventory", lambda self: [
         {"name": "qwen3.5:4b", "size": 3_300_000_000},
         {"name": "qwen2.5:3b-instruct", "size": 1_900_000_000}])
-    monkeypatch.setattr(runtime_budget, "resource_snapshot", lambda: None)
+    monkeypatch.setattr(runtime_budget, "resource_snapshot", lambda: runtime_budget.ResourceSnapshot(3 * runtime_budget.GIB, 12 * runtime_budget.GIB, 5 * runtime_budget.GIB))
+    monkeypatch.setattr(runtime_budget, "ollama_models", lambda *args: [])
     return monkeypatch
 
 
@@ -25,6 +26,16 @@ def test_primary_model_is_not_downgraded_under_pressure(routing):
 
 def test_primary_recovers_when_budget_allows(routing):
     routing.setattr(runtime_budget, "model_weight_budget_bytes", lambda snapshot: 4_000_000_000)
+    client, state = llm_client.create_llm_client()
+    assert client.model == "qwen3.5:4b"
+    assert state == "ollama:qwen3.5:4b"
+
+
+def test_primary_reuses_exact_resident_when_cold_load_would_not_fit(routing):
+    model = {"name": "qwen3.5:4b", "size": 3_300_000_000, "digest": "same"}
+    routing.setattr(llm_client.OllamaClient, "list_model_inventory", lambda self: [model])
+    routing.setattr(runtime_budget, "ollama_models", lambda *args: [
+        {**model, "size_vram": model["size"], "context_length": 2048}])
     client, state = llm_client.create_llm_client()
     assert client.model == "qwen3.5:4b"
     assert state == "ollama:qwen3.5:4b"

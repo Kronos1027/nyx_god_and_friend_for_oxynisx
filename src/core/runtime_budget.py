@@ -121,6 +121,55 @@ def ensure_resource_headroom(snapshot: ResourceSnapshot) -> None:
         raise InferencePressureError("VRAM livre abaixo de 768 MiB; aguarde antes de gerar.")
 
 
+def ollama_models(host: str, endpoint: str) -> list[dict]:
+    """Read a bounded, fresh inventory; unknown telemetry never grants residency."""
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(f"{host}/api/{endpoint}", timeout=2.0) as response:
+            raw = response.read(1_048_577)
+        if len(raw) > 1_048_576:
+            return []
+        data = json.loads(raw)
+        models = data.get("models", [])
+        return [item for item in models if isinstance(item, dict)] if isinstance(models, list) else []
+    except (OSError, ValueError, AttributeError):
+        return []
+
+
+def resident_context(snapshot: ResourceSnapshot, installed: dict, running: list[dict]) -> int | None:
+    """Reuse only the exact fully GPU-resident model without growing its context."""
+    if (snapshot.ram_available_bytes is None or snapshot.ram_available_bytes < 2 * GIB
+            or snapshot.vram_free_bytes is None or snapshot.vram_free_bytes < 4 * GIB):
+        return None
+    digest = installed.get("digest")
+    if not isinstance(digest, str) or not digest:
+        return None
+    for model in running:
+        if model.get("name") != installed.get("name") or model.get("digest") != digest:
+            continue
+        size, gpu, context = (model.get(key) for key in ("size", "size_vram", "context_length"))
+        if (all(type(value) is int for value in (size, gpu, context))
+                and size > 0 and gpu == size and 512 <= context <= safe_context_tokens(snapshot)):
+            return context
+    return None
+
+
+def ollama_request_context(host: str, model: str, snapshot: ResourceSnapshot) -> int:
+    """Recheck admission inside the inference queue, including expired residents."""
+    installed = next((item for item in ollama_models(host, "tags") if item.get("name") == model), {})
+    context = resident_context(snapshot, installed, ollama_models(host, "ps"))
+    if context is not None:
+        return context
+    size = installed.get("size")
+    budget = model_weight_budget_bytes(snapshot)
+    if budget is None:
+        budget = 4 * GIB
+    if type(size) is not int or not 0 < size <= budget:
+        raise InferencePressureError("O modelo não cabe no orçamento atual ou seu tamanho não pôde ser confirmado. Libere memória e tente novamente.")
+    return safe_context_tokens(snapshot)
+
+
 def post_ollama_json(url: str, payload: dict, timeout: float) -> dict:
     """Send one serialized Ollama inference request under the shared budget."""
     import urllib.request
@@ -131,7 +180,8 @@ def post_ollama_json(url: str, payload: dict, timeout: float) -> dict:
         request_payload = dict(payload)
         if url.endswith("/api/chat") or url.endswith("/api/generate"):
             options = dict(request_payload.get("options", {}))
-            options["num_ctx"] = safe_context_tokens(snapshot)
+            host = url.rsplit("/api/", 1)[0]
+            options["num_ctx"] = ollama_request_context(host, request_payload.get("model", ""), snapshot)
             request_payload["options"] = options
         request = urllib.request.Request(
             url,

@@ -72,6 +72,10 @@ def test_ollama_generation_has_hard_output_token_limit(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
     from core import runtime_budget
 
+    monkeypatch.setattr(runtime_budget, "ollama_models", lambda host, endpoint: [
+        {"name": "qwen2.5:3b-instruct", "size": 1}
+    ] if endpoint == "tags" else [])
+
     monkeypatch.setattr(
         runtime_budget,
         "resource_snapshot",

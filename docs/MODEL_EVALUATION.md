@@ -39,3 +39,11 @@ Personalizar → Modelo local permite fixar o nome exato do modelo principal; va
 A gravação nativa encontrou WinError 17 ao substituir runtime.json. Nesse caso específico, a configuração é salva em registro alternativo exclusivo com flush/fsync, preservando o arquivo anterior e até cinco registros. A leitura ignora registros incompletos e usa o mais recente válido. Testes cobrem persistência, pressão de memória, indisponibilidade, modelos ausentes e recuperação da configuração.
 
 Validação desta revisão: 290 passed, 1 skipped, 1 warning; Ruff aprovado. A captura desktop-model-settings.png foi inspecionada. Em uma observação real com aproximadamente 2,22 GiB de RAM livres, a seleção retornou preferred_model_deferred, sem carregar um modelo menor. Isso não demonstra desempenho sustentado nem resolve a contabilização de pesos já residentes no servidor ou contenção com voz.
+
+## Reutilização de modelo residente e admissão por pedido
+
+A rota do modelo principal agora consulta /api/ps quando o orçamento para uma carga nova é insuficiente. Só reutiliza o mesmo nome e digest, totalmente em VRAM (size_vram == size), com contexto entre 512 e o teto atual e reservas livres de pelo menos 2 GiB de RAM e 4 GiB de VRAM. Não soma memória de outros modelos nem presume que descarregarão. Metadados ausentes ou inválidos não concedem reutilização. Referência do runtime: https://docs.ollama.com/api/ps .
+
+Toda geração chat/generate consulta novamente tags e ps dentro da fila de inferência. Uma carga residente compatível conserva o contexto existente, evitando aumentá-lo automaticamente. Se ela expirou, volta a exigir orçamento para carregar os pesos. As consultas têm timeout de 2 segundos e resposta limitada a 1 MiB; há custo adicional por pedido. Não é uma reserva atômica da GPU: outros clientes ainda podem alterar recursos entre a consulta e a geração. Embeddings e cargas de voz ainda precisam de coordenação equivalente; GPUs múltiplas, offload parcial e CPU residente não recebem esse benefício.
+
+Na observação local desta revisão havia 1.592.512.512 bytes de RAM livres, orçamento de carga zero e nenhum modelo residente. Nenhuma geração real foi forçada. Reutilização, expiração, preservação do contexto, metadados inválidos e recusa antes do POST foram exercitados com runtime simulado; desempenho real sustentado permanece pendente.

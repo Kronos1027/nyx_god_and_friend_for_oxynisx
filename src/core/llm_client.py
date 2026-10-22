@@ -512,7 +512,7 @@ class OllamaClient:
             with urllib.request.urlopen(req, timeout=3.0) as res:
                 data = json.loads(res.read().decode("utf-8"))
             return [
-                {"name": str(model.get("name", "")), "size": int(model.get("size", 0))}
+                {"name": str(model.get("name", "")), "size": int(model.get("size", 0)), "digest": str(model.get("digest", ""))}
                 for model in data.get("models", [])
                 if model.get("name")
             ]
@@ -605,16 +605,19 @@ def create_llm_client(
         models = [str(item["name"]) for item in inventory]
         log.info(f"Ollama detectado com modelos: {models}")
         sizes = {str(item["name"]): int(item["size"]) for item in inventory}
-        from core.runtime_budget import GIB, model_weight_budget_bytes, resource_snapshot
+        from core.runtime_budget import GIB, model_weight_budget_bytes, resource_snapshot, ollama_models, resident_context
 
-        max_size = model_weight_budget_bytes(resource_snapshot())
+        snapshot = resource_snapshot()
+        max_size = model_weight_budget_bytes(snapshot)
         if max_size is None:
             max_size = 4 * GIB
         if preferred:
             if preferred not in models or preferred.lower().endswith("cloud"):
                 return OfflineLLM(unavailable_reason=f"O modelo principal {preferred} não está instalado no Ollama local. Confira Personalizar → Modelo local."), "preferred_model_missing"
             if not 0 < sizes.get(preferred, 0) <= max_size:
-                return OfflineLLM(unavailable_reason=f"O modelo principal {preferred} não cabe no orçamento de memória atual. Vou aguardar recursos, sem trocar por um modelo menor."), "preferred_model_deferred"
+                installed = next(item for item in inventory if item["name"] == preferred)
+                if resident_context(snapshot, installed, ollama_models(ollama.host, "ps")) is None:
+                    return OfflineLLM(unavailable_reason=f"O modelo principal {preferred} não cabe no orçamento de memória atual. Vou aguardar recursos, sem trocar por um modelo menor."), "preferred_model_deferred"
             chosen = preferred
         else:
             chosen = select_preferred_model(
