@@ -80,6 +80,16 @@ def test_pet_motion_controls_focus_and_transparency(desktop):
     assert window.sidebar.isVisible()
 
 
+def test_primary_model_setting_is_saved_through_ui(desktop, monkeypatch):
+    window, _, _ = desktop
+    calls = []
+    monkeypatch.setattr("core.ollama_service.save_runtime_config", lambda *args: calls.append(args))
+    window.preferred_model.setText("qwen3.5:4b")
+    window._save_runtime()
+    assert calls[-1][2] == "qwen3.5:4b"
+    assert "Reinicie a Nyx" in window.runtime_feedback.text()
+
+
 def test_research_controls_persist_cancel_and_display_collected_text(desktop, tmp_path):
     from core.evolution import EvolutionLab
     from core.research import ResearchQueue

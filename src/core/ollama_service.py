@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import errno
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -12,6 +14,7 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
+from uuid import uuid4
 
 from app_paths import user_data_dir
 
@@ -23,17 +26,38 @@ def runtime_config_path() -> Path:
 
 
 def load_runtime_config() -> dict[str, str]:
+    path = runtime_config_path()
     try:
-        path = runtime_config_path()
-        if path.stat().st_size > 16_384:
-            return {}
-        value = json.loads(path.read_text(encoding="utf-8"))
-        return {key: str(value.get(key, "")) for key in ("ollama_executable", "models_directory")}
-    except (OSError, ValueError, AttributeError):
-        return {}
+        candidates = [p for p in path.parent.glob("runtime-settings-*.json")
+                      if re.fullmatch(r"runtime-settings-[0-9a-f]{32}\.json", p.name) and not p.is_symlink()]
+        if path.is_file():
+            candidates.append(path)
+        candidates.sort(key=lambda p: p.stat().st_mtime_ns, reverse=True)
+    except OSError:
+        candidates = [path]
+    for candidate in candidates:
+        try:
+            if candidate.stat().st_size > 16_384:
+                continue
+            value = json.loads(candidate.read_text(encoding="utf-8"))
+            keys = ("ollama_executable", "models_directory", "preferred_model")
+            if not isinstance(value, dict) or not any(key in value for key in keys):
+                continue
+            if any(not isinstance(value.get(key, ""), str) for key in keys):
+                continue
+            return {key: value.get(key, "") for key in keys}
+        except (OSError, ValueError):
+            continue
+    return {}
 
 
-def save_runtime_config(executable: str, models_directory: str) -> None:
+def save_runtime_config(executable: str, models_directory: str, preferred_model: str | None = None) -> None:
+    if preferred_model is None:
+        preferred_model = load_runtime_config().get("preferred_model", "")
+    preferred_model = preferred_model.strip()
+    if preferred_model and (not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}", preferred_model)
+                            or preferred_model.lower().endswith("cloud")):
+        raise ValueError("Informe o nome exato de um modelo local, por exemplo qwen3.5:4b.")
     if executable:
         binary = Path(executable).expanduser().resolve()
         if not binary.is_file() or binary.name.casefold() not in {"ollama.exe", "ollama"}:
@@ -47,8 +71,28 @@ def save_runtime_config(executable: str, models_directory: str) -> None:
     path = runtime_config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".json.tmp")
-    temporary.write_text(json.dumps({"ollama_executable": executable, "models_directory": models_directory}, ensure_ascii=False, indent=2), encoding="utf-8")
-    temporary.replace(path)
+    temporary.write_text(json.dumps({"ollama_executable": executable, "models_directory": models_directory,
+                                     "preferred_model": preferred_model}, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        temporary.replace(path)
+    except OSError as exc:
+        if exc.errno != errno.EXDEV and getattr(exc, "winerror", None) != 17:
+            raise
+        # Immutable alternate record preserves the previous valid settings if interrupted.
+        alternate = path.with_name(f"runtime-settings-{uuid4().hex}.json")
+        with alternate.open("xb") as stream:
+            stream.write(temporary.read_bytes())
+            stream.flush()
+            os.fsync(stream.fileno())
+        records = sorted((p for p in path.parent.glob("runtime-settings-*.json")
+                          if re.fullmatch(r"runtime-settings-[0-9a-f]{32}\.json", p.name) and not p.is_symlink()),
+                         key=lambda p: p.stat().st_mtime_ns, reverse=True)
+        for old in records[5:]:
+            if old != alternate:
+                try:
+                    old.unlink()
+                except OSError:
+                    pass
 
 
 @dataclass(frozen=True)

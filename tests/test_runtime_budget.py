@@ -56,6 +56,9 @@ def test_unavailable_ollama_does_not_load_unbudgeted_legacy_model(tmp_path, monk
     from types import SimpleNamespace
     from core import runtime_budget
     from core.llm_client import OllamaClient, OfflineLLM, create_llm_client, parse_response
+    from core import ollama_service
+
+    monkeypatch.setattr(ollama_service, "load_runtime_config", lambda: {})
 
     model = tmp_path / "example.gguf"
     model.write_bytes(b"GGUF")

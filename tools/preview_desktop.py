@@ -220,6 +220,9 @@ def main() -> None:
         output = destination / "desktop-settings.png"
         window.grab().save(str(output))
         print(output)
+        window.settings_tabs.setCurrentIndex(1)
+        app.processEvents()
+        window.grab().save(str(destination / "desktop-model-settings.png"))
         window.set_page(1)
         app.processEvents()
         window.grab().save(str(destination / "desktop-agenda.png"))

@@ -597,6 +597,8 @@ def create_llm_client(
             log.warning(f"Falha ao carregar GGUF {model_arg}: {e}")
 
     # 2. Testa Ollama local
+    from core.ollama_service import load_runtime_config
+    preferred = load_runtime_config().get("preferred_model", "")
     ollama = OllamaClient()
     if ollama.is_available():
         inventory = ollama.list_model_inventory()
@@ -608,9 +610,16 @@ def create_llm_client(
         max_size = model_weight_budget_bytes(resource_snapshot())
         if max_size is None:
             max_size = 4 * GIB
-        chosen = select_preferred_model(
-            models, model_sizes=sizes, max_model_size_bytes=max_size
-        )
+        if preferred:
+            if preferred not in models or preferred.lower().endswith("cloud"):
+                return OfflineLLM(unavailable_reason=f"O modelo principal {preferred} não está instalado no Ollama local. Confira Personalizar → Modelo local."), "preferred_model_missing"
+            if not 0 < sizes.get(preferred, 0) <= max_size:
+                return OfflineLLM(unavailable_reason=f"O modelo principal {preferred} não cabe no orçamento de memória atual. Vou aguardar recursos, sem trocar por um modelo menor."), "preferred_model_deferred"
+            chosen = preferred
+        else:
+            chosen = select_preferred_model(
+                models, model_sizes=sizes, max_model_size_bytes=max_size
+            )
 
         if chosen:
             ollama.model = chosen
@@ -622,6 +631,9 @@ def create_llm_client(
                 "Nyx não vai carregá-lo automaticamente.",
                 max_size // (1024 * 1024),
             )
+
+    if preferred:
+        return OfflineLLM(unavailable_reason=f"Ollama indisponível para o modelo principal {preferred}. Vou verificar novamente em um próximo pedido."), "preferred_runtime_unavailable"
 
     # 3. Testa GGUF local em caminhos conhecidos
     candidate_paths = [

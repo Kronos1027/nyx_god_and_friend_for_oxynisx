@@ -31,3 +31,11 @@ O planejador recebe as ferramentas realmente registradas e um schema limitado a 
 O diagnóstico usa valores aleatórios, exige as duas leituras verificadas, reconhece números completos e salva tentativas separadas em build/previews/task-attempts. A presença dos números corretos é uma checagem limitada, não um verificador semântico universal.
 
 Suite: 279 passed, 1 skipped, 1 warning; Ruff aprovado. Ainda faltam tarefas variadas de arquivos, navegação, código, visão e voz, benchmarks controlados por modelo, testes prolongados e seleção baseada em capacidade comprovada. Não há evidência de AGI ou equivalência ao Astra.
+
+## Modelo principal persistente (2026-10-21)
+
+Personalizar → Modelo local permite fixar o nome exato do modelo principal; vazio mantém seleção automática. Qwen3.5:4b foi configurado nos dados de desenvolvimento e do aplicativo nativo. Reiniciar a Nyx aplica a alteração. Sem memória suficiente, sem o modelo instalado ou sem Ollama disponível, a rota informa a causa e não substitui silenciosamente o modelo escolhido. Uma nova tentativa após recuperação dos recursos pode reativar o backend; tarefas interrompidas não são repetidas automaticamente.
+
+A gravação nativa encontrou WinError 17 ao substituir runtime.json. Nesse caso específico, a configuração é salva em registro alternativo exclusivo com flush/fsync, preservando o arquivo anterior e até cinco registros. A leitura ignora registros incompletos e usa o mais recente válido. Testes cobrem persistência, pressão de memória, indisponibilidade, modelos ausentes e recuperação da configuração.
+
+Validação desta revisão: 290 passed, 1 skipped, 1 warning; Ruff aprovado. A captura desktop-model-settings.png foi inspecionada. Em uma observação real com aproximadamente 2,22 GiB de RAM livres, a seleção retornou preferred_model_deferred, sem carregar um modelo menor. Isso não demonstra desempenho sustentado nem resolve a contabilização de pesos já residentes no servidor ou contenção com voz.

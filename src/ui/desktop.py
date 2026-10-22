@@ -728,11 +728,16 @@ class DesktopWindow(QMainWindow):
         models_button.clicked.connect(self._choose_models)
         models_row.addWidget(models_button)
         runtime_form.addRow("Modelos locais", models_row)
+        self.preferred_model = QLineEdit(runtime.get("preferred_model", ""))
+        self.preferred_model.setMaxLength(160)
+        self.preferred_model.setPlaceholderText("Automático (se vazio)")
+        self.preferred_model.setToolTip("Nome exato no Ollama. Se não houver memória, a Nyx aguarda em vez de trocar por um modelo menor.")
+        runtime_form.addRow("Modelo principal", self.preferred_model)
         layout.addLayout(runtime_form)
-        save_runtime = QPushButton("Salvar caminhos do modelo")
+        save_runtime = QPushButton("Salvar configuração do modelo")
         save_runtime.clicked.connect(self._save_runtime)
         layout.addWidget(save_runtime)
-        self.runtime_feedback = self._muted("Os caminhos são usados quando a Nyx inicia o Ollama. Alterações entram em vigor na próxima inicialização do serviço.")
+        self.runtime_feedback = self._muted("Reinicie a Nyx após alterar o modelo principal. Se faltar memória, ela aguardará recursos sem trocar de modelo. Os caminhos são usados ao iniciar o Ollama.")
         layout.addWidget(self.runtime_feedback)
         reset = QPushButton("Restaurar organização dos painéis")
         reset.clicked.connect(self._reset_layout)
@@ -760,8 +765,8 @@ class DesktopWindow(QMainWindow):
         from core.ollama_service import save_runtime_config
 
         try:
-            save_runtime_config(self.ollama_path.text().strip(), self.models_path.text().strip())
-            self.runtime_feedback.setText("Caminhos salvos. Serão usados quando a Nyx iniciar o serviço Ollama novamente.")
+            save_runtime_config(self.ollama_path.text().strip(), self.models_path.text().strip(), self.preferred_model.text().strip())
+            self.runtime_feedback.setText("Configuração salva. Reinicie a Nyx para aplicar o modelo principal. Os caminhos são usados ao iniciar o serviço Ollama.")
         except (OSError, ValueError) as exc:
             self.runtime_feedback.setText(str(exc))
 
