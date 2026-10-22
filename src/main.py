@@ -130,7 +130,9 @@ def run_gui(args: argparse.Namespace) -> int:
                     overlay.voice_state_changed.emit("Nenhum áudio detectado.", "idle")
             except Exception as e:
                 log.error(f"Erro no reconhecimento de voz: {e}")
-                overlay.voice_state_changed.emit("Falha ao capturar áudio.", "error")
+                from core.runtime_budget import InferenceBusyError, InferencePressureError
+                message = str(e) if isinstance(e, (InferenceBusyError, InferencePressureError)) else "Falha ao capturar áudio. Confira o microfone e o modelo de voz."
+                overlay.voice_state_changed.emit(message, "error")
             finally:
                 listen_lock.release()
 
