@@ -73,9 +73,12 @@ def model_weight_budget_bytes(snapshot: ResourceSnapshot) -> int | None:
     )
     if snapshot.vram_free_bytes is not None:
         gpu_budget = max(0, snapshot.vram_free_bytes - 4 * GIB)
-        # Ollama CUDA places most weights in VRAM. Reserve host staging space
-        # conservatively, without counting all GPU weights as resident RAM too.
-        return min(gpu_budget, ram_budget * 2) if ram_budget is not None else gpu_budget
+        if ram_budget is not None:
+            if snapshot.ram_available_bytes >= 4 * GIB:
+                return min(gpu_budget, ram_budget * 2)
+            staging = max(0, snapshot.ram_available_bytes - 1 * GIB)
+            return min(gpu_budget, staging * 3)
+        return gpu_budget
     if ram_budget is None:
         return None
     # CPU-only model sizes are capped to avoid selecting a 12B+ model just
@@ -84,7 +87,7 @@ def model_weight_budget_bytes(snapshot: ResourceSnapshot) -> int | None:
 
 
 def admit_gguf_load(path: Path, requested_context: int) -> int:
-    snapshot = resource_snapshot()
+    snapshot = _free_then_snapshot(resource_snapshot())
     ensure_resource_headroom(snapshot)
     # The bundled llama.cpp wheel may be CPU-only; require host capacity for
     # the full file even on computers with an NVIDIA card.
@@ -121,25 +124,75 @@ def ensure_resource_headroom(snapshot: ResourceSnapshot) -> None:
         raise InferencePressureError("VRAM livre abaixo de 768 MiB; aguarde antes de gerar.")
 
 
+IDLE_RESIDENT_SECONDS = 60.0
+
+
+def under_pressure(snapshot: ResourceSnapshot) -> bool:
+    """True when optional resident models should give way to the main model."""
+    if snapshot.ram_available_bytes is not None and snapshot.ram_available_bytes < 3 * GIB:
+        return True
+    return snapshot.vram_free_bytes is not None and snapshot.vram_free_bytes < 1536 * MIB
+
+
+def _resident_idle_seconds(snapshot: ResourceSnapshot) -> float:
+    """Critical pressure ignores the idle grace period."""
+    if snapshot.ram_available_bytes is not None and snapshot.ram_available_bytes < 1536 * MIB:
+        return 0.0
+    if snapshot.vram_free_bytes is not None and snapshot.vram_free_bytes < 1024 * MIB:
+        return 0.0
+    return IDLE_RESIDENT_SECONDS
+
+
+def release_idle_residents(snapshot: ResourceSnapshot) -> list[str]:
+    """Unload optional in-process models (speech, embeddings) under pressure.
+
+    Freeing memory must never fail the inference that asked for room, so errors
+    are logged and an empty list is returned.
+    """
+    if not under_pressure(snapshot):
+        return []
+    try:
+        from core.broker import ModelBroker
+
+        return ModelBroker.get_instance().release_idle(_resident_idle_seconds(snapshot))
+    except Exception:
+        log.debug("Resident model release failed", exc_info=True)
+        return []
+
+
+def _free_then_snapshot(snapshot: ResourceSnapshot) -> ResourceSnapshot:
+    """Give resident models a chance to unload, then re-read real memory."""
+    if not release_idle_residents(snapshot):
+        return snapshot
+    fresh = resource_snapshot()
+    ensure_resource_headroom(fresh)
+    return fresh
+
+
 def ollama_models(host: str, endpoint: str) -> list[dict]:
     """Read a bounded, fresh inventory; unknown telemetry never grants residency."""
     import urllib.request
 
-    try:
-        with urllib.request.urlopen(f"{host}/api/{endpoint}", timeout=2.0) as response:
-            raw = response.read(1_048_577)
-        if len(raw) > 1_048_576:
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(f"{host}/api/{endpoint}", timeout=5.0) as response:
+                raw = response.read(1_048_577)
+            if len(raw) > 1_048_576:
+                return []
+            data = json.loads(raw)
+            models = data.get("models", [])
+            return [item for item in models if isinstance(item, dict)] if isinstance(models, list) else []
+        except (OSError, ValueError, AttributeError):
+            if attempt == 0:
+                time.sleep(0.3)
+                continue
             return []
-        data = json.loads(raw)
-        models = data.get("models", [])
-        return [item for item in models if isinstance(item, dict)] if isinstance(models, list) else []
-    except (OSError, ValueError, AttributeError):
-        return []
+    return []
 
 
 def resident_context(snapshot: ResourceSnapshot, installed: dict, running: list[dict]) -> int | None:
     """Reuse only the exact fully GPU-resident model without growing its context."""
-    if (snapshot.ram_available_bytes is None or snapshot.ram_available_bytes < 2 * GIB
+    if (snapshot.ram_available_bytes is None or snapshot.ram_available_bytes <= 1 * GIB
             or snapshot.vram_free_bytes is None or snapshot.vram_free_bytes < 4 * GIB):
         return None
     digest = installed.get("digest")
@@ -174,8 +227,8 @@ def post_ollama_json(url: str, payload: dict, timeout: float) -> dict:
     """Send one serialized Ollama inference request under the shared budget."""
     import urllib.request
 
-    with INFERENCE_GATE.slot(timeout=min(timeout, 45.0)):
-        snapshot = resource_snapshot()
+    with INFERENCE_GATE.slot(timeout=max(timeout, 90.0)):
+        snapshot = _free_then_snapshot(resource_snapshot())
         ensure_resource_headroom(snapshot)
         request_payload = dict(payload)
         if url.endswith("/api/chat") or url.endswith("/api/generate"):
@@ -189,7 +242,7 @@ def post_ollama_json(url: str, payload: dict, timeout: float) -> dict:
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with urllib.request.urlopen(request, timeout=max(timeout, 120.0)) as response:
             return json.loads(response.read().decode("utf-8"))
 
 

@@ -18,8 +18,14 @@ try {
 
     $pyinstallerArgs = @("--noconfirm", "packaging\Nyx.spec")
     if ($Clean) { $pyinstallerArgs = @("--noconfirm", "--clean", "packaging\Nyx.spec") }
-    & $python -m PyInstaller @pyinstallerArgs
-    if ($LASTEXITCODE -ne 0) { throw "PyInstaller terminou com código $LASTEXITCODE" }
+    # PyInstaller writes progress to stderr; with ErrorActionPreference=Stop that
+    # would abort the build, so native output is collected instead of thrown.
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    & $python -m PyInstaller @pyinstallerArgs 2>&1 | ForEach-Object { "$_" }
+    $buildExitCode = $LASTEXITCODE
+    $ErrorActionPreference = $previousPreference
+    if ($buildExitCode -ne 0) { throw "PyInstaller terminou com código $buildExitCode" }
 
     $exe = Join-Path $repo "dist\Nyx\Nyx.exe"
     if (-not (Test-Path $exe)) { throw "Build terminou sem produzir $exe" }

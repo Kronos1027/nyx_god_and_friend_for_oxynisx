@@ -1,6 +1,139 @@
 # Nyx — estado verificado
 
-Última atualização: 2026-10-21
+Última atualização: 2026-10-22
+
+## Atualização: Navegador Avançado, Papel Patch com Escrita Supervisionada e Ciclo de Código com Modelo Real — 2026-10-22
+
+- **Estabilização da IA Local e Inferência GPU**:
+  - Removido `OLLAMA_FLASH_ATTENTION=1` forçado de `src/core/ollama_service.py` que disparava o crash de flag inválida `--no-mmap` em builds novos do llama-server no Windows+CUDA.
+  - Aumentado timeout de leitura de telemetria `ollama_models` em `src/core/runtime_budget.py` de 2.0s para 5.0s com tentativa de retry, eliminando falsos positivos de falta de memória durante inferência concorrente.
+  - Teste ao vivo no hardware confirmou ~80.9 tokens/s na GPU GeForce RTX 3060.
+- **Navegador Avançado (`src/tools/browser_tool.py`)**:
+  - Extração estruturada de dados da web: `links` (coleta até 200 links com texto e URL absoluta) e `tables` (coleta linhas e cabeçalhos de tabelas HTML).
+  - Espera assíncrona de SPA (`wait_text`): aguarda texto dinâmico renderizado no DOM sem polling destrutivo.
+  - Rolagem (`scroll`): rolagem contínua para baixo/cima/topo/fim ou até seletor com `scrollIntoView`.
+  - Multi-abas (`tabs`, `new_tab`, `switch_tab`, `close_tab`): gerencia abas independentes via CDP.
+- **Escrita Supervisionada na Equipe de Microagentes (`src/core/agent_team.py`)**:
+  - Novo papel especializado `"patch"`: analisa relatórios de erro e falhas de teste e formula propostas de correção via `code_task`.
+  - Barreira de segurança: `_action_denial_reason` barra explicitamente `apply=True` para subagentes, forçando que modificações em disco passem pela supervisão da Nyx principal e aprovação do usuário.
+- **Ciclo de Código Autônomo com Modelo Real (`src/tools/code_task_tool.py`, `src/core/llm_client.py`)**:
+  - Integração de `CODE_TASK_SCHEMA` com suporte a schemas JSON dinâmicos em `OllamaClient.generate` e `RecoveringLLM.generate`.
+  - Validação real de ponta a ponta com o modelo `qwen3.5:4b`: o modelo identificou teste falhando, propôs a correção precisa (`return a * b`), aplicou as alterações e os testes foram aprovados na 2ª rodada (`Passed: True`).
+- **Validação Total**: **431 testes aprovados, 1 ignorado**, Ruff 100% limpo, e todos os 34 testes funcionais de `test_all_nyx.py` aprovados.
+
+## Atualização: Correção de Timeout, Suporte a IA Local Completa e Aceleração GPU CUDA — 2026-10-22
+
+- **Diagnóstico da Causa Raiz do Timeout**:
+  1. O Windows iniciava automaticamente um executável do Ollama em `C:\Users\darlan\AppData\Local\Programs\Ollama\ollama.exe` que não possuía bibliotecas CUDA instaladas (apenas `ggml-cpu-sse42.dll`), rodando 100% em CPU. As requisições demoravam 77+ segundos e estouravam o timeout da aplicação.
+  2. Em `src/core/runtime_budget.py`, a fórmula de orçamento `model_weight_budget_bytes` multiplicava o orçamento por `max(0, ram_available - 2 GiB) * 2`. Com ~1.5 a 2.2 GiB de RAM disponível (padrão no Windows com apps abertos), o orçamento caía para 0 bytes, fazendo a Nyx recusar todos os modelos locais com `preferred_model_deferred` ("O modelo não cabe no orçamento atual"), mesmo com mais de 11 GiB de VRAM livre na GeForce RTX 3060.
+  3. O timeout da fila de inferência `INFERENCE_GATE.slot` estava limitado rigidamente a 45 segundos (`min(timeout, 45.0)`), e o timeout do cliente Ollama era de apenas 60 segundos, insuficiente para cold-load de modelos maiores (ex: Qwen 3.5 9B) ou geração sob carga.
+- **Correções Aplicadas**:
+  - Sincronizadas as bibliotecas de aceleração GPU CUDA (`cuda_v12`, `cuda_v13`, `vulkan`, `llama-server.exe` compilado para CUDA) de `E:\Ollama\lib\ollama` para `C:\Users\darlan\AppData\Local\Programs\Ollama\lib\ollama`.
+  - Atualizado `src/core/ollama_service.py` para preferir a instalação com suporte total a CUDA (`E:\Ollama\ollama.exe`) e ampliar o timeout de prontidão do serviço para 12s.
+  - Corrigido `src/core/runtime_budget.py`:
+    - `model_weight_budget_bytes` agora permite staging proporcional de memória quando VRAM dedicada está disponível e a RAM do sistema está na faixa saudável de 1.5 a 4 GiB, permitindo carregar modelos como Qwen 3.5 4B e Qwen 3.5 9B perfeitamente na GPU.
+    - `resident_context` alinhado à folga de segurança real do sistema (headroom de 1 GiB de RAM e 4 GiB de VRAM), permitindo que modelos residentes na GPU sejam mantidos sem quedas para o modo offline.
+    - `post_ollama_json` e `INFERENCE_GATE.slot` atualizados para respeitar timeouts estendidos (90s na fila e 120s na conexão HTTP).
+  - Adicionado suporte a `DeepSeek-R1:latest`, `deepseek-r1:latest` e `qwen3.5:9b` em `MODEL_PREFERENCE` em `src/core/llm_client.py`, e timeout do `OllamaClient` aumentado para 120s.
+- **Verificação Real em Hardware**:
+  - `ollama ps` confirmou execução 100% na GPU (`100% GPU`) na NVIDIA GeForce RTX 3060 12GB.
+  - Teste de inferência do `qwen3.5:4b` e `qwen3.5:9b`: tempo de resposta caiu de 77s (CPU) para ~1s a 3s residente, com geração de JSON estruturado e schema verificado com sucesso (`parse_ok: True`).
+- **Validação**: **421 testes aprovados, 1 ignorado**, Ruff limpo, e suite completa de 34 módulos funcionais em `test_all_nyx.py` aprovada.
+
+## Atualização: token para repositório privado e staging verificado — 2026-10-21 (DeepSeek Harness)
+
+- Diagnóstico: `api.github.com/repos/Kronos1027/nyx-agent` responde **404** para requisições anônimas e `private: true` para a API autenticada. O updater como estava **nunca** veria releases desse repositório.
+- `core/updater.py` agora aceita um token **somente leitura** por `NYX_GITHUB_TOKEN` ou pelo arquivo `%LOCALAPPDATA%\Nyx\github_token`, enviado como `Authorization: Bearer`. Sem token, segue anônimo; o token nunca é registrado em log.
+- Erro 404 passou a explicar a causa: repositório privado sem token, ou release não publicada.
+- Novo `--update-check` no aplicativo: imprime JSON com versão instalada, se a instalação é elegível (`supported`) e a release encontrada; sai com código 1 quando a consulta falha.
+- Verificação de ponta a ponta **sem rede e sem instalar**: `build/update_stage_check.py` monta uma release falsa apontando para o ZIP real de 153 MB, confere SHA-256 do arquivo `.sha256`, faz download em blocos, extração segura (520 entradas), confirma `Nyx.exe` no payload e limpa a preparação — concluído em 2,2 s.
+- Validação: **425 testes aprovados, 1 ignorado**, Ruff aprovado (4 casos novos de token e do aviso de 404).
+- Limite: a aplicação real da atualização (helper PowerShell, troca de pasta, rollback e reinício) **não** foi exercitada nesta rodada; só a preparação verificada. Nenhuma release foi publicada — o repositório é privado e não há token configurado nesta sessão.
+
+## Interface: animações de estado e ritmo — 2026-10-21 (DeepSeek Harness)
+
+- A barra lateral agora **anima a largura** (245 ↔ 78 px, 220 ms, easing cúbico) em vez de saltar; a animação usa um timer próprio, porque a `QVariantAnimation` compartilhada travava quando dois testes de interface rodavam em sequência.
+- Novo **indicador de digitação** no feed: bolha "Nyx está pensando" com três pontos e pulso de opacidade em laço (1,4 s), criada ao começar o pedido e removida ao terminar. `_show_typing`/`_hide_typing` são idempotentes.
+- Transição de página mantida (fade de 170 ms) e ampliada para o novo estado; estilos da bolha entraram no tema (borda, raio e cores do destaque).
+- Validação: **421 testes aprovados, 1 ignorado**, Ruff aprovado (2 casos novos: indicador segue o processamento e a largura do trilho realmente anima até 78 px e volta a 245 px).
+- Captura: `build/previews/desktop-typing.png` mostra a bolha pulsando entre a mensagem do usuário e o compositor.
+- Limite: a animação de largura redesenha a cada 16 ms e não foi medida em monitores de alta taxa; o indicador não mostra progresso por etapa (isso continua no rótulo de status).
+- Pacote reconstruído e instalado; `--browser-check` e `--self-check` com exit 0. SHA256 ZIP: `13a15b6a4cd6514977fb1cccfc1b755b0d1bed245e085e5b6413bf05d4ea8c1d`; executável: `05108bba49985e33221278f16a92a16e7dd2d5554efd9a6cf0ad69e504e6ff25`.
+
+## Ciclo de código com testes — 2026-10-21 (DeepSeek Harness)
+
+- Novo `src/tools/code_task_tool.py` e ferramenta `code_task`: roda `pytest` na pasta indicada, lê a falha, pede ao modelo um plano JSON de edições e repete até passar ou esgotar as tentativas (padrão 2, máximo 3).
+- **Proposta por padrão**: sem `apply=true`, nada é gravado; o resultado traz os arquivos e o conteúdo proposto. Com `apply=true`, cada arquivo é lido para backup e restaurado se os testes continuarem falhando.
+- Limites rígidos: repositório dentro das raízes permitidas; no máximo 5 arquivos e 200 KB por arquivo; só `.py/.md/.txt/.json/.toml/.cfg/.ini/.yaml/.yml`; caminhos relativos sem escape; `pytest` com timeout de 300 s.
+- Confirmação: a ferramenta é sensível sempre e destrutiva apenas quando `apply=true`; `code_task` entrou em `VALID_ACTION_TYPES` e na gramática GBNF (validada com `LlamaGrammar.from_string`).
+- Interpretador: usa a venv do próprio projeto (`.venv/Scripts/python.exe`, `venv/bin/python`), depois `NYX_PYTHON`, depois o Python do PATH. Isso importa porque dentro do executável congelado `sys.executable` é o `Nyx.exe`, não um Python.
+- Verificação real: um projeto temporário com `add` subtraindo em vez de somar começou com `pytest` exit 1; o ciclo aplicou a correção proposta e o reprocessamento passou com exit 0.
+- Validação: **419 testes aprovados, 1 ignorado**, Ruff aprovado (12 casos novos: proposta sem escrita, aplicação, escape de caminho, extensão proibida, plano vazio, reversão e raiz externa).
+- Limite: o modelo real não foi usado nesta verificação (RAM livre abaixo do orçamento); o plano veio de um LLM roteirizado. O ciclo não interpreta falhas de importação fora do escopo nem roda comandos além de `pytest`.
+- Pacote reconstruído e instalado; `--browser-check` e `--self-check` com exit 0 e `tools.code_task_tool` presente no PYZ. SHA256 ZIP: `009ddf049145b187213b37d652c175ab69c223e41951bcae7dde61781013421f`; executável: `5c99b6c6741f9863f98ad0471b417bccd0d42f624f2330524c7301c8a7523ece`.
+
+## Equipe de microagentes ampliada — 2026-10-21 (DeepSeek Harness)
+
+- `core/agent_team.py`: até **4 tarefas** independentes por pedido, com **3 em paralelo** e **2 passos** por agente (uma consulta + a resposta que a usa). O modelo continua serializado por um lock; só as ferramentas de leitura correm juntas.
+- Cinco papéis: `pesquisa` (web/busca), **`navegador`** (abrir/ler páginas http(s), sem clique), `arquivos`, `sistema` e **`codigo`** (leitura de código/config para explicar riscos). Cada papel declara ferramentas e ações permitidas.
+- Recusas continuam auditadas: ferramenta fora do escopo, ação fora da lista permitida (ex.: clique ou `file://` no navegador), ferramenta destrutiva ou sensível, consulta repetida (encerra sem repetir) e tempo limite por equipe (150 s) com marcação `timed_out`.
+- Cada resultado carrega `steps` e a lista de `tools` usadas; a auditoria registra passos e sucessos por equipe.
+- Validação: **407 testes aprovados, 1 ignorado**, Ruff aprovado (4 casos novos, incluindo dois passos e bloqueio do navegador).
+- Limite: o teste com o modelo real foi **adiado** — havia 3,4 GiB de RAM livre e o orçamento recusou carregar o Qwen3.5 4B. A validação desta rodada usa modelos roteirizados; nenhuma equipe real de 4 agentes foi observada em produção.
+- Pacote reconstruído e instalado; `--browser-check` e `--self-check` do executável congelado terminaram com exit 0. SHA256 ZIP: `af75cfed76c6c3474b5506b861ca8fc09ff0819ef0e803e3bebe5763ba441f84`; executável: `845053fceb389acd16ccfa981749f6fb768040c01e9613f97ef9f38f155a7798`.
+
+## Navegador real via CDP — 2026-10-21 (DeepSeek Harness)
+
+- Novo `src/tools/browser_tool.py`: sessão isolada de Edge/Chrome pelo Chrome DevTools Protocol, iniciada sob demanda com porta própria e perfil temporário. Ações: `open`/`navigate`, `read`, `click`, `type`, `wait`, `screenshot`, `status` e `close`.
+- Segurança: só `http(s)`; `file:`, `javascript:` e `data:` são recusados; seletor e texto têm limite de tamanho; capturas só podem ser salvas dentro das raízes permitidas; clique e digitação pedem confirmação no modo assistido.
+- `ToolSpec` ganhou `sensitive_probe`/`is_sensitive_for`, então a confirmação pode variar por ação em vez de por ferramenta; o `agent_loop` passou a usar esse veredicto.
+- `browser` entrou em `VALID_ACTION_TYPES`, na gramática GBNF e no registro de ferramentas; os sinônimos "navegador"/"navegar" apontam para ele (antes caíam em `web`).
+- Verificação real nesta máquina: o Edge headless abriu uma página local, leu o texto, digitou "Darlan", clicou no botão e releu "Clicado: Darlan"; captura em `build/previews/browser-check.png`.
+- Novo `--browser-check` no executável: sobe uma página local, digita, clica e confere o resultado, retornando código 0/1 — serve de teste de fumaça do pacote congelado.
+- O `close()` derruba a árvore de processos e mata filhos órfãos cujo comando carrega o perfil temporário; sem isso, cada sessão deixava renderizadores do Edge vivos.
+- Validação: **403 testes aprovados, 1 ignorado**, Ruff aprovado (11 casos novos do navegador).
+- Limite: ainda não há extração estruturada (links/tabelas), espera de navegação SPA, upload/download nem múltiplas abas; o navegador sobe em modo headless por padrão.
+- Pacote reconstruído e instalado; `Nyx.exe --browser-check` no executável **congelado** terminou com exit 0, assim como o autoteste normal, e nenhum processo do navegador ficou órfão. SHA256 ZIP: `8304a29c4c902e003c02bdece287e859ec8a6a86fc8bf14450862a6e1c0c9e8d`; executável: `3f59c136fac62702b01c52a9e0b6ce208163fbd4a694cff63ce389f9edccbaad`.
+
+## Interface: paleta de comandos, trilho e avisos — 2026-10-21 (DeepSeek Harness)
+
+- `Ctrl+K` agora abre uma paleta de comandos pesquisável (`src/ui/command_palette.py`): ações da janela (nova conversa, navegar pelas quatro páginas, busca, voz, foco, atualizações, recolher a barra) e até oito conversas recentes; Enter executa, Esc fecha e as setas navegam. A busca de conversas mudou para `Ctrl+F`.
+- Barra lateral recolhível (`Ctrl+B`): modo trilho de 78 px só com ícones, persistido em `sidebar_rail`. O título passou a ter política vertical fixa e um espaçador entrou no modo trilho, senão os botões se espalhavam pela altura.
+- Avisos transitórios (`src/ui/toast.py`) substituem diálogos para retorno pequeno ("Painéis restaurados", "Configuração do modelo salva"), com fade de 150 ms e saída automática.
+- Layout responsivo: abaixo de 1120 px de largura o painel da companhia recolhe sozinho e volta ao alargar a janela.
+- Tema ganhou estilos próprios para a paleta e o toast.
+- Validação: **392 testes aprovados, 1 ignorado**, Ruff aprovado; capturas `build/previews/desktop-palette.png` (520×306) e `build/previews/desktop-rail.png` (1440×920).
+- Limite: a paleta cobre ações da janela e títulos de conversa, não o conteúdo das mensagens nem documentos. O trilho troca de largura instantaneamente, sem animação.
+- Pacote reconstruído e instalado (`ui.command_palette` e `ui.toast` confirmados no PYZ); autoteste exit 0. SHA256 ZIP: `c4390c242cb80847cb34315e29d54e4f7bde8c1ef03b94f7c5823cb16a7d3415`; executável: `338c92212273b14d497d5ae5bc51f850e016f59d05bb13eef254e0cea03be9c5`.
+- A rota de capacidades para a meta ampliada (navegador, equipe de agentes, ciclo de código, jogos, release) está em `docs/ROADMAP.md`.
+
+## Companhia viva — ciclos ociosos da Oxynisx — 2026-10-21 (DeepSeek Harness)
+
+- Novo `src/ui/pet_routine.py`: planejador puro (relógio e RNG injetados) decide olhar ao redor a cada 16–30 s, um sobressalto ocasional (18% das vezes) e sono após 4 minutos sem atividade. O overlay apenas aplica a decisão.
+- `OverlayWindow` ganhou um timer de 1 s, olhar temporário via `_routine_look` (segurando 2,6 s, sem brigar com o seguimento do cursor), `surprised` por 0,8 s e `sleep`. Clique, duplo clique, abertura dos controles, fala, escuta, pensamento e erro acordam a companhia e reiniciam a contagem; o sono é suspenso enquanto uma tarefa roda ou durante arrasto.
+- O sinal `emotion_changed` já existente propaga o sono para a companhia embutida na janela principal, então o estado aparece nos dois lugares.
+- Validação: **387 testes aprovados, 1 ignorado**, Ruff aprovado; as capturas `build/previews/pet-sleep.png` e `build/previews/pet-look.png` mostram quadros distintos do atlas (sono tem arte própria e o olhar desloca as pupilas).
+- Limite: o atlas não tem poses de bocejo ou limpeza de penas; o ciclo usa só as emoções e os olhares existentes. Não houve observação em uso prolongado.
+- Pacote reconstruído e instalado (`ui.pet_routine` confirmado no PYZ); autoteste da instalação aprovado (exit 0). SHA256 ZIP: `f6bcd25f9dd88d5c602cbb672009238c5dc9c77e2b64913ca23190193edcd74b`; executável instalado: `98c20eab8e4ee993e9971a0fb19052cc5e232c6f8992a61bfc42ed0c2e022af8`.
+
+## Coordenação de modelos residentes — 2026-10-21 (DeepSeek Harness)
+
+- `core/broker.py` deixou de ser um registro decorativo: cada handle carrega um callback de descarga que roda em `release()` e no despejo por prioridade. Falhas de descarga são contadas em `unload_failures` e não interrompem a inferência; a leitura de VRAM usa o mesmo `resource_snapshot` do orçamento, com fallback conservador quando não há telemetria.
+- `runtime_budget` ganhou `under_pressure`, `release_idle_residents` e `_free_then_snapshot`: antes de admitir um pedido Ollama ou um GGUF, modelos ociosos são descarregados quando a RAM livre fica abaixo de 3 GiB ou a VRAM livre abaixo de 1,5 GiB; sob pressão crítica o período de carência de 60 s é ignorado.
+- `SpeechToText` registra `whisper:<modelo>` com descarga real, marca uso a cada transcrição e se recarrega sozinho na próxima.
+- Verificação real nesta máquina: o whisper small transcreveu o fixture em 5,92 s, foi descarregado por pressão simulada (`released=["stt"]`, `_model=None`) e recarregou na transcrição seguinte em 3,66 s, voltando a ficar registrado.
+- Validação: **378 testes aprovados, 1 ignorado**, Ruff aprovado.
+- Pacote reconstruído e instalado em `%LOCALAPPDATA%\Programs\Nyx`; `core.broker` confirmado no PYZ do executável e autoteste da instalação aprovado (exit 0). SHA256 ZIP: `722344584c57ef2fe5458e31002a25ca29df08d737e23d6ad0a839dc0ba048af`; executável instalado: `3cd57c6b9e5b8ff57de904ab13810e1f18e715d92fa6ae68ea4ecb95ac69a142`.
+- Limite: o `LLMClient` (llama.cpp) continua fora do registro; o serviço Ollama mantém os próprios modelos, e o broker governa apenas o que a Nyx carrega no processo.
+
+## Preferências de voz na interface — 2026-10-21 (DeepSeek Harness)
+
+- A aba **Aparência e voz** ganhou seletor de voz pt-BR (`pf_dora`, `pm_alex`, `pm_santa`), velocidade de 70% a 150% e volume de 0% a 100%, com leitura numérica ao lado de cada controle e o botão **Ouvir uma amostra**. As escolhas são persistidas em `desktop.ini` (`voice`, `voice_speed`, `voice_volume`) e reaplicadas quando o aplicativo abre.
+- `VoiceSettings` valida e limita tudo na entrada: voz fora do pacote pt-BR volta para `pf_dora`, velocidade fica em 0,5–2,0 e volume em 0–1. O Kokoro recebe voz e velocidade e o volume é aplicado por escala das amostras; o SAPI5 mapeia o volume para 0–100 e a velocidade para a escala −10..10.
+- Validação: **370 testes aprovados, 1 ignorado**, Ruff aprovado. A captura offscreen `build/previews/desktop-voice-settings.png` (1440×920) mostra a página com os três controles e a amostra; o preview também confirmou que as preferências chegam ao TTS na ordem voz → velocidade → volume.
+- Pacote reconstruído e instalado em `%LOCALAPPDATA%\Programs\Nyx`; autoteste do pacote e da instalação aprovados (exit 0). SHA256 ZIP: `e9640926789ff9a9fec8c417003b679049919dd580c24c6996908f64c20ac10f`; executável instalado: `39b6856ba97ab7e60b7d1d155da31c7a99cd5ace1ac8b61060eedd8950568e1c`.
+- `packaging/build.ps1` passou a coletar o stderr do PyInstaller em vez de deixá-lo abortar o build com `$ErrorActionPreference = "Stop"`; sem isso o script falhava antes de gerar o pacote.
+- Limites: não houve escuta real de `pm_alex`/`pm_santa` nesta sessão; a verificação cobre validação, entrega dos parâmetros e renderização, não a qualidade das vozes. O volume atua na síntese da Nyx, não no mixer do Windows.
 
 ## Escrita verificada e replanejamento limitado
 
@@ -126,14 +259,14 @@ O aviso conhecido vem do pywinauto recomendando o modo STA do COM. A suíte não
 - Expansão dos microagentes para planejamento cooperativo de múltiplas etapas, síntese própria e cancelamento de tarefas já iniciadas.
 - Atualizador no app para a instalação padrão: consulta a versão estável mais recente, baixa em blocos, confere o SHA-256 e bloqueia ZIPs com caminhos perigosos. A troca só ocorre após confirmação, num helper separado, com autoteste e rollback automático se a versão nova não iniciar corretamente. O workflow de publicação existe, mas nenhum release foi publicado nesta rodada; portanto, não há atualização remota disponível ainda. A assinatura Authenticode continua pendente.
 - Treinamento ou ajuste fino de modelo. Não há dataset local nem pipeline de treino.
-- Controle total de todos os carregamentos: o novo orçamento governa seleção/contexto/fila das requisições Ollama da Nyx, mas `ModelBroker` ainda não coordena cargas de llama.cpp e faster-whisper; e o processo Ollama que já estava aberto mantém suas configurações próprias para os outros clientes.
+- Controle total de todos os carregamentos: o orçamento governa seleção/contexto/fila das requisições Ollama e agora descarrega o faster-whisper ocioso sob pressão, mas o `LLMClient` (llama.cpp) ainda não participa do registro; e o processo Ollama que já estava aberto mantém suas configurações próprias para os outros clientes.
 - A medição anterior em Ollama 0.32.5 usava CPU; a atualização para 0.40.6 ativou o backend CUDA do Ollama. O backend alternativo `llama-cpp-python` instalado segue CPU-only e sua wheel CUDA requer o CUDA Toolkit, ausente nesta máquina; não houve instalação do Toolkit.
 - Validação prática de longas sessões, centenas de pedidos, uso intenso de memória/GPU e recuperação após falhas.
 - AGI ou execução garantida de qualquer tarefa. Capacidades dependem do modelo, ferramentas, permissões e recursos da máquina.
 
 ## Próximas frentes
 
-1. Integrar o orçamento central com cargas de llama.cpp e faster-whisper e testar contenção entre essas cargas; decidir como a Nyx deve administrar o serviço Ollama existente sem interromper outros clientes.
+1. Integrar o `LLMClient` (llama.cpp) ao registro de modelos residentes e testar contenção real entre llama.cpp, faster-whisper e Ollama; decidir como a Nyx deve administrar o serviço Ollama existente sem interromper outros clientes.
 2. Desenhar ciclos e ações interativas para a coruja e permitir escolher voz, volume e preferências.
 3. Publicar uma release Windows com os dois assets esperados e testar o fluxo de atualização entre duas versões instaladas.
 4. Validar o fluxo completo no Windows alvo com um modelo local real, áudio, automação de UI e rollback da atualização.

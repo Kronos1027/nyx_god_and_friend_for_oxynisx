@@ -20,6 +20,7 @@ hiddenimports = [
     "onnxruntime",
     "sounddevice",
     "soundfile",
+    "websocket",
     "pywinauto",
     "pyautogui",
     "mss",

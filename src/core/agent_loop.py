@@ -499,7 +499,7 @@ class AgentLoop:
             )
             return (True, prompt, None)
 
-        if spec.sensitive and self.mode is PermissionMode.ASSISTIDA:
+        if spec.is_sensitive_for(action.params) and self.mode is PermissionMode.ASSISTIDA:
             return (True,
                     f"Confirmar '{action.type}' (modo assistida)? params: {action.params}",
                     None)

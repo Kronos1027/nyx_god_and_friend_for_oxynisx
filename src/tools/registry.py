@@ -30,6 +30,9 @@ class ToolSpec:
                   params (ex.: 'shell', onde o template DELETE_FILE é
                   destrutivo e LIST_DIR não) — recebe os params da ação e
                   responde se ESTE pedido específico é destrutivo.
+    sensitive_probe : mesma ideia para confirmação em modo assistido, quando
+                  só algumas ações tocam o mundo (ex.: 'browser' onde ler é
+                  livre e clicar/digitar pedem confirmação).
     """
 
     name: str
@@ -37,6 +40,8 @@ class ToolSpec:
     destructive: bool = False
     sensitive: bool = False
     destructive_probe: Callable[[dict], bool] | None = None
+    sensitive_probe: Callable[[dict], bool] | None = None
+    input_contract: dict | list | None = None
 
     def is_destructive_for(self, params: dict) -> bool:
         """Veredicto destrutivo para um pedido concreto (type + params)."""
@@ -46,6 +51,17 @@ class ToolSpec:
             try:
                 return bool(self.destructive_probe(params or {}))
             except Exception:  # noqa: BLE001 — fail-safe: dúvida = destrutivo
+                return True
+        return False
+
+    def is_sensitive_for(self, params: dict) -> bool:
+        """Confirmação em modo assistido, possivelmente por tipo de ação."""
+        if self.sensitive:
+            return True
+        if self.sensitive_probe is not None:
+            try:
+                return bool(self.sensitive_probe(params or {}))
+            except Exception:  # noqa: BLE001 — fail-safe: dúvida = pede confirmação
                 return True
         return False
 

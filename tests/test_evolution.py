@@ -4,6 +4,20 @@ from core.evolution import EvolutionLab, make_evolution_tool_func
 from tools.registry import ToolRegistry, ToolSpec, ToolResult
 
 
+def test_planning_notes_are_relevant_bounded_and_unverified(tmp_path):
+    import json
+    lab = EvolutionLab(tmp_path / "lab.db")
+    lab.learn("Python arquivos", "Conteúdo externo " * 250, "https://docs.python.org/3/")
+    lab.learn("Receita", "Bolo de chocolate", "https://example.org/bolo")
+    context = lab.planning_context("Quero criar arquivos Python")
+    rows = json.loads(context.split("\n", 1)[1])
+    assert len(rows) == 1
+    assert rows[0]["source"] == "https://docs.python.org/3/"
+    assert rows[0]["verified"] is False
+    assert len(rows[0]["excerpt"]) <= 450
+    assert lab.planning_context("astronomia") == ""
+
+
 def test_learn_persists_provenance_and_deduplicates(tmp_path):
     lab = EvolutionLab(tmp_path / "lab.db")
     item = lab.learn("Python", "Uma nota de estudo", "https://docs.python.org/3/")

@@ -173,3 +173,41 @@ def test_extract_verified_payload_rejects_traversal_and_requires_exe(tmp_path, a
     archive_path.write_bytes(archive)
     with pytest.raises(ValueError):
         updater._extract_verified(archive_path, tmp_path / "out")
+
+
+def test_token_from_environment_is_sent_to_github(monkeypatch):
+    monkeypatch.setenv("NYX_GITHUB_TOKEN", "ghp_example")
+    headers = updater._headers("application/vnd.github+json")
+
+    assert headers["Authorization"] == "Bearer ghp_example"
+    assert headers["Accept"] == "application/vnd.github+json"
+
+
+def test_token_file_is_used_and_trimmed(monkeypatch, tmp_path):
+    monkeypatch.delenv("NYX_GITHUB_TOKEN", raising=False)
+    monkeypatch.setattr(updater, "user_data_dir", lambda: tmp_path)
+    (tmp_path / "github_token").write_text("  tok123  \n", encoding="utf-8")
+
+    assert updater._token() == "tok123"
+    assert updater._headers()["Authorization"] == "Bearer tok123"
+
+
+def test_without_token_requests_stay_anonymous(monkeypatch, tmp_path):
+    monkeypatch.delenv("NYX_GITHUB_TOKEN", raising=False)
+    monkeypatch.setattr(updater, "user_data_dir", lambda: tmp_path)
+
+    assert "Authorization" not in updater._headers()
+
+
+def test_missing_release_explains_the_private_repository_hint(monkeypatch):
+    import urllib.error
+
+    monkeypatch.delenv("NYX_GITHUB_TOKEN", raising=False)
+    monkeypatch.setattr(updater, "user_data_dir", lambda: __import__("pathlib").Path("nao-existe"))
+
+    def not_found(url, limit):
+        raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+
+    monkeypatch.setattr(updater, "_read_url", not_found)
+    with pytest.raises(ValueError, match="NYX_GITHUB_TOKEN"):
+        updater.check_for_update()

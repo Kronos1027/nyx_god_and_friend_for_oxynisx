@@ -131,8 +131,23 @@ class TaskRunner:
                     prompt += "\n\n" + self.planning_feedback
                 context = self.loop.memory.build_system_prompt_context() if self.loop.memory else None
                 history = self._planning_history()
-                tools = [{"name": name, "description": self.loop.registry.spec(name).description[:180]}
-                         for name in self.loop.registry.names()]
+                tools = []
+                for name in self.loop.registry.names():
+                    spec = self.loop.registry.spec(name)
+                    if name in self.loop.disabled_tools:
+                        continue
+                    entry = {"name": name, "description": spec.description[:500]}
+                    if spec.input_contract is not None:
+                        entry["params_contract"] = spec.input_contract
+                    tools.append(entry)
+                lab = getattr(self.loop.registry, "evolution_lab", None)
+                if lab is not None:
+                    try:
+                        notes = lab.planning_context(self.goal)
+                        if notes:
+                            history.append({"role": "user", "content": notes})
+                    except Exception:
+                        self.loop.audit.log_event("learning_context_unavailable", task_id=self.task_id)
                 parameters = inspect.signature(self.loop.llm.generate).parameters
                 kwargs = {"history": history}
                 accepts_kwargs = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in parameters.values())

@@ -75,3 +75,109 @@ def test_invalid_runtime_telemetry_grants_no_residency(monkeypatch, raw):
     import urllib.request
     monkeypatch.setattr(urllib.request, "urlopen", lambda *args, **kwargs: io.BytesIO(raw))
     assert budget.ollama_models("http://localhost:11434", "ps") == []
+
+
+# --- resident model registry ------------------------------------------------
+
+def _broker():
+    from core.broker import ModelBroker
+
+    return ModelBroker.get_instance()
+
+
+def test_pressure_releases_idle_resident_models():
+    from core.broker import ModelRole
+
+    broker = _broker()
+    calls = []
+    broker.acquire(ModelRole.STT, "whisper:small", 2048, unload=lambda: calls.append("unload"))
+    broker.active_models[ModelRole.STT].last_used -= 120
+    try:
+        released = budget.release_idle_residents(budget.ResourceSnapshot(2 * budget.GIB, None, None))
+    finally:
+        broker.release(ModelRole.STT)
+    assert released == ["stt"]
+    assert calls == ["unload"]
+    assert ModelRole.STT not in broker.active_models
+
+
+def test_plenty_of_memory_keeps_resident_models():
+    from core.broker import ModelRole
+
+    broker = _broker()
+    calls = []
+    broker.acquire(ModelRole.EMBEDDINGS, "mini-emb", 100, unload=lambda: calls.append("unload"))
+    try:
+        snapshot = budget.ResourceSnapshot(8 * budget.GIB, 12 * budget.GIB, 6 * budget.GIB)
+        assert budget.release_idle_residents(snapshot) == []
+        assert ModelRole.EMBEDDINGS in broker.active_models
+        assert calls == []
+    finally:
+        broker.release(ModelRole.EMBEDDINGS)
+
+
+def test_recent_resident_is_spared_under_moderate_pressure():
+    from core.broker import ModelRole
+
+    broker = _broker()
+    broker.acquire(ModelRole.STT, "whisper:tiny", 1024, unload=lambda: None)
+    try:
+        snapshot = budget.ResourceSnapshot(2 * budget.GIB, None, None)
+        assert budget.release_idle_residents(snapshot) == []
+        assert ModelRole.STT in broker.active_models
+    finally:
+        broker.release(ModelRole.STT)
+
+
+def test_critical_pressure_ignores_the_idle_grace_period():
+    from core.broker import ModelRole
+
+    broker = _broker()
+    broker.acquire(ModelRole.STT, "whisper:tiny", 1024, unload=lambda: None)
+    try:
+        snapshot = budget.ResourceSnapshot(budget.GIB, None, None)
+        assert budget.release_idle_residents(snapshot) == ["stt"]
+    finally:
+        broker.release(ModelRole.STT)
+
+
+def test_failed_unload_is_contained_and_counted():
+    from core.broker import ModelBroker, ModelRole
+
+    broker = ModelBroker()
+
+    def boom():
+        raise RuntimeError("device busy")
+
+    broker.acquire(ModelRole.TTS, "kokoro", 90, unload=boom)
+    assert broker.release(ModelRole.TTS) is True
+    assert broker.unload_failures == 1
+    assert ModelRole.TTS not in broker.active_models
+
+
+def test_acquire_evicts_an_idle_lower_priority_model(monkeypatch):
+    from core.broker import ModelBroker, ModelRole
+
+    broker = ModelBroker(budget_mb=1000)
+    monkeypatch.setattr(broker, "current_vram_used_mb", lambda: 600)
+    calls = []
+    broker.acquire(ModelRole.EMBEDDINGS, "mini-emb", 200, unload=lambda: calls.append("emb"))
+    broker.active_models[ModelRole.EMBEDDINGS].last_used -= 60
+    broker.acquire(ModelRole.PLANNER, "big", 600)
+
+    assert calls == ["emb"]
+    assert ModelRole.EMBEDDINGS not in broker.active_models
+    assert ModelRole.PLANNER in broker.active_models
+
+
+def test_reacquiring_a_role_replaces_the_unload_callback():
+    from core.broker import ModelBroker, ModelRole
+
+    broker = ModelBroker()
+    first, second = [], []
+    broker.acquire(ModelRole.STT, "old", 10, unload=lambda: first.append(1))
+    broker.acquire(ModelRole.STT, "new", 10, unload=lambda: second.append(1))
+    broker.release(ModelRole.STT)
+
+    assert first == []
+    assert second == [1]

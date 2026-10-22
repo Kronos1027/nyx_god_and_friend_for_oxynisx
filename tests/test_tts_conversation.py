@@ -1,10 +1,10 @@
-import threading
+﻿import threading
 from types import SimpleNamespace
 import sys
 
 import pytest
 
-from audio.tts import TextToSpeech, _Sapi5Backend
+from audio.tts import TextToSpeech, VoiceSettings, _Sapi5Backend
 
 
 @pytest.fixture
@@ -17,7 +17,7 @@ def speech(monkeypatch):
 
 def test_stop_while_idle_does_not_discard_next_reply(speech):
     spoken = threading.Event()
-    speech._kokoro.speak = lambda text, stop: spoken.set()
+    speech._kokoro.speak = lambda text, stop, settings: spoken.set()
     speech.stop_current()
     speech.speak("Olá")
     assert spoken.wait(1)
@@ -27,7 +27,7 @@ def test_microphone_cancels_playback_and_suppresses_queued_speech(speech):
     started = threading.Event()
     stopped = threading.Event()
     played = []
-    def speak(text, stop):
+    def speak(text, stop, settings):
         played.append(text)
         started.set()
         assert stop.wait(2)
@@ -42,14 +42,14 @@ def test_microphone_cancels_playback_and_suppresses_queued_speech(speech):
         assert speech._queue.empty()
     assert played == ["Primeira"]
     resumed = threading.Event()
-    speech._kokoro.speak = lambda text, stop: resumed.set()
+    speech._kokoro.speak = lambda text, stop, settings: resumed.set()
     speech.speak("Nova")
     assert resumed.wait(1)
 
 
 def test_microphone_timeout_never_enters_capture(speech):
     started, release = threading.Event(), threading.Event()
-    def uninterruptible(text, stop):
+    def uninterruptible(text, stop, settings):
         started.set()
         release.wait(2)
     speech._kokoro.speak = uninterruptible
@@ -86,13 +86,13 @@ def test_shutdown_is_idempotent_and_rejects_new_speech(speech):
 
 def test_synthesis_error_does_not_kill_worker(speech):
     failed, resumed = threading.Event(), threading.Event()
-    def fail(text, stop):
+    def fail(text, stop, settings):
         failed.set()
         raise RuntimeError("synthesis failed")
     speech._kokoro.speak = fail
     speech.speak("Teste")
     assert failed.wait(1)
-    speech._kokoro.speak = lambda text, stop: resumed.set()
+    speech._kokoro.speak = lambda text, stop, settings: resumed.set()
     speech.speak("Nova tentativa")
     assert resumed.wait(1)
 
@@ -100,7 +100,7 @@ def test_synthesis_error_does_not_kill_worker(speech):
 def test_speech_length_and_queue_are_bounded(speech):
     started, release = threading.Event(), threading.Event()
     lengths = []
-    def speak(text, stop):
+    def speak(text, stop, settings):
         lengths.append(len(text))
         started.set()
         release.wait(2)
@@ -128,5 +128,5 @@ def test_sapi_uses_async_plain_text_and_purges_on_cancel(monkeypatch):
     monkeypatch.setitem(sys.modules, "win32com", SimpleNamespace(client=client))
     monkeypatch.setitem(sys.modules, "win32com.client", client)
     monkeypatch.setattr("audio.tts.sys.platform", "win32")
-    _Sapi5Backend().speak("Olá", stop)
+    _Sapi5Backend().speak("Olá", stop, VoiceSettings())
     assert calls == [("Olá", 17), ("", 19)]

@@ -84,8 +84,21 @@ def run_gui(args: argparse.Namespace) -> int:
     registry = build_registry(cfg)
     llm = build_llm_for_app(args, cfg)
     registry.register(
-        ToolSpec(name="agent_team", description="Delega até duas investigações paralelas somente de leitura", sensitive=False),
+        ToolSpec(name="agent_team", description="Delega até 4 investigações paralelas (3 por vez, 2 passos cada) somente de leitura", sensitive=False),
         make_agent_team_tool_func(llm, registry, audit),
+    )
+    from tools.code_task_tool import make_code_task_tool_func
+
+    registry.register(
+        ToolSpec(
+            name="code_task",
+            description="Roda a suíte de testes de um projeto e propõe ou aplica correções em rodadas, com backup e reversão",
+            destructive=False,
+            sensitive=False,
+            destructive_probe=lambda p: bool(p.get("apply")),
+            sensitive_probe=lambda p: bool(p.get("apply")),
+        ),
+        make_code_task_tool_func(llm, cfg.allowed_roots),
     )
     memory = MemoryManager(data_dir=Path("data"), session_id=args.session or "desktop")
 
@@ -166,6 +179,20 @@ def run_gui(args: argparse.Namespace) -> int:
     return ret
 
 
+def _write_update_report(report: dict) -> None:
+    """Print and persist the result: the packaged app has no console to show it."""
+    payload = json.dumps(report, ensure_ascii=False)
+    print(payload)
+    try:
+        from app_paths import user_data_dir
+
+        target = user_data_dir() / "logs" / "update-check.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(payload, encoding="utf-8")
+    except OSError:
+        pass
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Nyx — Agente IA Desktop 100% Local (Windows 11)")
     parser.add_argument("--cli", action="store_true", help="Executa no terminal (modo CLI)")
@@ -174,6 +201,8 @@ def main() -> int:
     parser.add_argument("--model", help="Caminho para o modelo GGUF")
     parser.add_argument("--session", default="main", help="ID da sessão para auditoria")
     parser.add_argument("--self-check", action="store_true", help="Verifica recursos, dependências e dados do aplicativo")
+    parser.add_argument("--browser-check", action="store_true", help="Abre o navegador real e testa leitura, clique e digitação")
+    parser.add_argument("--update-check", action="store_true", help="Consulta a última release publicada e informa se há atualização")
     args = parser.parse_args()
 
     activate_runtime()
@@ -181,6 +210,31 @@ def main() -> int:
         from app_health import run_self_check
 
         report = run_self_check()
+        print(json.dumps(report, ensure_ascii=False))
+        return 0 if report["ok"] else 1
+
+    if args.update_check:
+        from dataclasses import asdict
+
+        from app_version import __version__
+        from core.updater import check_for_update, updater_supported
+
+        report: dict = {"installed": __version__, "update": None, "supported": updater_supported()}
+        try:
+            release = check_for_update()
+            if release is not None:
+                report["update"] = asdict(release)
+        except Exception as exc:  # network, 404 when nothing was published, malformed asset
+            report["error"] = f"{type(exc).__name__}: {exc}"
+            _write_update_report(report)
+            return 1
+        _write_update_report(report)
+        return 0
+
+    if args.browser_check:
+        from tools.browser_tool import browser_self_check
+
+        report = browser_self_check()
         print(json.dumps(report, ensure_ascii=False))
         return 0 if report["ok"] else 1
 

@@ -67,6 +67,7 @@ def build_registry(cfg: NyxConfig) -> ToolRegistry:
     registry.register(
         ToolSpec(name="shell", description="Comandos via allowlist de templates",
                  destructive=False, sensitive=True,
+                 input_contract=shell.planner_contract(),
                  destructive_probe=lambda p: shell.is_destructive(p.get("template", ""))),
         make_shell_tool_func(shell),
     )
@@ -158,12 +159,29 @@ def build_registry(cfg: NyxConfig) -> ToolRegistry:
         make_web_tool_func(web),
     )
 
+    from tools.browser_tool import BrowserSession, is_sensitive_action, make_browser_tool_func
+
+    browser = BrowserSession()
+    registry.browser_session = browser
+    import atexit
+
+    atexit.register(browser.close)
+    registry.register(
+        ToolSpec(
+            name="browser",
+            description="Navegador real (Edge/Chrome) via CDP: abrir http(s), ler texto, clicar, digitar, esperar e capturar",
+            destructive=False,
+            sensitive=False,
+            sensitive_probe=lambda p: is_sensitive_action(p.get("action")),
+        ),
+        make_browser_tool_func(browser, cfg.allowed_roots),
+    )
+
     from tools.reminder_tool import make_reminder_tool_func
     registry.register(
         ToolSpec(name="schedule", description="Cria, lista e cancela lembretes locais", sensitive=False),
         make_reminder_tool_func(reminder_scheduler),
     )
-
     from core.evolution import EvolutionLab, make_evolution_tool_func
     registry.evolution_lab = EvolutionLab(Path("data/nyx_evolution.db"))
     from core.research import ResearchQueue
@@ -246,8 +264,21 @@ def main(argv: list[str] | None = None) -> int:
     registry = build_registry(cfg)
     llm = build_llm(args, cfg)
     registry.register(
-        ToolSpec(name="agent_team", description="Delega até duas investigações paralelas somente de leitura", sensitive=False),
+        ToolSpec(name="agent_team", description="Delega até 4 investigações paralelas (3 por vez, 2 passos cada) somente de leitura", sensitive=False),
         make_agent_team_tool_func(llm, registry, audit),
+    )
+    from tools.code_task_tool import make_code_task_tool_func
+
+    registry.register(
+        ToolSpec(
+            name="code_task",
+            description="Roda a suíte de testes de um projeto e propõe ou aplica correções em rodadas, com backup e reversão",
+            destructive=False,
+            sensitive=False,
+            destructive_probe=lambda p: bool(p.get("apply")),
+            sensitive_probe=lambda p: bool(p.get("apply")),
+        ),
+        make_code_task_tool_func(llm, cfg.allowed_roots),
     )
     memory = MemoryManager(data_dir=Path("data"), session_id=args.session)
     loop = AgentLoop(llm, registry, audit, mode=PermissionMode.ASSISTIDA,

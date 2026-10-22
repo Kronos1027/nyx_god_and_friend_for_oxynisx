@@ -14,11 +14,13 @@ Recursos:
 from __future__ import annotations
 
 import logging
+import math
 import queue
 import re
 import sys
 import threading
 from contextlib import contextmanager
+from dataclasses import dataclass
 from app_paths import user_data_dir
 
 log = logging.getLogger(__name__)
@@ -29,9 +31,68 @@ _MODELS_DIR = _BASE_DIR / "models" / "kokoro"
 _KOKORO_ONNX = _MODELS_DIR / "kokoro-v1.0.onnx"
 _KOKORO_VOICES = _MODELS_DIR / "voices-v1.0.bin"
 
+# Vozes pt-BR embutidas no pacote de vozes do Kokoro v1.0.
+PT_BR_VOICES: tuple[tuple[str, str], ...] = (
+    ("pf_dora", "Dora — feminina, suave"),
+    ("pm_alex", "Alex — masculina, calma"),
+    ("pm_santa", "Santa — masculina, grave"),
+)
+
 # Voz padrão — pf_dora: feminina, fofa, pt-BR
 KOKORO_VOICE = "pf_dora"
 KOKORO_LANG = "pt-br"
+DEFAULT_SPEED = 1.1
+DEFAULT_VOLUME = 1.0
+
+
+def normalize_voice(value: object) -> str:
+    """Accept only a voice shipped with the pt-BR Kokoro bundle."""
+    name = str(value or "").strip().lower()
+    return name if any(name == voice for voice, _ in PT_BR_VOICES) else KOKORO_VOICE
+
+
+def normalize_speed(value: object) -> float:
+    """Clamp speech speed to the range Kokoro synthesizes reliably."""
+    try:
+        speed = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return DEFAULT_SPEED
+    if not math.isfinite(speed):
+        return DEFAULT_SPEED
+    return round(min(2.0, max(0.5, speed)), 2)
+
+
+def normalize_volume(value: object) -> float:
+    """Clamp volume to 0..1; unknown values fall back to the default."""
+    try:
+        volume = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return DEFAULT_VOLUME
+    if not math.isfinite(volume):
+        return DEFAULT_VOLUME
+    return round(min(1.0, max(0.0, volume)), 2)
+
+
+def sapi_rate(speed: float) -> int:
+    """Map the Kokoro speed factor to the SAPI5 -10..10 rate scale."""
+    scaled = (normalize_speed(speed) - 1.0) * 10
+    # Round half away from zero so 1.25 becomes 3, matching how SAPI reads it.
+    rounded = int(math.floor(scaled + 0.5)) if scaled >= 0 else -int(math.floor(-scaled + 0.5))
+    return max(-10, min(10, rounded))
+
+
+@dataclass(frozen=True)
+class VoiceSettings:
+    """Immutable snapshot of the user's voice preferences."""
+
+    voice: str = KOKORO_VOICE
+    speed: float = DEFAULT_SPEED
+    volume: float = DEFAULT_VOLUME
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "voice", normalize_voice(self.voice))
+        object.__setattr__(self, "speed", normalize_speed(self.speed))
+        object.__setattr__(self, "volume", normalize_volume(self.volume))
 
 
 def _clean_text_for_speech(text: str) -> str:
@@ -90,7 +151,16 @@ class _KokoroBackend:
                 self._available = False
                 return False
             from kokoro_onnx import Kokoro  # type: ignore
-            self._kokoro = Kokoro(str(_KOKORO_ONNX), str(_KOKORO_VOICES))
+            import onnxruntime as ort
+
+            options = ort.SessionOptions()
+            options.intra_op_num_threads = 2
+            options.inter_op_num_threads = 1
+            options.add_session_config_entry("session.intra_op.allow_spinning", "0")
+            session = ort.InferenceSession(
+                str(_KOKORO_ONNX), sess_options=options, providers=["CPUExecutionProvider"]
+            )
+            self._kokoro = Kokoro.from_session(session, str(_KOKORO_VOICES))
             self._available = True
             log.info("Kokoro TTS iniciado com voz pf_dora (pt-BR).")
         except Exception as exc:
@@ -98,16 +168,21 @@ class _KokoroBackend:
             self._available = False
         return self._available
 
-    def speak(self, text: str, stop_event: threading.Event) -> None:
+    def speak(self, text: str, stop_event: threading.Event, settings: VoiceSettings) -> None:
         """Sintetiza e reproduz via sounddevice (streaming direto, sem arquivo)."""
+        if settings.volume <= 0:
+            return
         try:
+            import numpy as np
             import sounddevice as sd
 
             samples, sample_rate = self._kokoro.create(
-                text, voice=KOKORO_VOICE, speed=1.1, lang=KOKORO_LANG
+                text, voice=settings.voice, speed=settings.speed, lang=KOKORO_LANG
             )
             if stop_event.is_set():
                 return
+            if settings.volume < 1.0:
+                samples = np.clip(np.asarray(samples, dtype=np.float32) * settings.volume, -1.0, 1.0)
             # Reprodução direta do array numpy
             sd.play(samples, samplerate=sample_rate, blocking=False)
             while sd.get_stream().active:
@@ -123,7 +198,7 @@ class _KokoroBackend:
 class _Sapi5Backend:
     """Backend SAPI5 nativo Windows — fallback silencioso."""
 
-    def speak(self, text: str, stop_event: threading.Event) -> None:
+    def speak(self, text: str, stop_event: threading.Event, settings: VoiceSettings) -> None:
         if sys.platform != "win32":
             return
         try:
@@ -132,7 +207,8 @@ class _Sapi5Backend:
 
             pythoncom.CoInitialize()
             speaker = win32com.client.Dispatch("SAPI.SpVoice")
-            speaker.Rate = 1
+            speaker.Rate = sapi_rate(settings.speed)
+            speaker.Volume = int(round(settings.volume * 100))
 
             voices = speaker.GetVoices()
             for i in range(voices.Count):
@@ -163,8 +239,9 @@ class TextToSpeech:
     Hierarquia: Kokoro ONNX (pf_dora, pt-BR) → SAPI5 (Maria, Windows)
     """
 
-    def __init__(self, enabled: bool = True) -> None:
+    def __init__(self, enabled: bool = True, settings: VoiceSettings | None = None) -> None:
         self.enabled = enabled
+        self._voice_settings = settings or VoiceSettings()
         # Bound pending speech so bursts of responses cannot grow RAM forever.
         self._queue: queue.Queue[tuple[int, str] | None] = queue.Queue(maxsize=8)
         self._state_lock = threading.RLock()
@@ -180,6 +257,22 @@ class TextToSpeech:
             target=self._worker_loop, daemon=True, name="nyx-tts"
         )
         self._worker_thread.start()
+
+    @property
+    def voice_settings(self) -> VoiceSettings:
+        with self._state_lock:
+            return self._voice_settings
+
+    def configure(self, *, voice: object = None, speed: object = None, volume: object = None) -> VoiceSettings:
+        """Apply validated voice preferences; omit a field to keep its value."""
+        with self._state_lock:
+            current = self._voice_settings
+            self._voice_settings = VoiceSettings(
+                voice=current.voice if voice is None else voice,  # type: ignore[arg-type]
+                speed=current.speed if speed is None else speed,  # type: ignore[arg-type]
+                volume=current.volume if volume is None else volume,  # type: ignore[arg-type]
+            )
+            return self._voice_settings
 
     def _worker_loop(self) -> None:
         """Loop de consumo da fila de falas."""
@@ -210,13 +303,14 @@ class TextToSpeech:
         """Escolhe o backend e sintetiza o texto."""
         if stop.is_set():
             return
+        settings = self.voice_settings
         available = self._kokoro.is_available()
         if stop.is_set():
             return
         if available:
-            self._kokoro.speak(text, stop)
+            self._kokoro.speak(text, stop, settings)
         elif sys.platform == "win32":
-            self._sapi5.speak(text, stop)
+            self._sapi5.speak(text, stop, settings)
 
     def speak(self, text: str) -> None:
         """Enfileira texto para síntese assíncrona."""

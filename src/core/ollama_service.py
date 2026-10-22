@@ -45,10 +45,20 @@ def load_runtime_config() -> dict[str, str]:
                 continue
             if any(not isinstance(value.get(key, ""), str) for key in keys):
                 continue
-            return {key: value.get(key, "") for key in keys}
+            res = {key: value.get(key, "") for key in keys}
+            if not res.get("ollama_executable") and Path(r"E:\Ollama\ollama.exe").is_file():
+                res["ollama_executable"] = r"E:\Ollama\ollama.exe"
+            if not res.get("models_directory") and Path(r"E:\OllamaModelos").is_dir():
+                res["models_directory"] = r"E:\OllamaModelos"
+            return res
         except (OSError, ValueError):
             continue
-    return {}
+    defaults = {"ollama_executable": "", "models_directory": "", "preferred_model": ""}
+    if Path(r"E:\Ollama\ollama.exe").is_file():
+        defaults["ollama_executable"] = r"E:\Ollama\ollama.exe"
+    if Path(r"E:\OllamaModelos").is_dir():
+        defaults["models_directory"] = r"E:\OllamaModelos"
+    return defaults
 
 
 def save_runtime_config(executable: str, models_directory: str, preferred_model: str | None = None) -> None:
@@ -105,13 +115,13 @@ class OllamaServiceState:
 
 def _healthy(host: str) -> bool:
     try:
-        with urllib.request.urlopen(f"{host}/api/version", timeout=0.5) as response:
+        with urllib.request.urlopen(f"{host}/api/version", timeout=1.5) as response:
             return response.status == 200
     except Exception:
         return False
 
 
-def ensure_local_ollama(timeout: float = 8.0) -> OllamaServiceState:
+def ensure_local_ollama(timeout: float = 12.0) -> OllamaServiceState:
     global _owned_process
     host = os.environ.get("NYX_OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
     if _healthy(host):
@@ -132,7 +142,12 @@ def ensure_local_ollama(timeout: float = 8.0) -> OllamaServiceState:
 
     if _owned_process is None or _owned_process.poll() is not None:
         config = load_runtime_config()
-        executable = config.get("ollama_executable") or os.environ.get("NYX_OLLAMA_EXECUTABLE") or shutil.which("ollama")
+        executable = (
+            config.get("ollama_executable")
+            or (r"E:\Ollama\ollama.exe" if Path(r"E:\Ollama\ollama.exe").is_file() else None)
+            or os.environ.get("NYX_OLLAMA_EXECUTABLE")
+            or shutil.which("ollama")
+        )
         if not executable or not Path(executable).is_file():
             return OllamaServiceState(False, False, "Ollama não encontrado. Selecione a instalação em Personalizar.")
         if config.get("models_directory") and not Path(config["models_directory"]).is_dir():
@@ -142,7 +157,14 @@ def ensure_local_ollama(timeout: float = 8.0) -> OllamaServiceState:
             "OLLAMA_HOST": f"127.0.0.1:{port}",
             "OLLAMA_MAX_LOADED_MODELS": "1", "OLLAMA_NUM_PARALLEL": "1",
             "OLLAMA_MAX_QUEUE": "8", "OLLAMA_KEEP_ALIVE": "5m",
-            "OLLAMA_NO_CLOUD": "1", "OLLAMA_FLASH_ATTENTION": "1",
+            "OLLAMA_NO_CLOUD": "1",
+            # NOTE: OLLAMA_FLASH_ATTENTION is intentionally NOT set here.
+            # Older Ollama builds (< 0.40) pass --no-mmap to llama-server when
+            # flash attention is enabled on Windows+CUDA; newer llama-server
+            # binaries (0.40+) dropped that flag in favour of --load-mode.
+            # Forcing the flag causes a version mismatch crash.  The user's
+            # Ollama installation already enables flash attention by default on
+            # supported hardware, so we let it manage its own flags.
         })
         if config.get("models_directory"):
             environment["OLLAMA_MODELS"] = config["models_directory"]

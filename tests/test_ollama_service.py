@@ -48,6 +48,11 @@ def test_new_local_server_uses_configured_store_and_resource_limits(tmp_path, mo
     assert environment["OLLAMA_MAX_LOADED_MODELS"] == "1"
     assert environment["OLLAMA_MAX_QUEUE"] == "8"
     assert environment["OLLAMA_NO_CLOUD"] == "1"
+    # Nyx must not force OLLAMA_FLASH_ATTENTION: older Ollama builds pass
+    # --no-mmap to llama-server when flash attention is on; newer llama-server
+    # binaries dropped that flag.  A version mismatch between the two causes a
+    # hard crash.  Flash attention is controlled by the user's installation.
+    assert "OLLAMA_FLASH_ATTENTION" not in environment
 
 
 def test_remote_endpoint_never_starts_a_local_service(monkeypatch):

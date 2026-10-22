@@ -223,6 +223,11 @@ class ShellTool:
     def template_names(self) -> list[str]:
         return sorted(_TEMPLATES)
 
+    def planner_contract(self) -> list[dict]:
+        """Describe actual accepted parameters without exposing command builders."""
+        return [{"template": name, "required": spec.params, "optional": spec.optional_params}
+                for name, spec in sorted(_TEMPLATES.items())]
+
     def is_destructive(self, template_name: str) -> bool:
         t = _TEMPLATES.get(template_name)
         return bool(t and t.destructive)

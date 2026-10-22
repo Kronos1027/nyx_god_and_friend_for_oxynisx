@@ -40,6 +40,24 @@ def test_task_catalog_reaches_model_and_internal_typeerror_is_not_retried(tmp_pa
     assert not runner.active
 
 
+def test_planner_receives_real_shell_parameters_and_omits_disabled_tools(tmp_path):
+    from tools.shell_tool import ShellTool
+    runner, loop, registry = make_runner(tmp_path, [])
+    registry.register(ToolSpec("shell", "commands", input_contract=ShellTool().planner_contract()),
+                      lambda p: ToolResult(True))
+    registry.register(ToolSpec("read_file", "read"), lambda p: ToolResult(True))
+    loop.disabled_tools.add("read_file")
+    captured = []
+    def generate(prompt, **kwargs):
+        captured.extend(kwargs["task_tools"])
+        return reply()
+    loop.llm.generate = generate
+    runner.start("Liste arquivos")
+    assert [item["name"] for item in captured] == ["shell"]
+    listing = next(t for t in captured[0]["params_contract"] if t["template"] == "LIST_DIR")
+    assert listing["required"] == {"path": "path"}
+
+
 def test_planner_retains_all_six_steps_including_first_failure(tmp_path):
     runner, loop, registry = make_runner(tmp_path, [])
     histories = []

@@ -44,8 +44,6 @@ def main():
     if not args.push:
         return
     destination = ROOT / "build" / "source-publication"
-    if destination.exists():
-        raise ValueError("Publicação anterior existe; revise antes de reutilizar")
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="never")
 
     def git(*parts, cwd=ROOT):
@@ -55,7 +53,16 @@ def main():
         return result.stdout.strip()
 
     destination.parent.mkdir(parents=True, exist_ok=True)
-    git("clone", "--depth=1", "--branch=main", "--single-branch", REMOTE, str(destination))
+    if destination.exists():
+        if git("remote", "get-url", "origin", cwd=destination) != REMOTE:
+            raise ValueError("Remote de publicação inesperado")
+        if git("status", "--porcelain", cwd=destination):
+            raise ValueError("Publicação contém alterações pendentes; revise antes de continuar")
+        remote_head = git("ls-remote", "origin", "refs/heads/main", cwd=destination).split()[0]
+        if git("rev-parse", "HEAD", cwd=destination) != remote_head:
+            raise ValueError("Publicação divergiu do GitHub; sincronização manual necessária")
+    else:
+        git("clone", "--depth=1", "--branch=main", "--single-branch", REMOTE, str(destination))
     for source in selected:
         target = destination / source.relative_to(ROOT)
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -65,10 +72,16 @@ def main():
     allowed = {p.relative_to(ROOT).as_posix() for p in selected}
     if set(staged) - allowed:
         raise ValueError("Arquivo não autorizado no stage")
+    if not staged:
+        print("No source changes to publish")
+        return
     git("-c", "user.name=Nyx Development", "-c", "user.email=nyx@local.invalid", "commit", "-m",
-        "Add native workspace, Oxynisx, resource budgets and evidence-based learning foundation", cwd=destination)
+        "Improve agent tool contracts, research recall and bounded conversation initiatives", cwd=destination)
     git("push", "origin", "HEAD:refs/heads/main", cwd=destination)
-    print("Published source commit:", git("rev-parse", "HEAD", cwd=destination))
+    head = git("rev-parse", "HEAD", cwd=destination)
+    if git("ls-remote", "origin", "refs/heads/main", cwd=destination).split()[0] != head:
+        raise RuntimeError("Push realizado, mas confirmação do commit remoto falhou")
+    print("Published and verified source commit:", head)
 
 
 if __name__ == "__main__":

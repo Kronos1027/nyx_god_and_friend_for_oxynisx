@@ -134,3 +134,30 @@ def test_voice_waits_for_conversation_slot(voice, monkeypatch):
             assert gate.telemetry()["waiting"] == 1
             assert not started.is_set()
         assert task.result(timeout=2) == "Olá"
+
+
+def test_resident_voice_unloads_under_pressure_and_reloads(voice, monkeypatch):
+    loads = []
+
+    class Model:
+        def __init__(self, *args, **kwargs):
+            loads.append("load")
+
+        def transcribe(self, audio, **kwargs):
+            return iter([SimpleNamespace(text="ok")]), None
+
+    monkeypatch.setitem(sys.modules, "faster_whisper", SimpleNamespace(WhisperModel=Model))
+    from core.broker import ModelBroker, ModelRole
+
+    assert voice.transcribe_array(np.zeros(16000)) == "ok"
+    broker = ModelBroker.get_instance()
+    handle = broker.active_models[ModelRole.STT]
+    assert handle.model_name == f"whisper:{voice.model_name}"
+    assert handle.unload == voice.close_model
+
+    handle.last_used -= 120
+    assert budget.release_idle_residents(budget.ResourceSnapshot(2 * budget.GIB, None, None)) == ["stt"]
+    assert voice._model is None
+
+    assert voice.transcribe_array(np.zeros(16000)) == "ok"
+    assert loads == ["load", "load"]

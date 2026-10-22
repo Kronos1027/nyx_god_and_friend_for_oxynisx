@@ -57,7 +57,7 @@ class RecoveringLLM:
         finally:
             self._refresh_lock.release()
 
-    def generate(self, user_input, history=None, memory_context=None, task_tools=None):
+    def generate(self, user_input, history=None, memory_context=None, task_tools=None, schema=None, max_output_tokens=None, **extra_kwargs):
         self._refresh_if_due()
         client = self._client
         try:
@@ -67,6 +67,13 @@ class RecoveringLLM:
                 kwargs["memory_context"] = memory_context
             if "task_tools" in parameters or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in parameters.values()):
                 kwargs["task_tools"] = task_tools
+            if "schema" in parameters or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in parameters.values()):
+                kwargs["schema"] = schema
+            if "max_output_tokens" in parameters or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in parameters.values()):
+                kwargs["max_output_tokens"] = max_output_tokens
+            for k, v in extra_kwargs.items():
+                if k in parameters or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in parameters.values()):
+                    kwargs[k] = v
             return client.generate(user_input, **kwargs)
         except BackendUnavailable as exc:
             # Queue contention is not evidence that the provider is unavailable.

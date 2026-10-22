@@ -107,7 +107,45 @@ class SpeechToText:
             )
             dev = "cpu"
         self._loaded_device = dev
+        self._register_resident()
         return self._model
+
+    @property
+    def _reserve_gib(self) -> int:
+        # Conservative envelopes, not measured peaks; unknown models require 8 GiB.
+        family = self.model_name.removesuffix(".en")
+        return {"tiny": 1, "base": 1, "small": 2, "medium": 5}.get(family, 8)
+
+    def _register_resident(self) -> None:
+        """Let the model broker unload this model when other inference needs room."""
+        from core.broker import ModelBroker, ModelRole
+
+        ModelBroker.get_instance().acquire(
+            ModelRole.STT,
+            f"whisper:{self.model_name}",
+            self._reserve_gib * 1024,
+            unload=self.close_model,
+        )
+
+    def _touch_resident(self) -> None:
+        from core.broker import ModelBroker, ModelRole
+
+        ModelBroker.get_instance().touch(ModelRole.STT)
+
+    def close_model(self) -> None:
+        """Drop the resident model so its memory can return to the system."""
+        import gc
+
+        self._model = None
+        self._loaded_device = None
+        gc.collect()
+
+    def close(self) -> None:
+        """Release the broker entry (which unloads the weights) and clear state."""
+        from core.broker import ModelBroker, ModelRole
+
+        if not ModelBroker.get_instance().release(ModelRole.STT):
+            self.close_model()
 
     def _admit_model(self, device: str, *, loading: bool) -> None:
         from core.runtime_budget import GIB, InferencePressureError, resource_snapshot
@@ -115,9 +153,7 @@ class SpeechToText:
         if device not in {"cpu", "cuda"}:
             raise ValueError("Dispositivo de voz deve ser auto, cpu ou cuda.")
         snapshot = resource_snapshot()
-        # Conservative envelopes, not measured peaks; unknown models require 8 GiB.
-        family = self.model_name.removesuffix(".en")
-        reserve = {"tiny": 1, "base": 1, "small": 2, "medium": 5}.get(family, 8) * GIB
+        reserve = self._reserve_gib * GIB
         required_ram = 2 * GIB + (reserve if loading else 0)
         if snapshot.ram_available_bytes is None or snapshot.ram_available_bytes < required_ram:
             raise InferencePressureError("Memória RAM insuficiente para reconhecimento de voz; libere memória e tente novamente.")
@@ -165,7 +201,9 @@ class SpeechToText:
                 vad_filter=True,
             )
             # faster-whisper executes lazily: retain the slot through iteration.
-            return " ".join(seg.text.strip() for seg in segments).strip()
+            text = " ".join(seg.text.strip() for seg in segments).strip()
+            self._touch_resident()
+            return text
 
     def record_and_transcribe(self, duration_seconds: float = 4.0) -> str:
         """Grava do microfone e transcreve o áudio para texto."""

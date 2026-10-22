@@ -1,0 +1,29 @@
+- id: llm-pi-ai
+  config:
+    providers:
+      ollama-local:
+        displayName: Local RTX 3060
+        api: openai-completions
+        baseURL: http://127.0.0.1:11434/v1
+        compat:
+          supportsStore: false
+          supportsDeveloperRole: false
+          supportsReasoningEffort: true
+          maxTokensField: max_tokens
+        models:
+        - id: nyx-coder:9b
+          name: Qwen3.5 9B local
+          contextWindow: 65536
+          maxTokens: 4096
+          input:
+          - text
+          reasoningEfforts:
+            'off': none
+            high: high
+        apiKeyEnv: NYX_LOCAL_OLLAMA_KEY
+        reasoning: 'off'
+- id: agent-default-model
+  config:
+    provider: ollama-local
+    model: nyx-coder:9b
+    reasoningEffort: 'off'

@@ -8,20 +8,25 @@ import shutil
 import time
 from datetime import datetime
 
-from PyQt6.QtCore import QDateTime, QEasingCurve, QPropertyAnimation, QRectF, QSettings, Qt, QTimer, QUrl, pyqtSignal
+from PyQt6.QtCore import (
+    QDateTime, QEasingCurve, QPropertyAnimation, QRectF, QSettings, Qt, QTimer, QUrl,
+    QVariantAnimation, pyqtSignal,
+)
 from PyQt6.QtGui import QCursor, QColor, QDesktopServices, QKeySequence, QPainter, QPen, QShortcut
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDateTimeEdit, QDockWidget, QFormLayout,
     QFileDialog, QFrame, QGraphicsOpacityEffect, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
     QListWidget, QListWidgetItem, QMainWindow, QMenu, QMessageBox, QProgressBar,
     QPushButton, QScrollArea, QSlider, QStackedWidget, QTextBrowser, QTextEdit,
-    QToolButton, QVBoxLayout, QWidget, QSizePolicy, QTabWidget,
+    QToolButton, QVBoxLayout, QWidget, QSizePolicy, QSpacerItem, QTabWidget,
 )
 
 from app_paths import user_data_dir
 from ui.chat_store import ChatStore
+from ui.command_palette import CommandPalette
 from ui.desktop_theme import ACCENTS, desktop_stylesheet
 from ui.sprite_renderer import SpriteRenderer
+from ui.toast import Toast
 
 log = logging.getLogger(__name__)
 
@@ -170,15 +175,24 @@ class DesktopWindow(QMainWindow):
         self.controller.btn_close.setText("✕ Recolher")
         self.store = store or ChatStore(user_data_dir() / "data" / "nyx_chats.db")
         self.settings = settings or QSettings(str(user_data_dir() / "data" / "desktop.ini"), QSettings.Format.IniFormat)
+        self.toast = Toast(self)
+        self.palette = CommandPalette(self)
+        self._rail = False
+        self._companion_auto_hidden = False
         self.chat_id = ""
         self._busy = False
         self._research_busy = False
         self._closing = False
         self._research_cancel = threading.Event()
         self._last_interaction = time.monotonic()
+        from core.initiative import ConversationInitiative
+        self._initiative = ConversationInitiative()
         self._cards: list[QWidget] = []
         self._animation: QPropertyAnimation | None = None
         self._animated_page: QWidget | None = None
+        self._typing_row: QWidget | None = None
+        self._typing_anim: QPropertyAnimation | None = None
+        self._rail_anim: QVariantAnimation | None = None
         self._build_center()
         self._build_sidebar()
         self._build_companion()
@@ -187,6 +201,7 @@ class DesktopWindow(QMainWindow):
         self._connect_controller()
         self._apply_preferences()
         self._restore_layout()
+        self._set_rail(bool(self.settings.value("sidebar_rail", False, type=bool)))
         self._reload_chats()
         chats = self.store.list_chats()
         selected = str(self.settings.value("last_chat", ""))
@@ -207,8 +222,14 @@ class DesktopWindow(QMainWindow):
         self.research_timer.setInterval(30_000)
         self.research_timer.timeout.connect(self._research_tick)
         self.research_timer.start()
+        self.initiative_timer = QTimer(self)
+        self.initiative_timer.setInterval(30_000)
+        self.initiative_timer.timeout.connect(self._initiative_tick)
+        self.initiative_timer.start()
         QShortcut(QKeySequence("Ctrl+N"), self, activated=self.new_chat)
-        QShortcut(QKeySequence("Ctrl+K"), self, activated=lambda: self.search.setFocus())
+        QShortcut(QKeySequence("Ctrl+K"), self, activated=self.open_palette)
+        QShortcut(QKeySequence("Ctrl+F"), self, activated=lambda: self.search.setFocus())
+        QShortcut(QKeySequence("Ctrl+B"), self, activated=lambda: self._set_rail(not self._rail))
 
     @staticmethod
     def _muted(text: str) -> QLabel:
@@ -216,6 +237,21 @@ class DesktopWindow(QMainWindow):
         label.setObjectName("Muted")
         label.setWordWrap(True)
         return label
+
+    @staticmethod
+    def _slider_with_readout(slider: QSlider) -> tuple[QWidget, QLabel]:
+        """Put a slider and a live percentage readout on the same form row."""
+        holder = QWidget()
+        row = QHBoxLayout(holder)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(12)
+        readout = QLabel(f"{slider.value()}%")
+        readout.setMinimumWidth(44)
+        readout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(slider, 1)
+        row.addWidget(readout)
+        slider.valueChanged.connect(lambda value: readout.setText(f"{value}%"))
+        return holder, readout
 
     def _page(self) -> tuple[QWidget, QVBoxLayout]:
         page = QWidget()
@@ -362,17 +398,24 @@ class DesktopWindow(QMainWindow):
         body = QWidget()
         layout = QVBoxLayout(body)
         layout.setContentsMargins(18, 12, 18, 18)
-        brand = QLabel("nyx ✧")
-        brand.setObjectName("Brand")
-        layout.addWidget(brand)
-        layout.addWidget(self._muted("Uma companhia. Muitas possibilidades."))
-        new_button = QPushButton("+  Nova conversa")
-        new_button.setObjectName("Primary")
-        new_button.clicked.connect(self.new_chat)
-        layout.addWidget(new_button)
+        self._sidebar_layout = layout
+        self._rail_spacer = None
+        self.brand = QLabel("nyx ✧")
+        self.brand.setObjectName("Brand")
+        self.brand.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        layout.addWidget(self.brand)
+        self.brand_sub = self._muted("Uma companhia. Muitas possibilidades.")
+        self.brand_sub.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        layout.addWidget(self.brand_sub)
+        self.new_button = QPushButton("+  Nova conversa")
+        self.new_button.setObjectName("Primary")
+        self.new_button.clicked.connect(self.new_chat)
+        layout.addWidget(self.new_button)
         self.nav_buttons = []
-        for index, title in enumerate(("◌  Conversa", "◷  Agenda", "⚙  Personalizar", "✧  Aprendizado")):
-            button = QPushButton(title)
+        self._nav_labels = ("Conversa", "Agenda", "Personalizar", "Aprendizado")
+        self._nav_glyphs = ("◌", "◷", "⚙", "✧")
+        for index, (glyph, title) in enumerate(zip(self._nav_glyphs, self._nav_labels, strict=False)):
+            button = QPushButton(f"{glyph}  {title}")
             button.setObjectName("Nav")
             button.setCheckable(True)
             button.setChecked(index == 0)
@@ -391,10 +434,10 @@ class DesktopWindow(QMainWindow):
         self.chat_list.itemClicked.connect(lambda item: self.activate_chat(item.data(Qt.ItemDataRole.UserRole)))
         self.chat_list.itemDoubleClicked.connect(self._rename_chat)
         layout.addWidget(self.chat_list, 1)
-        remove = QPushButton("Excluir conversa selecionada")
-        remove.setObjectName("Quiet")
-        remove.clicked.connect(self._delete_chat)
-        layout.addWidget(remove)
+        self.remove_button = QPushButton("Excluir conversa selecionada")
+        self.remove_button.setObjectName("Quiet")
+        self.remove_button.clicked.connect(self._delete_chat)
+        layout.addWidget(self.remove_button)
         self.sidebar = self._dock("Biblioteca", "library", body, Qt.DockWidgetArea.LeftDockWidgetArea)
 
     def _build_companion(self) -> None:
@@ -704,6 +747,42 @@ class DesktopWindow(QMainWindow):
         self.speech_check = QCheckBox("Ler as respostas em voz alta")
         self.speech_check.setChecked(self.settings.value("speech", True, type=bool))
         form.addRow(self.speech_check)
+        self.initiative_check = QCheckBox("Nyx pode iniciar uma conversa nos intervalos")
+        self.initiative_check.setChecked(self.settings.value("conversation_initiative", True, type=bool))
+        self.initiative_check.setToolTip("Após 5 minutos sem pedidos; até 3 convites por sessão/dia, das 9h às 21h. O modo foco silencia os convites.")
+        self.initiative_check.toggled.connect(lambda value: self.settings.setValue("conversation_initiative", value))
+        form.addRow(self.initiative_check)
+        from audio.tts import DEFAULT_SPEED, DEFAULT_VOLUME, KOKORO_VOICE, PT_BR_VOICES
+
+        self.voice_combo = QComboBox()
+        for voice_id, caption in PT_BR_VOICES:
+            self.voice_combo.addItem(caption, voice_id)
+        self.voice_combo.setCurrentIndex(
+            max(0, self.voice_combo.findData(self.settings.value("voice", KOKORO_VOICE)))
+        )
+        self.voice_combo.setToolTip("Vozes pt-BR do Kokoro executadas neste computador")
+        form.addRow("Voz da Nyx", self.voice_combo)
+        self.speed_slider = QSlider(Qt.Orientation.Horizontal)
+        self.speed_slider.setRange(70, 150)
+        self.speed_slider.setSingleStep(5)
+        self.speed_slider.setPageStep(10)
+        self.speed_slider.setValue(self.settings.value("voice_speed", round(DEFAULT_SPEED * 100), type=int))
+        self.speed_slider.setToolTip("70% mais lenta · 100% natural · 150% mais rápida")
+        speed_row, self.speed_readout = self._slider_with_readout(self.speed_slider)
+        form.addRow("Velocidade da fala", speed_row)
+        self.volume_slider = QSlider(Qt.Orientation.Horizontal)
+        self.volume_slider.setRange(0, 100)
+        self.volume_slider.setSingleStep(5)
+        self.volume_slider.setPageStep(10)
+        self.volume_slider.setValue(self.settings.value("voice_volume", int(DEFAULT_VOLUME * 100), type=int))
+        self.volume_slider.setToolTip("0 silencia a voz · 100 reproduz no volume máximo")
+        volume_row, self.volume_readout = self._slider_with_readout(self.volume_slider)
+        form.addRow("Volume da voz", volume_row)
+        preview = QPushButton("Ouvir uma amostra")
+        preview.clicked.connect(self._preview_voice)
+        form.addRow(preview)
+        self.voice_feedback = self._muted("As preferências de voz valem para a conversa e para o pet.")
+        layout.addWidget(self.voice_feedback)
         layout.addLayout(form)
         layout.addStretch()
         layout = self._tab_section(self.settings_tabs, "Modelo local")
@@ -750,6 +829,20 @@ class DesktopWindow(QMainWindow):
         self.font_slider.valueChanged.connect(self._apply_preferences)
         self.motion_check.toggled.connect(self._apply_preferences)
         self.speech_check.toggled.connect(self._apply_preferences)
+        self.voice_combo.currentIndexChanged.connect(self._apply_preferences)
+        self.speed_slider.valueChanged.connect(self._apply_preferences)
+        self.volume_slider.valueChanged.connect(self._apply_preferences)
+
+    def _preview_voice(self) -> None:
+        tts = getattr(self.controller, "tts", None)
+        if not self.speech_check.isChecked():
+            self.voice_feedback.setText("Ative “Ler as respostas em voz alta” para ouvir a amostra.")
+            return
+        if tts is None or not hasattr(tts, "speak"):
+            self.voice_feedback.setText("A saída de voz não está disponível nesta sessão.")
+            return
+        tts.speak("Oi! Eu sou a Nyx. É assim que eu vou falar com você.")
+        self.voice_feedback.setText("Tocando uma amostra com a voz selecionada…")
 
     def _choose_ollama(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Selecione o Ollama instalado", self.ollama_path.text(), "Ollama (ollama.exe ollama)")
@@ -767,6 +860,7 @@ class DesktopWindow(QMainWindow):
         try:
             save_runtime_config(self.ollama_path.text().strip(), self.models_path.text().strip(), self.preferred_model.text().strip())
             self.runtime_feedback.setText("Configuração salva. Reinicie a Nyx para aplicar o modelo principal. Os caminhos são usados ao iniciar o serviço Ollama.")
+            self.notify("Configuração do modelo salva")
         except (OSError, ValueError) as exc:
             self.runtime_feedback.setText(str(exc))
 
@@ -808,8 +902,131 @@ class DesktopWindow(QMainWindow):
         self.controller.tts.enabled = self.speech_check.isChecked()
         if not self.speech_check.isChecked():
             self.controller.tts.stop_current()
-        for key, value in (("theme", theme), ("accent", accent), ("font_size", self.font_slider.value()), ("motion", self.motion_check.isChecked()), ("speech", self.speech_check.isChecked())):
+        voice = self.voice_combo.currentData()
+        configure = getattr(self.controller.tts, "configure", None)
+        if callable(configure):
+            configure(
+                voice=voice,
+                speed=self.speed_slider.value() / 100.0,
+                volume=self.volume_slider.value() / 100.0,
+            )
+        for key, value in (("theme", theme), ("accent", accent), ("font_size", self.font_slider.value()), ("motion", self.motion_check.isChecked()), ("speech", self.speech_check.isChecked()), ("voice", voice), ("voice_speed", self.speed_slider.value()), ("voice_volume", self.volume_slider.value())):
             self.settings.setValue(key, value)
+
+    def open_palette(self) -> None:
+        """Ctrl+K: searchable actions followed by recent conversations."""
+        commands = [
+            ("Nova conversa", "Ctrl+N", self.new_chat),
+            ("Ir para Conversa", "", lambda: self.set_page(0)),
+            ("Ir para Agenda", "", lambda: self.set_page(1)),
+            ("Ir para Personalizar", "", lambda: self.set_page(2)),
+            ("Ir para Aprendizado", "", lambda: self.set_page(3)),
+            ("Buscar conversas", "Ctrl+F", lambda: self.search.setFocus()),
+            ("Conversar por voz", "", self.controller._on_mic_clicked),
+            ("Modo foco", "", lambda: self.focus_button.setChecked(not self.focus_button.isChecked())),
+            ("Recolher barra lateral", "Ctrl+B", lambda: self._set_rail(not self._rail)),
+            ("Verificar atualizações", "", self.controller._check_for_updates),
+        ]
+        for chat in self.store.list_chats()[:8]:
+            title = str(chat.get("title") or "Sem título")
+            commands.append(
+                (f"Abrir conversa: {title}", "histórico", lambda cid=chat["id"]: self.activate_chat(cid))
+            )
+        self.palette.set_commands(commands)
+        self.palette.open_with()
+        self.palette.focus_in_parent()
+
+    def notify(self, text: str) -> None:
+        """Small, self-dismissing feedback instead of a modal dialog."""
+        self.toast.show_message(text)
+
+    def _set_rail(self, enabled: bool) -> None:
+        """Collapse the library into an icon rail to give the conversation room."""
+        self._rail = bool(enabled)
+        self.brand.setText("✧" if self._rail else "nyx ✧")
+        self.brand_sub.setVisible(not self._rail)
+        self.new_button.setText("+" if self._rail else "+  Nova conversa")
+        self.search.setVisible(not self._rail)
+        self.chat_list.setVisible(not self._rail)
+        self.remove_button.setVisible(not self._rail)
+        for button, glyph, label in zip(self.nav_buttons, self._nav_glyphs, self._nav_labels, strict=False):
+            button.setText(glyph if self._rail else f"{glyph}  {label}")
+            button.setToolTip(label if self._rail else "")
+        if self._rail:
+            if self._rail_spacer is None:
+                self._rail_spacer = QSpacerItem(
+                    0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
+                )
+                self._sidebar_layout.addItem(self._rail_spacer)
+        else:
+            if self._rail_spacer is not None:
+                self._sidebar_layout.removeItem(self._rail_spacer)
+                self._rail_spacer = None
+        body = self.sidebar.widget()
+        if body is not None and body.layout() is not None:
+            body.layout().invalidate()
+            body.layout().activate()
+        target = 78 if self._rail else 245
+        if self.motion_check.isChecked() and self.isVisible():
+            self._animate_rail(target)
+        else:
+            self._apply_rail_width(target, final=True)
+        self.settings.setValue("sidebar_rail", self._rail)
+
+    def _animate_rail(self, target: int) -> None:
+        """Animate the library width instead of snapping between states."""
+        self._stop_rail_animation()
+        self._rail_target = target
+        self._rail_started_at = time.monotonic()
+        self._rail_start_width = self.sidebar.width()
+        self._rail_timer = QTimer(self)
+        self._rail_timer.setInterval(16)
+        self._rail_timer.timeout.connect(self._rail_tick)
+        self._rail_timer.start()
+
+    def _stop_rail_animation(self) -> None:
+        timer = getattr(self, "_rail_timer", None)
+        if timer is not None:
+            timer.stop()
+            timer.deleteLater()
+            self._rail_timer = None
+        if self._rail_anim is not None:
+            self._rail_anim.stop()
+            self._rail_anim.deleteLater()
+            self._rail_anim = None
+
+    def _rail_tick(self) -> None:
+        elapsed = time.monotonic() - self._rail_started_at
+        progress = min(1.0, elapsed / 0.22)
+        eased = 1.0 - (1.0 - progress) ** 3
+        width = int(self._rail_start_width + (self._rail_target - self._rail_start_width) * eased)
+        self._apply_rail_width(width, final=progress >= 1.0)
+        if progress >= 1.0:
+            self._stop_rail_animation()
+
+    def _apply_rail_width(self, width: int, final: bool) -> None:
+        width = max(60, width)
+        self.sidebar.setMinimumWidth(width)
+        self.sidebar.setMaximumWidth(width)
+        self.resizeDocks([self.sidebar], [width], Qt.Orientation.Horizontal)
+        if final and not self._rail:
+            self.sidebar.setMinimumWidth(0)
+            self.sidebar.setMaximumWidth(16777215)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if hasattr(self, "companion_dock"):
+            self._apply_responsive_layout()
+
+    def _apply_responsive_layout(self) -> None:
+        """Drop the companion gallery on narrow windows and bring it back later."""
+        narrow = self.width() < 1120
+        if narrow and self.companion_dock.isVisible() and not self.companion_dock.isFloating():
+            self.companion_dock.hide()
+            self._companion_auto_hidden = True
+        elif not narrow and self._companion_auto_hidden:
+            self.companion_dock.show()
+            self._companion_auto_hidden = False
 
     def _restore_layout(self) -> None:
         geometry = self.settings.value("geometry")
@@ -827,6 +1044,7 @@ class DesktopWindow(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.companion_dock)
         self.splitDockWidget(self.companion_dock, self.activity_dock, Qt.Orientation.Vertical)
         self.resizeDocks([self.sidebar, self.companion_dock], [245, 270], Qt.Orientation.Horizontal)
+        self.notify("Painéis restaurados")
 
     def set_page(self, index: int) -> None:
         self.pages.setCurrentIndex(index)
@@ -875,6 +1093,17 @@ class DesktopWindow(QMainWindow):
         self.controller.tts.stop_current()
         self.controller.process_prompt(text)
 
+    def _initiative_tick(self) -> None:
+        message = self._initiative.poll(
+            enabled=self.initiative_check.isChecked() and not self._closing,
+            busy=(self._busy or self._research_busy or self._backup_busy
+                  or bool(self.composer.toPlainText().strip())
+                  or self.controller.current_emotion in {"listening", "think", "talk"}),
+            focused=self.focus_button.isChecked(),
+        )
+        if message:
+            self.controller.say(message, emotion="surprised")
+
     def _on_message(self, role: str, text: str) -> None:
         self.store.append(self.chat_id, role, text)
         self._add_card(role, text)
@@ -904,6 +1133,58 @@ class DesktopWindow(QMainWindow):
     def _scroll_to_latest(self) -> None:
         self.scroll.verticalScrollBar().setValue(self.scroll.verticalScrollBar().maximum())
 
+    def _show_typing(self) -> None:
+        """Animated placeholder so the conversation never looks frozen."""
+        if self._typing_row is not None:
+            return
+        self.hero.hide()
+        row = QWidget(self.feed)
+        row.setObjectName("TypingRow")
+        line = QHBoxLayout(row)
+        line.setContentsMargins(0, 0, 0, 0)
+        bubble = QFrame(row)
+        bubble.setObjectName("TypingBubble")
+        bubble.setMaximumWidth(280)
+        inner = QHBoxLayout(bubble)
+        inner.setContentsMargins(16, 10, 16, 10)
+        inner.setSpacing(10)
+        text = QLabel("Nyx está pensando")
+        text.setObjectName("TypingText")
+        dots = QLabel("●  ●  ●")
+        dots.setObjectName("TypingDots")
+        inner.addWidget(text)
+        inner.addWidget(dots)
+        line.addWidget(bubble)
+        line.addStretch(1)
+
+        effect = QGraphicsOpacityEffect(row)
+        effect.setOpacity(0.85)
+        row.setGraphicsEffect(effect)
+        animation = QPropertyAnimation(effect, b"opacity", self)
+        animation.setDuration(1400)
+        animation.setLoopCount(-1)
+        animation.setKeyValueAt(0.0, 0.45)
+        animation.setKeyValueAt(0.5, 1.0)
+        animation.setKeyValueAt(1.0, 0.45)
+        animation.setEasingCurve(QEasingCurve.Type.InOutSine)
+        animation.start()
+
+        self.feed_layout.insertWidget(self.feed_layout.count() - 1, row)
+        self._typing_row = row
+        self._typing_anim = animation
+        QTimer.singleShot(30, self._scroll_to_latest)
+
+    def _hide_typing(self) -> None:
+        if self._typing_row is None:
+            return
+        if self._typing_anim is not None:
+            self._typing_anim.stop()
+            self._typing_anim.deleteLater()
+            self._typing_anim = None
+        self.feed_layout.removeWidget(self._typing_row)
+        self._typing_row.deleteLater()
+        self._typing_row = None
+
     def _on_task_progress(self, progress: dict) -> None:
         phase = progress["phase"]
         step = progress["step"]
@@ -921,6 +1202,7 @@ class DesktopWindow(QMainWindow):
 
     def _on_processing(self, busy: bool) -> None:
         self._busy = busy
+        self._initiative.activity()
         self.cancel_task_button.setEnabled(busy and getattr(self.controller.loop, "task_runner", None) is not None)
         self._last_interaction = time.monotonic()
         if busy:
@@ -928,6 +1210,10 @@ class DesktopWindow(QMainWindow):
         self.send_button.setEnabled(not busy)
         self.voice_button.setEnabled(not busy)
         self.busy_label.setVisible(busy)
+        if busy:
+            self._show_typing()
+        else:
+            self._hide_typing()
         self.chat_list.setEnabled(not busy)
         self._add_activity("Pedido em andamento" if busy else "Pedido encerrado")
         self._refresh_status()
@@ -1084,6 +1370,7 @@ class DesktopWindow(QMainWindow):
         self.telemetry_timer.stop()
         self.backup_timer.stop()
         self.research_timer.stop()
+        self.initiative_timer.stop()
         self._research_cancel.set()
         self.companion.timer.stop()
         self._stop_transition()

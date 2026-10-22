@@ -172,6 +172,10 @@ class OverlayWindow(QWidget):
         self.loop = loop
         self.interaction_parent = self
         self.current_emotion = "idle"
+        from ui.pet_routine import PetRoutine
+
+        self._routine = PetRoutine()
+        self._routine_look: tuple[float, float] | None = None
         self.current_mode = loop.mode_name if loop else "assistida"
         self.anim_frame = 0
         self._drag_pos = QPoint()
@@ -295,12 +299,14 @@ class OverlayWindow(QWidget):
             self.interaction_parent.activateWindow()
 
     def _toggle_pet_controls(self) -> None:
+        self._note_activity()
         self.pet_controls.setVisible(not self.pet_controls.isVisible())
         if self.pet_controls.isVisible():
             self.txt_input.setFocus()
         self.adjustSize()
 
     def mouseDoubleClickEvent(self, event) -> None:
+        self._note_activity()
         if event.button() == Qt.MouseButton.LeftButton:
             self._toggle_pet_controls()
             event.accept()
@@ -397,6 +403,43 @@ class OverlayWindow(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._tick_animation)
         self.timer.setInterval(160)
+        self._routine_timer = QTimer(self)
+        self._routine_timer.timeout.connect(self._pet_routine_tick)
+        self._routine_timer.setInterval(1000)
+        self._routine_timer.start()
+
+    def _pet_routine_tick(self) -> None:
+        """Let the companion act on its own while the user is away."""
+        if not self.isVisible() or self._processing or self._is_dragging:
+            return
+        action = self._routine.tick()
+        if action.kind == "sleep":
+            if self.current_emotion in {"idle", "sleep"}:
+                self._routine_look = None
+                self.set_emotion("sleep")
+        elif action.kind == "look":
+            if self.current_emotion == "idle":
+                self._routine_look = action.direction
+                QTimer.singleShot(int(self._routine.LOOK_HOLD_SECONDS * 1000), self._clear_routine_look)
+        elif action.kind == "perk":
+            if self.current_emotion == "idle":
+                self._routine_look = None
+                self.set_emotion("surprised")
+                QTimer.singleShot(800, self._settle_routine)
+
+    def _clear_routine_look(self) -> None:
+        self._routine_look = None
+
+    def _settle_routine(self) -> None:
+        if self.current_emotion == "surprised":
+            self.set_emotion("idle")
+
+    def _note_activity(self) -> None:
+        """User or assistant activity: wake up and restart the idle countdown."""
+        was_asleep = self._routine.notify_activity()
+        self._routine_look = None
+        if was_asleep and self.current_emotion == "sleep":
+            self.set_emotion("idle")
 
     def _tick_animation(self) -> None:
         if not self.isVisible():
@@ -411,9 +454,13 @@ class OverlayWindow(QWidget):
             frame=self.anim_frame,
         )
         if self.current_emotion == "idle" and self.motion_enabled and not self._is_dragging:
-            center = self.avatar_label.mapToGlobal(self.avatar_label.rect().center())
-            delta = QCursor.pos() - center
-            pix = self.renderer.look_at(delta.x(), delta.y())
+            if self._routine_look is not None:
+                target = self._routine_look
+            else:
+                center = self.avatar_label.mapToGlobal(self.avatar_label.rect().center())
+                delta = QCursor.pos() - center
+                target = (delta.x(), delta.y())
+            pix = self.renderer.look_at(target[0], target[1])
         self.avatar_label.setPixmap(pix)
 
     def _update_mode_button_style(self) -> None:
@@ -502,6 +549,7 @@ class OverlayWindow(QWidget):
     # Eventos de Arrastar Janela
     # ----------------------------------------------------------------------
     def mousePressEvent(self, event: QMouseEvent) -> None:
+        self._note_activity()
         if event.button() == Qt.MouseButton.LeftButton:
             self._is_dragging = True
             self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
@@ -537,6 +585,7 @@ class OverlayWindow(QWidget):
         self.emotion_changed.emit(emotion)
 
     def say(self, text: str, emotion: str = "talk", suggestion: str | None = None) -> None:
+        self._note_activity()
         self.set_emotion(emotion)
         self.bubble.set_message(text, suggestion)
         self.bubble.show()
@@ -550,14 +599,17 @@ class OverlayWindow(QWidget):
         self.bubble.set_message(text, None)
 
     def listen(self) -> None:
+        self._note_activity()
         self.set_emotion("listening")
         self.bubble.set_message("Ouvindo... Fale agora.", None)
 
     def think(self) -> None:
+        self._note_activity()
         self.set_emotion("think")
         self.bubble.set_message("Pensando e analisando melhor plano...", None)
 
     def show_error(self, err: str) -> None:
+        self._note_activity()
         self.set_emotion("error")
         self.bubble.set_message(f"Erro: {err}", None)
         self.message_received.emit("error", str(err))

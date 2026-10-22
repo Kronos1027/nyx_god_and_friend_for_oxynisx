@@ -71,4 +71,15 @@ def desktop_stylesheet(theme: str = "midnight", accent: str = "violet", font_siz
     QScrollBar:vertical {{ width: 8px; background: transparent; }}
     QScrollBar::handle:vertical {{ background: {p['line']}; border-radius: 4px; min-height: 30px; }}
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0px; }}
+    QFrame#PalettePanel {{ background: {p['panel']}; border: 1px solid {p['line']}; border-radius: 18px; }}
+    QLineEdit#PaletteInput {{ background: {p['card']}; border: 1px solid {p['line']}; border-radius: 10px; padding: 10px 12px; font-size: 15px; }}
+    QLineEdit#PaletteInput:focus {{ border: 1px solid {a}; }}
+    QListWidget#PaletteList {{ background: transparent; border: none; outline: none; }}
+    QListWidget#PaletteList::item {{ padding: 9px 10px; border-radius: 9px; color: {p['text']}; }}
+    QListWidget#PaletteList::item:selected {{ background: {p['card']}; color: {ink}; }}
+    QFrame#Toast {{ background: {p['card']}; border: 1px solid {p['line']}; border-radius: 14px; }}
+    QLabel#ToastText {{ color: {p['text']}; font-size: 12px; }}
+    QFrame#TypingBubble {{ background: {p['card']}; border: 1px solid {p['line']}; border-radius: 14px; }}
+    QLabel#TypingText {{ color: {p['muted']}; font-size: 12px; }}
+    QLabel#TypingDots {{ color: {ink}; font-size: 11px; letter-spacing: 3px; }}
     """

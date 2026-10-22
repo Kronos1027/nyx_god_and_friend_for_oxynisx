@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import shutil
 import sys
+import urllib.error
 import urllib.request
 import zipfile
 from dataclasses import dataclass
@@ -17,12 +19,39 @@ from urllib.parse import urlparse
 from app_paths import user_data_dir
 from app_version import __version__
 
+log = logging.getLogger(__name__)
+
 OWNER = "Kronos1027"
 REPOSITORY = "nyx-agent"
+TOKEN_ENV = "NYX_GITHUB_TOKEN"
 MAX_ARCHIVE_BYTES = 1_000_000_000
 MAX_EXPANDED_BYTES = 2_000_000_000
 MAX_ARCHIVE_FILES = 10_000
 _VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+
+
+def _token() -> str:
+    """Optional read-only token, needed while the release repository is private."""
+    value = os.environ.get(TOKEN_ENV, "").strip()
+    if value:
+        return value
+    token_file = user_data_dir() / "github_token"
+    try:
+        if token_file.is_file():
+            return token_file.read_text(encoding="utf-8").strip()
+    except OSError:
+        log.debug("Não foi possível ler o token do GitHub", exc_info=True)
+    return ""
+
+
+def _headers(accept: str | None = None) -> dict[str, str]:
+    headers = {"User-Agent": "Nyx-Desktop-Updater"}
+    if accept:
+        headers["Accept"] = accept
+    token = _token()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
 
 
 @dataclass(frozen=True)
@@ -46,10 +75,7 @@ def _read_url(url: str, limit: int, *, timeout: float = 20.0) -> bytes:
     parsed = urlparse(url)
     if parsed.scheme != "https" or parsed.hostname not in {"api.github.com", "github.com"}:
         raise ValueError("A atualização apontou para um endereço fora do GitHub seguro.")
-    request = urllib.request.Request(
-        url,
-        headers={"Accept": "application/vnd.github+json", "User-Agent": "Nyx-Desktop-Updater"},
-    )
+    request = urllib.request.Request(url, headers=_headers("application/vnd.github+json"))
     with urllib.request.urlopen(request, timeout=timeout) as response:
         final_host = urlparse(response.geturl()).hostname
         if final_host not in {"api.github.com", "github.com", "release-assets.githubusercontent.com"}:
@@ -64,7 +90,7 @@ def _download_file(url: str, destination: Path, limit: int, *, timeout: float) -
     parsed = urlparse(url)
     if parsed.scheme != "https" or parsed.hostname not in {"api.github.com", "github.com"}:
         raise ValueError("A atualização apontou para um endereço fora do GitHub seguro.")
-    request = urllib.request.Request(url, headers={"User-Agent": "Nyx-Desktop-Updater"})
+    request = urllib.request.Request(url, headers=_headers())
     digest = hashlib.sha256()
     written = 0
     with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -84,7 +110,17 @@ def _download_file(url: str, destination: Path, limit: int, *, timeout: float) -
 def check_for_update() -> UpdateRelease | None:
     """Return the newest stable release if it is newer than this installation."""
     endpoint = f"https://api.github.com/repos/{OWNER}/{REPOSITORY}/releases/latest"
-    release = json.loads(_read_url(endpoint, 1_000_000))
+    try:
+        release = json.loads(_read_url(endpoint, 1_000_000))
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            hint = (
+                f" O repositório é privado; defina {TOKEN_ENV} ou grave o token em %LOCALAPPDATA%\\Nyx\\github_token."
+                if not _token()
+                else " Confira se a release foi publicada."
+            )
+            raise ValueError(f"A release mais recente não está acessível (404).{hint}") from exc
+        raise
     if release.get("draft") or release.get("prerelease"):
         return None
     tag = str(release.get("tag_name", ""))

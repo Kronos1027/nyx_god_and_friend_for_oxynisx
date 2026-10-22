@@ -30,6 +30,8 @@ log = logging.getLogger(__name__)
 MODEL_PREFERENCE = (
     "qwen3.5:9b",
     "qwen3.5:4b",
+    "DeepSeek-R1:latest",
+    "deepseek-r1:latest",
     "gemma4:12b-it-q4_K_M",
     "gemma4:12b",
     "qwen2.5:7b-instruct",
@@ -74,7 +76,7 @@ VALID_EMOTIONS = ("idle", "talk", "think", "surprised", "listening", "error", "s
 
 VALID_ACTION_TYPES = (
     "shell", "read_file", "write_file", "find_files", "ui_action",
-    "clipboard", "macro_run", "project_status", "workspace", "web", "schedule", "agent_team", "evolution", "none",
+    "clipboard", "macro_run", "project_status", "workspace", "web", "browser", "code_task", "schedule", "agent_team", "evolution", "none",
 )
 
 REQUIRED_KEYS = (
@@ -300,8 +302,8 @@ def normalize_payload(data: dict) -> dict:
 
         act_type = str(act_dict.get("type", "none")).strip()
         synonyms = {
-            "navegador": "web",
-            "browser": "web",
+            "navegador": "browser",
+            "navegar": "browser",
             "pesquisa": "web",
         }
         if act_type in synonyms:
@@ -432,7 +434,7 @@ class OfflineLLM:
     def queue(self, raw: str) -> None:
         self._scripted.append(raw)
 
-    def generate(self, user_input: str, history: list[dict] | None = None) -> str:
+    def generate(self, user_input: str, history: list[dict] | None = None, **kwargs) -> str:
         self.received.append(user_input)
         if self._scripted:
             return self._scripted.pop(0)
@@ -459,7 +461,7 @@ class OllamaClient:
         model: str = "qwen2.5:3b-instruct",
         host: str | None = None,
         system_prompt: str | None = None,
-        timeout: float = 60.0,
+        timeout: float = 120.0,
         keep_alive: str = "5m",
     ) -> None:
         self.model = model
@@ -519,14 +521,22 @@ class OllamaClient:
         except Exception:
             return []
 
-    def generate(self, user_input: str, history: list[dict] | None = None, memory_context: str | None = None, task_tools: list[dict] | None = None) -> str:
+    def generate(
+        self,
+        user_input: str,
+        history: list[dict] | None = None,
+        memory_context: str | None = None,
+        task_tools: list[dict] | None = None,
+        schema: dict | str | None = None,
+        max_output_tokens: int | None = None,
+    ) -> str:
         """Envia prompt ao Ollama e retorna o JSON gerado."""
         sys_content = self.system_prompt
-        schema = NYX_JSON_SCHEMA
-        if task_tools is not None:
-            schema = copy.deepcopy(NYX_JSON_SCHEMA)
+        active_schema = schema if schema is not None else NYX_JSON_SCHEMA
+        if task_tools is not None and schema is None:
+            active_schema = copy.deepcopy(NYX_JSON_SCHEMA)
             names = sorted({tool["name"] for tool in task_tools} & set(VALID_ACTION_TYPES) - {"none"})
-            schema["properties"]["action"]["properties"]["type"]["enum"] = ["none", *names]
+            active_schema["properties"]["action"]["properties"]["type"]["enum"] = ["none", *names]
             sys_content = (
                 "Você é Nyx, parceira local amigável e direta. Responda em português com JSON no schema. "
                 "Escolha UMA próxima ação necessária. Observe os resultados antes de continuar. "
@@ -535,6 +545,11 @@ class OllamaClient:
                 "read_file usa params.path; write_file usa params.path e params.content. "
                 "reasoning curto; speech_output natural; não repita ações concluídas sem necessidade. "
                 "Ferramentas disponíveis: " + json.dumps(task_tools, ensure_ascii=False)
+            )
+        elif schema is not None:
+            sys_content = (
+                "Você é a Nyx atuando como especialista de código. "
+                "Responda estritamente com o objeto JSON estruturado solicitado no schema."
             )
         if memory_context:
             sys_content += f"\n\n{memory_context}"
@@ -552,12 +567,12 @@ class OllamaClient:
         payload = {
             "model": self.model,
             "messages": messages,
-            "format": schema,
+            "format": active_schema,
             "keep_alive": self.keep_alive,
             "options": {
                 "temperature": 0.2,
                 "num_ctx": 4096,
-                "num_predict": OLLAMA_MAX_OUTPUT_TOKENS,
+                "num_predict": max_output_tokens or OLLAMA_MAX_OUTPUT_TOKENS,
             },
             "stream": False,
         }
