@@ -154,7 +154,9 @@ class TaskRunner:
                 for name, value in (("memory_context", context), ("task_tools", tools)):
                     if name in parameters or accepts_kwargs:
                         kwargs[name] = value
-                raw = self.loop.llm.generate(prompt, **kwargs)
+                from core.runtime_budget import inference_scope, WorkPriority
+                with inference_scope(WorkPriority.TASK, self.cancelled.is_set):
+                    raw = self.loop.llm.generate(prompt, **kwargs)
                 self._check()
                 proposed = parse_response(raw)
                 if proposed.parse_ok and proposed.action.type != "none":

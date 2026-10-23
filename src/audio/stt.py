@@ -148,11 +148,13 @@ class SpeechToText:
             self.close_model()
 
     def _admit_model(self, device: str, *, loading: bool) -> None:
-        from core.runtime_budget import GIB, InferencePressureError, resource_snapshot
+        from core.runtime_budget import GIB, InferencePressureError, resource_snapshot, WorkPriority
+        from core.resource_governor import RESOURCE_GOVERNOR
 
         if device not in {"cpu", "cuda"}:
             raise ValueError("Dispositivo de voz deve ser auto, cpu ou cuda.")
         snapshot = resource_snapshot()
+        RESOURCE_GOVERNOR.admit(snapshot, WorkPriority.VOICE)
         reserve = self._reserve_gib * GIB
         required_ram = 2 * GIB + (reserve if loading else 0)
         if snapshot.ram_available_bytes is None or snapshot.ram_available_bytes < required_ram:
@@ -184,13 +186,13 @@ class SpeechToText:
     def transcribe_array(self, audio_array) -> str:
         """Transcreve um numpy array contendo amostras de áudio float32 a 16kHz."""
         import numpy as np
-        from core.runtime_budget import INFERENCE_GATE
+        from core.runtime_budget import INFERENCE_GATE, WorkPriority
 
         if (not isinstance(audio_array, np.ndarray) or audio_array.ndim != 1
                 or not 0 < audio_array.size <= 30 * 16000
                 or audio_array.dtype.kind != "f" or not np.isfinite(audio_array).all()):
             raise ValueError("Áudio deve ser mono, finito, float, a 16 kHz e ter até 30 segundos.")
-        with INFERENCE_GATE.slot(timeout=45):
+        with INFERENCE_GATE.slot(timeout=45, priority=WorkPriority.VOICE):
             if self._model is not None:
                 self._admit_model(self._loaded_device, loading=False)
             model = self._ensure_model()

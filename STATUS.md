@@ -2,6 +2,25 @@
 
 Última atualização: 2026-10-22
 
+## Evolution 2.0 — recursos e fila
+
+- **462 aprovados, 1 ignorado**, 17,04 s. Avisos: pynvml legado no ambiente e COM
+  pywinauto. Os testes são evidência das capacidades cobertas, não de todas as fases.
+- ResourceGovernor com reservas configuráveis em Personalizar, CPU/fila/latência,
+  RAM física e memória comprometida real do Windows; pesquisa de fundo respeita
+  foco e áudio. STT usa admissão e prioridade de voz.
+- Fila limitada por prioridade, lugar reservado a pedidos interativos, cancelamento
+  de espera e timeout respeitado. Cancelar não encerra à força uma geração HTTP ativa.
+- Corrigida recusa indevida de contexto já residente quando a RAM disponível varia;
+  pressão transitória não substitui o modelo selecionado por fallback offline.
+- **Tarefa real Qwen3.5 4B aprovada**: duas leituras verificadas e soma correta,
+  18,97 s (`build/evolution-baseline/task-after-b.json`). Antes: interrompida após
+  uma leitura, 16,75 s. Esses ensaios diferentes não provam ganho de latência do LLM.
+- Telemetria real: média 78,62 ms antes; 7,14 ms após NVML, incluindo inicialização
+  em 12 amostras; média aquecida 0,186 ms. Consumo de RAM/VRAM da UI ainda não foi
+  comparado. Reproduzir com `tools/benchmark_resource_snapshot.py --output <json>`.
+- TTS/visão e testes prolongados ainda exigem integração/validação nas fases seguintes.
+
 ## Evolution 2.0 — Fase A
 
 Branch `codex/nyx-evolution-2`, baseada no HEAD correto `f1fb9a5`.

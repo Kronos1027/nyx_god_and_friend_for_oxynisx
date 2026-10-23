@@ -42,3 +42,20 @@ Isto é um mapa honesto do que existe, do que falta e da ordem sugerida; não é
 - Nada de executar ações destrutivas sem confirmação; o modo autônomo só nasce de toggle de UI.
 - Toda capacidade nova entra com teste automatizado e, quando possível, verificação real.
 - O que não foi testado fica declarado como não testado no `STATUS.md`.
+# Evolution 2.0 — acompanhamento
+
+- A: baseline e primeira correção de execução/rollback concluídos; evidências
+  em `EVOLUTION_2_BASELINE.md`. Auditoria das demais áreas continua por fase.
+- B: governador, prioridade, cancelamento de espera, reutilização de contexto
+  residente e NVML implementados. Telemetria e tarefas reais verificadas.
+  Medição de memória comprometida, integração integral STT/TTS/visão e painel
+  configurável ainda pendentes; não considerar a fase inteira concluída.
+- C: percepção por eventos, iniciativa contextual e interesses — próxima etapa.
+- D: navegador/Windows com aceitação real.
+- E: tarefas persistentes e microagentes com recuperação.
+- F: skills/MCP/Creation Studio e execução isolada real.
+- G: laboratório supervisionado e avaliações independentes.
+- H: voz, painéis, animações e integração.
+- I: regressão, benchmarks, sessão prolongada, empacotamento.
+- J: relatório por requisito, limitações e preparação de integração (sem promover main).
+

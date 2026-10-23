@@ -157,7 +157,9 @@ class AgentTeam:
             prompt = self._prompt(role_name, role, instruction, observations)
             try:
                 with self._inference_lock:
-                    raw = self.llm.generate(prompt, history=[])
+                    from core.runtime_budget import inference_scope, WorkPriority
+                    with inference_scope(WorkPriority.TASK):
+                        raw = self.llm.generate(prompt, history=[])
             except Exception as exc:
                 return {"role": role_name, "ok": False, "steps": steps,
                         "error": f"Modelo indisponível: {type(exc).__name__}: {exc}"}

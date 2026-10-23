@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
     QFileDialog, QFrame, QGraphicsOpacityEffect, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
     QListWidget, QListWidgetItem, QMainWindow, QMenu, QMessageBox, QProgressBar,
     QPushButton, QScrollArea, QSlider, QStackedWidget, QTextBrowser, QTextEdit,
-    QToolButton, QVBoxLayout, QWidget, QSizePolicy, QSpacerItem, QTabWidget,
+    QToolButton, QVBoxLayout, QWidget, QSizePolicy, QSpacerItem, QTabWidget, QSpinBox,
 )
 
 from app_paths import user_data_dir
@@ -581,12 +581,22 @@ class DesktopWindow(QMainWindow):
     def _research_tick(self) -> None:
         queue = getattr(self.controller.loop.registry, "research_queue", None)
         if (queue is None or not self.research_check.isChecked() or self._busy or self._backup_busy
-                or self._research_busy or time.monotonic() - self._last_interaction < 60):
+                or self._research_busy or self.focus_button.isChecked()
+                or self.controller.current_emotion in {"listening", "think", "talk"}
+                or time.monotonic() - self._last_interaction < 60):
             return
         try:
             import psutil
-            if psutil.virtual_memory().available < 2 * 1024 ** 3 or psutil.cpu_percent() > 85:
-                self.research_status.setText("Estudo adiado para liberar recursos ao computador.")
+            from core.resource_governor import RESOURCE_GOVERNOR
+            from core.runtime_budget import INFERENCE_GATE, ResourceSnapshot, WorkPriority
+            memory = psutil.virtual_memory()
+            queue_state = INFERENCE_GATE.telemetry()
+            decision = RESOURCE_GOVERNOR.evaluate(
+                ResourceSnapshot(memory.available, None, None, psutil.cpu_percent(), memory.total),
+                WorkPriority.BACKGROUND, queued=queue_state["active"] + queue_state["waiting"],
+            )
+            if not decision.allowed:
+                self.research_status.setText(decision.reason)
                 return
         except ImportError:
             return
@@ -752,6 +762,22 @@ class DesktopWindow(QMainWindow):
         self.initiative_check.setToolTip("Após 5 minutos sem pedidos; até 3 convites por sessão/dia, das 9h às 21h. O modo foco silencia os convites.")
         self.initiative_check.toggled.connect(lambda value: self.settings.setValue("conversation_initiative", value))
         form.addRow(self.initiative_check)
+        self.ram_reserve_spin = QSpinBox()
+        self.ram_reserve_spin.setRange(1024, 8192)
+        self.ram_reserve_spin.setSingleStep(256)
+        self.ram_reserve_spin.setValue(self.settings.value("ram_reserve_mib", 1024, type=int))
+        self.ram_reserve_spin.setSuffix(" MiB")
+        self.ram_reserve_spin.setToolTip("Memória livre mínima do sistema antes de iniciar novas inferências. Não é um limite de consumo por processo.")
+        form.addRow("Reserva de RAM", self.ram_reserve_spin)
+        self.vram_reserve_spin = QSpinBox()
+        self.vram_reserve_spin.setRange(768, 6144)
+        self.vram_reserve_spin.setSingleStep(256)
+        self.vram_reserve_spin.setValue(self.settings.value("vram_reserve_mib", 768, type=int))
+        self.vram_reserve_spin.setSuffix(" MiB")
+        form.addRow("Reserva de VRAM", self.vram_reserve_spin)
+        self.ram_reserve_spin.valueChanged.connect(self._update_resource_policy)
+        self.vram_reserve_spin.valueChanged.connect(self._update_resource_policy)
+        self._update_resource_policy()
         from audio.tts import DEFAULT_SPEED, DEFAULT_VOLUME, KOKORO_VOICE, PT_BR_VOICES
 
         self.voice_combo = QComboBox()
@@ -832,6 +858,17 @@ class DesktopWindow(QMainWindow):
         self.voice_combo.currentIndexChanged.connect(self._apply_preferences)
         self.speed_slider.valueChanged.connect(self._apply_preferences)
         self.volume_slider.valueChanged.connect(self._apply_preferences)
+
+    def _update_resource_policy(self, *_args) -> None:
+        from core.resource_governor import RESOURCE_GOVERNOR, ResourcePolicy
+        from core.runtime_budget import MIB, GIB
+        ram, vram = self.ram_reserve_spin.value(), self.vram_reserve_spin.value()
+        RESOURCE_GOVERNOR.configure(ResourcePolicy(
+            ram_reserve_bytes=ram * MIB, vram_reserve_bytes=vram * MIB,
+            background_ram_bytes=max(3 * GIB, ram * MIB),
+        ))
+        self.settings.setValue("ram_reserve_mib", ram)
+        self.settings.setValue("vram_reserve_mib", vram)
 
     def _preview_voice(self) -> None:
         tts = getattr(self.controller, "tts", None)

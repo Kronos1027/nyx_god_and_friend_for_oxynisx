@@ -7,9 +7,12 @@ import json
 import subprocess
 import threading
 import time
+import sys
 from collections import deque
 from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
+from enum import IntEnum
 from pathlib import Path
 from typing import Iterator
 
@@ -26,42 +29,124 @@ class InferencePressureError(RuntimeError):
     """The machine is under memory pressure; defer this model request."""
 
 
+class InferenceCancelledError(InferenceBusyError):
+    """A waiting request was cancelled before it acquired resources."""
+
+
+class WorkPriority(IntEnum):
+    EMERGENCY = 0
+    INTERACTIVE = 1
+    VOICE = 2
+    TASK = 3
+    SUGGESTION = 4
+    BACKGROUND = 5
+
+
+_work_context = ContextVar("nyx_work", default=(WorkPriority.INTERACTIVE, None))
+
+
+@contextmanager
+def inference_scope(priority=WorkPriority.INTERACTIVE, cancelled=None):
+    """Propagate scheduling intent through local synchronous model wrappers."""
+    token = _work_context.set((WorkPriority(priority), cancelled))
+    try:
+        yield
+    finally:
+        _work_context.reset(token)
+
+
 @dataclass(frozen=True)
 class ResourceSnapshot:
     ram_available_bytes: int | None
     vram_total_bytes: int | None
     vram_free_bytes: int | None
+    cpu_percent: float | None = None
+    ram_total_bytes: int | None = None
+    committed_bytes: int | None = None
+    commit_limit_bytes: int | None = None
 
 
-def resource_snapshot() -> ResourceSnapshot:
-    ram_available = None
+def windows_commit_memory() -> tuple[int | None, int | None]:
+    """GetPerformanceInfo reports committed pages, not physical RAM usage."""
+    if sys.platform != "win32":
+        return None, None
     try:
-        import psutil
+        import ctypes
+        from ctypes import wintypes
+        class PerformanceInformation(ctypes.Structure):
+            _fields_ = [("cb", wintypes.DWORD)] + [
+                (name, ctypes.c_size_t) for name in (
+                    "CommitTotal", "CommitLimit", "CommitPeak", "PhysicalTotal", "PhysicalAvailable",
+                    "SystemCache", "KernelTotal", "KernelPaged", "KernelNonpaged", "PageSize",
+                )
+            ] + [(name, wintypes.DWORD) for name in ("HandleCount", "ProcessCount", "ThreadCount")]
+        data = PerformanceInformation()
+        data.cb = ctypes.sizeof(data)
+        query = ctypes.WinDLL("psapi", use_last_error=True).GetPerformanceInfo
+        query.argtypes = [ctypes.POINTER(PerformanceInformation), wintypes.DWORD]
+        query.restype = wintypes.BOOL
+        if query(ctypes.byref(data), data.cb):
+            return data.CommitTotal * data.PageSize, data.CommitLimit * data.PageSize
+    except (OSError, AttributeError):
+        log.debug("Windows commit telemetry unavailable", exc_info=True)
+    return None, None
 
-        ram_available = int(psutil.virtual_memory().available)
-    except Exception:
-        log.debug("RAM telemetry unavailable", exc_info=True)
 
-    vram_total = vram_free = None
+_nvml_lock = threading.Lock()
+_nvml = None
+_nvml_handle = None
+_nvml_retry_at = 0.0
+
+
+def _gpu_memory() -> tuple[int | None, int | None]:
+    """Fresh NVML readings without starting a process for every request."""
+    global _nvml, _nvml_handle, _nvml_retry_at
+    with _nvml_lock:
+        try:
+            if _nvml is None and time.monotonic() >= _nvml_retry_at:
+                import pynvml
+                pynvml.nvmlInit()
+                _nvml_handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+                _nvml = pynvml
+            if _nvml is not None:
+                memory = _nvml.nvmlDeviceGetMemoryInfo(_nvml_handle)
+                return int(memory.total), int(memory.free)
+        except Exception:
+            _nvml = _nvml_handle = None
+            _nvml_retry_at = time.monotonic() + 30
+    return _gpu_memory_subprocess()
+
+
+def _gpu_memory_subprocess() -> tuple[int | None, int | None]:
+    """Compatibility fallback when NVML is absent or unavailable."""
     try:
         result = subprocess.run(
-            [
-                "nvidia-smi", "--query-gpu=memory.total,memory.free",
-                "--format=csv,noheader,nounits",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=1.5,
-            check=False,
+            ["nvidia-smi", "--query-gpu=memory.total,memory.free", "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=1.5, check=False,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         if result.returncode == 0:
-            first_gpu = result.stdout.strip().splitlines()[0].split(",")
-            vram_total, vram_free = (int(value.strip()) * MIB for value in first_gpu[:2])
+            total, free = result.stdout.strip().splitlines()[0].split(",")[:2]
+            return int(total.strip()) * MIB, int(free.strip()) * MIB
     except (OSError, ValueError, IndexError, subprocess.TimeoutExpired):
         log.debug("NVIDIA VRAM telemetry unavailable")
+    return None, None
 
-    return ResourceSnapshot(ram_available, vram_total, vram_free)
+
+def resource_snapshot() -> ResourceSnapshot:
+    ram_available = ram_total = cpu = None
+    try:
+        import psutil
+
+        memory = psutil.virtual_memory()
+        ram_available, ram_total = int(memory.available), int(memory.total)
+        cpu = psutil.cpu_percent(interval=None)
+    except Exception:
+        log.debug("RAM telemetry unavailable", exc_info=True)
+
+    vram_total, vram_free = _gpu_memory()
+    committed, limit = windows_commit_memory()
+    return ResourceSnapshot(ram_available, vram_total, vram_free, cpu, ram_total, committed, limit)
 
 
 def model_weight_budget_bytes(snapshot: ResourceSnapshot) -> int | None:
@@ -203,7 +288,9 @@ def resident_context(snapshot: ResourceSnapshot, installed: dict, running: list[
             continue
         size, gpu, context = (model.get(key) for key in ("size", "size_vram", "context_length"))
         if (all(type(value) is int for value in (size, gpu, context))
-                and size > 0 and gpu == size and 512 <= context <= safe_context_tokens(snapshot)):
+                and size > 0 and gpu == size and 512 <= context <= 4096):
+            # Already allocated context is not a new allocation. Fluctuation
+            # below the cold-load RAM threshold must not discard residency.
             return context
     return None
 
@@ -227,9 +314,12 @@ def post_ollama_json(url: str, payload: dict, timeout: float) -> dict:
     """Send one serialized Ollama inference request under the shared budget."""
     import urllib.request
 
-    with INFERENCE_GATE.slot(timeout=max(timeout, 90.0)):
+    from core.resource_governor import RESOURCE_GOVERNOR
+    priority, cancelled = _work_context.get()
+    with INFERENCE_GATE.slot(timeout=timeout, priority=priority, cancelled=cancelled):
         snapshot = _free_then_snapshot(resource_snapshot())
         ensure_resource_headroom(snapshot)
+        RESOURCE_GOVERNOR.admit(snapshot, priority)
         request_payload = dict(payload)
         if url.endswith("/api/chat") or url.endswith("/api/generate"):
             options = dict(request_payload.get("options", {}))
@@ -242,12 +332,21 @@ def post_ollama_json(url: str, payload: dict, timeout: float) -> dict:
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(request, timeout=max(timeout, 120.0)) as response:
-            return json.loads(response.read().decode("utf-8"))
+        if cancelled is not None and cancelled():
+            raise InferenceCancelledError("Pedido cancelado antes da inferência.")
+        started = time.monotonic()
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                raw = response.read(2_097_153)
+                if len(raw) > 2_097_152:
+                    raise ValueError("Resposta do modelo excedeu 2 MiB")
+                return json.loads(raw.decode("utf-8"))
+        finally:
+            RESOURCE_GOVERNOR.record_latency(time.monotonic() - started)
 
 
 class InferenceGate:
-    """One active generation plus a small FIFO, shared by every Nyx caller."""
+    """One generation; bounded priority queue, FIFO within each priority."""
 
     def __init__(self, max_waiters: int = 2) -> None:
         self.max_waiters = max_waiters
@@ -260,27 +359,38 @@ class InferenceGate:
             return {"active": int(self._active), "waiting": len(self._queue), "max_waiters": self.max_waiters}
 
     @contextmanager
-    def slot(self, timeout: float = 45.0) -> Iterator[None]:
+    def slot(self, timeout: float = 45.0, *, priority=WorkPriority.INTERACTIVE, cancelled=None) -> Iterator[None]:
+        priority = WorkPriority(priority)
         ticket = object()
+        entry = (priority, ticket)
         deadline = time.monotonic() + max(0.0, timeout)
         with self._condition:
+            if cancelled is not None and cancelled():
+                raise InferenceCancelledError("Pedido cancelado antes de entrar na fila.")
             if not self._active and not self._queue:
                 self._active = True
             else:
-                if len(self._queue) >= self.max_waiters:
+                capacity = self.max_waiters
+                if priority >= WorkPriority.SUGGESTION:
+                    capacity = max(0, capacity - 1)  # reserve a waiting place for the user
+                if len(self._queue) >= capacity:
                     raise InferenceBusyError("A fila local de inferência está cheia; tente novamente em instantes.")
-                self._queue.append(ticket)
-                while self._active or not self._queue or self._queue[0] is not ticket:
-                    remaining = deadline - time.monotonic()
-                    if remaining <= 0:
-                        self._queue.remove(ticket)
-                        self._condition.notify_all()
-                        raise InferenceBusyError("A solicitação aguardou demais na fila local e foi cancelada.")
-                    self._condition.wait(remaining)
-                if time.monotonic() >= deadline:
-                    self._queue.remove(ticket)
+                self._queue.append(entry)
+                self._queue = deque(sorted(self._queue, key=lambda item: item[0]))
+                try:
+                    while True:
+                        if cancelled is not None and cancelled():
+                            raise InferenceCancelledError("Pedido cancelado enquanto aguardava inferência.")
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            raise InferenceBusyError("A solicitação aguardou demais na fila local e foi cancelada.")
+                        if not self._active and self._queue[0][1] is ticket:
+                            break
+                        self._condition.wait(min(remaining, 0.1) if cancelled else remaining)
+                except BaseException:
+                    self._queue.remove(entry)
                     self._condition.notify_all()
-                    raise InferenceBusyError("A solicitação aguardou demais na fila local e foi cancelada.")
+                    raise
                 self._queue.popleft()
                 self._active = True
         try:

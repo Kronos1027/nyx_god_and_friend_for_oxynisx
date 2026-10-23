@@ -59,7 +59,7 @@ def test_ollama_generation_has_hard_output_token_limit(monkeypatch):
         def __exit__(self, *args):
             return False
 
-        def read(self):
+        def read(self, limit=-1):
             return json.dumps({"message": {"content": "{}"}}).encode()
 
     captured = {}

@@ -1,5 +1,31 @@
 # Nyx adaptativa: arquitetura e evidências
 
+## Evolution 2.0: admissão de recursos
+
+`ResourceGovernor` decide a admissão de trabalho a partir de RAM, VRAM, CPU,
+fila e média móvel de latência. Políticas validadas podem ser salvas/carregadas
+em JSON; Personalizar permite definir reservas de RAM/VRAM persistentes. Sono suspende
+inferência; foco e trabalho interativo adiam atividade opcional. A pesquisa
+ociosa usa essa política e respeita foco, escuta e fala.
+
+`InferenceGate` mantém uma geração ativa e dois lugares de espera: ordena por
+prioridade e FIFO dentro da prioridade. Trabalho opcional deixa um lugar para
+o usuário. `inference_scope` transporta prioridade e cancelamento entre chamadas;
+TaskRunner cancela sua espera. Não interrompe à força uma requisição HTTP já
+enviada. O timeout configurado é respeitado, sem ampliação silenciosa.
+
+Telemetria GPU usa NVML lazy e leitura fresca; nvidia-smi permanece como fallback.
+Contexto já alocado (até 4096 tokens) pode ser reutilizado quando nome, digest e
+residência GPU coincidem e as reservas continuam disponíveis. Essa distinção
+evita contar a memória residente como uma nova carga. Nenhum modelo é trocado
+por pressão transitória. Metadados ausentes não comprovam residência.
+
+Memória comprometida e limite do Windows são medidos via GetPerformanceInfo;
+esgotamento de compromisso também impede inferência. STT usa prioridade de voz
+e a mesma admissão. Ainda não há arbitração de todos os processos externos,
+coordenação integral TTS/visão, preempção de geração ativa ou metas de RAM da interface
+comprovadas. O governador não é um limitador global de GPU.
+
 ## Princípio
 
 A capacidade vem do modelo local, ferramentas observáveis, memória recuperável e avaliação de resultados. Adicionar memória e agentes não equivale a treinar pesos nem demonstra AGI. Não há evidência de paridade com Astra ou de controle perfeito de programas e jogos.

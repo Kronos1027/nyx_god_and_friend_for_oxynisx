@@ -68,3 +68,16 @@ def test_provider_failure_recovers_after_cooldown():
     assert client.unavailable_reason
     now[0] = 31
     assert client.generate("again") == "again"
+
+
+def test_pressure_does_not_replace_the_selected_model():
+    from core.runtime_budget import InferencePressureError
+    class Pressured(Available):
+        def generate(self, text, **kwargs):
+            raise BackendUnavailable("pressure") from InferencePressureError("RAM")
+    original = Pressured()
+    client = RecoveringLLM(original, Available)
+    with pytest.raises(BackendUnavailable):
+        client.generate("hello")
+    assert client._client is original
+    assert client.model == "local-test"

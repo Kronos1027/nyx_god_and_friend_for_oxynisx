@@ -18,7 +18,7 @@ def test_resident_reuse_does_not_count_weights_twice():
 
 @pytest.mark.parametrize("change", [
     {"digest": "different"}, {"name": "other:4b"}, {"size_vram": budget.GIB},
-    {"context_length": 4096}, {"context_length": True}, {"size": -1},
+    {"context_length": 8192}, {"context_length": True}, {"size": -1},
     {"size_vram": None}, {"context_length": 0},
 ])
 def test_incompatible_resident_is_not_credited(change):
@@ -41,6 +41,13 @@ def test_expired_resident_cannot_bypass_load_budget(monkeypatch):
     running.clear()
     with pytest.raises(budget.InferencePressureError):
         budget.ollama_request_context("http://localhost:11434", INSTALLED["name"], SNAPSHOT)
+
+
+def test_resident_keeps_allocated_context_when_free_ram_fluctuates():
+    snapshot = budget.ResourceSnapshot(2 * budget.GIB, 12 * budget.GIB, 5 * budget.GIB)
+    assert budget.safe_context_tokens(snapshot) == 1024
+    assert budget.resident_context(snapshot, INSTALLED, [RUNNING]) == 2048
+    assert budget.resident_context(snapshot, INSTALLED, [{**RUNNING, "context_length": 4096}]) == 4096
 
 
 def test_existing_context_is_preserved_in_post(monkeypatch):

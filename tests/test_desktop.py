@@ -15,6 +15,20 @@ from ui.desktop import DesktopWindow
 from ui.overlay import OverlayWindow
 
 
+def test_resource_controls_set_real_admission_and_persist(desktop):
+    from core.resource_governor import RESOURCE_GOVERNOR, ResourcePolicy
+    from core.runtime_budget import GIB, ResourceSnapshot
+    window, _, _ = desktop
+    try:
+        window.ram_reserve_spin.setValue(4096)
+        window.vram_reserve_spin.setValue(2048)
+        assert window.settings.value("ram_reserve_mib", type=int) == 4096
+        assert window.settings.value("vram_reserve_mib", type=int) == 2048
+        assert not RESOURCE_GOVERNOR.evaluate(ResourceSnapshot(3 * GIB, None, None)).allowed
+    finally:
+        RESOURCE_GOVERNOR.configure(ResourcePolicy())
+
+
 class SilentVoice:
     enabled = False
 
