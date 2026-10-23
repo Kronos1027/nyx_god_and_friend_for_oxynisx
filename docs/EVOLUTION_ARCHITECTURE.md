@@ -1,5 +1,29 @@
 # Nyx adaptativa: arquitetura e evidências
 
+## Evolution 2.0: percepção e iniciativa
+
+`ContextAwarenessEngine` guarda permissões, eventos com TTL/deduplicação e até
+500 registros de auditoria em `nyx_context.db`. Callbacks passam pela permissão
+antes da coleta, debounce de cinco segundos e supressão sob carga. Sensores
+externos permanecem desligados até autorização. O sensor de processos usa
+somente PID/nome/data de criação explicitamente escolhidos, distingue PID
+reutilizado e não interpreta falta de acesso como encerramento. A UI consulta
+esses poucos PIDs no timer de 30 segundos; não é captura de tela nem vigilância
+geral. Seleções duram uma sessão.
+
+`ProactiveInteractionEngine` consome eventos em transação SQLite, impedindo
+ofertas duplicadas entre chamadas concorrentes. Pontua utilidade, urgência,
+novidade e preferência confirmada. Interrupção é uma barreira anterior à
+pontuação; não há custo de LLM. Registra motivo/resposta, respeita horários que
+cruzam meia-noite e dobra o intervalo após recusa. Histórico de 90 dias mantém
+limites entre reinícios. Apagar histórico é uma ação explícita da pessoa.
+
+`InterestEngine` limita 500 registros e oito fontes/experiências por interesse.
+Categorias são distintas; hipótese não vira fato por repetição. Pesquisa
+autorizada atualiza somente interesse simulado. A memória social é recuperada
+em contexto limitado e não pode modificar a política de ferramentas.
+Os bancos pessoais continuam ignorados no Git e entram no backup criptografado.
+
 ## Evolution 2.0: admissão de recursos
 
 `ResourceGovernor` decide a admissão de trabalho a partir de RAM, VRAM, CPU,

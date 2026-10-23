@@ -133,6 +133,15 @@ def main() -> None:
             output = destination / "desktop-task-demo.png"
             window.grab().save(str(output))
             print(output)
+        # Inspect the connected social/privacy panels with temporary local state.
+        window._interests.remember("Astronomia", kind="confirmed_preference", origin="Demonstração de interface")
+        window._refresh_social()
+        window.set_page(3)
+        for index, label in ((3, "privacy"), (4, "interests")):
+            window.learning_tabs.setCurrentIndex(index)
+            app.processEvents()
+            window.grab().save(str(destination / f"desktop-{label}.png"))
+        window.set_page(0)
         if args.live:
             # No tools are registered; any accidental action request is denied
             # by this diagnostic rather than opening a modal dialog unattended.

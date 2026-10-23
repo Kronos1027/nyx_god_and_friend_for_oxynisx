@@ -32,6 +32,7 @@ data/nyx_memory.db*
 data/desktop.ini
 data/runtime.json*
 data/nyx_evolution.db*
+data/nyx_context.db*
 data/backups/
 data/backup-recovery.key
 data/cloud-backup/

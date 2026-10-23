@@ -29,6 +29,34 @@ def test_resource_controls_set_real_admission_and_persist(desktop):
         RESOURCE_GOVERNOR.configure(ResourcePolicy())
 
 
+def test_social_controls_are_connected_to_persistence(desktop):
+    window, _, _ = desktop
+    window.sensor_checks["own_tasks"].setChecked(False)
+    assert not window._context.permissions()["own_tasks"]
+    window.interest_topic.setText("astronomia")
+    window._save_interest()
+    assert window._interests.records()[0]["topic"] == "astronomia"
+    window.interest_list.setCurrentRow(0)
+    window._select_interest(window.interest_list.currentItem())
+    window.interest_topic.setText("música")
+    window._save_interest()
+    assert [r["topic"] for r in window._interests.records()] == ["música"]
+    window.interest_list.setCurrentRow(0)
+    window._delete_interest()
+    assert window._interests.records() == []
+    window.interests_enabled_check.setChecked(False)
+    assert not window._interests.enabled
+
+
+def test_failed_task_generates_context_and_verified_retry_resolves(desktop):
+    window, _, _ = desktop
+    event = {"phase": "observed", "task_id": "test", "step": 1, "tool": "read_file", "ok": False}
+    window._on_task_progress(event)
+    assert len(window._pending_task_events) == 1
+    window._on_task_progress(event | {"ok": True, "verified": True})
+    assert not window._pending_task_events
+
+
 class SilentVoice:
     enabled = False
 

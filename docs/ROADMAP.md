@@ -50,7 +50,10 @@ Isto é um mapa honesto do que existe, do que falta e da ordem sugerida; não é
   residente e NVML implementados. Telemetria e tarefas reais verificadas.
   Medição de memória comprometida, integração integral STT/TTS/visão e painel
   configurável ainda pendentes; não considerar a fase inteira concluída.
-- C: percepção por eventos, iniciativa contextual e interesses — próxima etapa.
+- C: eventos internos e processos autorizados, iniciativa contextual e interesses
+  implementados e testados. Painéis conectados; sem vigilância de tela.
+  Sensores de janelas/pastas/navegador e ajuste de traços persistentes permanecem
+  como trabalho de integração, sem declarar capacidade geral de percepção.
 - D: navegador/Windows com aceitação real.
 - E: tarefas persistentes e microagentes com recuperação.
 - F: skills/MCP/Creation Studio e execução isolada real.

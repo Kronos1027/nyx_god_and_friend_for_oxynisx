@@ -185,8 +185,18 @@ class DesktopWindow(QMainWindow):
         self._closing = False
         self._research_cancel = threading.Event()
         self._last_interaction = time.monotonic()
-        from core.initiative import ConversationInitiative
-        self._initiative = ConversationInitiative()
+        from core.context_awareness import ContextAwarenessEngine
+        from core.initiative import ProactiveInteractionEngine
+        from core.interests import InterestEngine
+        self._context = ContextAwarenessEngine(self.store.database.with_name("nyx_context.db"))
+        from core.process_events import AuthorizedProcessSensor
+        self._process_sensor = AuthorizedProcessSensor(self._context)
+        self._initiative = ProactiveInteractionEngine(self._context)
+        memory = getattr(self.controller.loop, "memory", None)
+        self._interests = memory.interests if memory else InterestEngine(self._context.database)
+        self._initiative.interests = self._interests
+        self._pending_task_events = {}
+        self._pressure_event = None
         self._cards: list[QWidget] = []
         self._animation: QPropertyAnimation | None = None
         self._animated_page: QWidget | None = None
@@ -540,7 +550,142 @@ class DesktopWindow(QMainWindow):
         layout.addWidget(recovery)
         layout.addWidget(self._muted("Guarde a chave separada do backup: ela é necessária para recuperar os dados e permite ler seu conteúdo."))
         layout.addStretch()
+        self._build_social_panels()
         self.pages.addWidget(page)
+
+    def _build_social_panels(self):
+        layout = self._tab_section(self.learning_tabs, "Observação e iniciativa")
+        layout.addWidget(self._muted("O que a Nyx pode observar: apenas eventos autorizados abaixo. Sem captura contínua de tela, câmera ou microfone."))
+        self.sensor_checks = {}
+        permissions = self._context.permissions()
+        for name, label in (("own_tasks", "Resultados das próprias tarefas"),
+                            ("research", "Estudos autorizados concluídos"), ("resources", "Pressão de recursos"),
+                            ("processes", "Encerramento dos processos escolhidos por PID")):
+            check = QCheckBox(label)
+            check.setChecked(permissions[name])
+            check.toggled.connect(lambda enabled, sensor=name: self._set_sensor_permission(sensor, enabled))
+            self.sensor_checks[name] = check
+            layout.addWidget(check)
+        watch = QPushButton("Escolher processo para observar…")
+        watch.clicked.connect(self._watch_process)
+        layout.addWidget(watch)
+        self.process_watch_status = self._muted("Nenhum processo selecionado. As escolhas duram esta sessão; nenhum aplicativo será encerrado.")
+        layout.addWidget(self.process_watch_status)
+        layout.addWidget(self._muted("Janelas, pastas e navegador: sensores externos ainda não conectados; permanecem desligados."))
+        self.initiative_history_list = QListWidget()
+        self.initiative_history_list.setMaximumHeight(170)
+        layout.addWidget(self.initiative_history_list)
+        refresh = QPushButton("Ver motivo das iniciativas e acessos")
+        refresh.clicked.connect(self._refresh_social)
+        layout.addWidget(refresh)
+        for label, response in (("Esta sugestão foi útil", "accepted"), ("Prefiro menos sugestões", "declined")):
+            button = QPushButton(label)
+            button.clicked.connect(lambda checked=False, value=response: self._initiative_feedback(value))
+            layout.addWidget(button)
+        self.access_history_view = SafeMarkdown()
+        self.access_history_view.setObjectName("StudyPreview")
+        self.access_history_view.setReadOnly(True)
+        self.access_history_view.setPlaceholderText("Nenhuma coleta registrada. As permissões são verificadas antes de observar.")
+        self.access_history_view.setMaximumHeight(140)
+        layout.addWidget(self.access_history_view)
+        clear = QPushButton("Apagar histórico de observações e iniciativas")
+        clear.clicked.connect(self._clear_observations)
+        layout.addWidget(clear)
+
+        layout = self._tab_section(self.learning_tabs, "Memória e interesses")
+        self.interests_enabled_check = QCheckBox("Guardar e usar interesses e preferências")
+        self.interests_enabled_check.setChecked(self._interests.enabled)
+        self.interests_enabled_check.toggled.connect(self._interests.set_enabled)
+        layout.addWidget(self.interests_enabled_check)
+        layout.addWidget(self._muted("Preferências inferidas são hipóteses. Interesses da Nyx são simulados. Estes registros não mudam permissões."))
+        self.interest_list = QListWidget()
+        self.interest_list.setMaximumHeight(240)
+        self.interest_list.itemClicked.connect(self._select_interest)
+        layout.addWidget(self.interest_list)
+        self.interest_topic = QLineEdit()
+        self.interest_topic.setMaxLength(160)
+        self.interest_topic.setPlaceholderText("Tema, preferência ou projeto autorizado")
+        layout.addWidget(self.interest_topic)
+        self.interest_kind = QComboBox()
+        for label, value in (("Preferência confirmada", "confirmed_preference"), ("Preferência inferida", "inferred_preference"),
+                             ("Interesse simulado da Nyx", "simulated_interest"), ("Projeto", "project"), ("Fato informado", "fact")):
+            self.interest_kind.addItem(label, value)
+        layout.addWidget(self.interest_kind)
+        save = QPushButton("Guardar ou corrigir registro selecionado")
+        save.clicked.connect(self._save_interest)
+        layout.addWidget(save)
+        delete = QPushButton("Apagar registro selecionado")
+        delete.clicked.connect(self._delete_interest)
+        layout.addWidget(delete)
+        self._refresh_social()
+
+    def _refresh_social(self):
+        self.initiative_history_list.clear()
+        for row in self._initiative.history():
+            item = QListWidgetItem(f"{row['message']}\n{row['reason']} · resposta: {row['response']}")
+            item.setData(Qt.ItemDataRole.UserRole, row["id"])
+            self.initiative_history_list.addItem(item)
+        self.access_history_view.setPlainText("\n".join(f"{row['sensor']} · {row['outcome']}" for row in self._context.access_history()))
+        self.interest_list.clear()
+        for row in self._interests.records():
+            label = self.interest_kind.itemText(self.interest_kind.findData(row["kind"]))
+            item = QListWidgetItem(f"{row['topic']} · {label} · confiança {row['confidence']:.0%}")
+            item.setToolTip(f"Origem: {row['origin']}\nFontes: {', '.join(row['sources'])}")
+            item.setData(Qt.ItemDataRole.UserRole, row)
+            self.interest_list.addItem(item)
+
+    def _set_sensor_permission(self, sensor, enabled):
+        self._context.set_permission(sensor, enabled)
+        if sensor == "processes" and not enabled:
+            self._process_sensor.clear()
+            self.process_watch_status.setText("Observação de processos desativada; seleção removida.")
+
+    def _watch_process(self):
+        if not self.sensor_checks["processes"].isChecked():
+            self.process_watch_status.setText("Ative a permissão de observar processos antes de escolher um PID.")
+            return
+        pid, accepted = QInputDialog.getInt(self, "Observar processo autorizado", "PID do processo (Gerenciador de Tarefas):", 1, 1, 2_147_483_647)
+        if accepted:
+            try:
+                entry = self._process_sensor.watch(pid)
+                self.process_watch_status.setText(f"Observando encerramento de {entry.name} · PID {entry.pid}")
+            except Exception as exc:
+                self.process_watch_status.setText(f"Não foi possível observar: {exc}")
+
+    def _initiative_feedback(self, response):
+        item = self.initiative_history_list.currentItem()
+        if item:
+            self._initiative.respond(item.data(Qt.ItemDataRole.UserRole), response)
+            self._refresh_social()
+
+    def _clear_observations(self):
+        self._context.clear()
+        self._refresh_social()
+
+    def _select_interest(self, item):
+        row = item.data(Qt.ItemDataRole.UserRole)
+        self.interest_topic.setText(row["topic"])
+        self.interest_kind.setCurrentIndex(self.interest_kind.findData(row["kind"]))
+
+    def _save_interest(self):
+        if not self.interest_topic.text().strip() or not self._interests.enabled:
+            return
+        selected = self.interest_list.currentItem()
+        previous = selected.data(Qt.ItemDataRole.UserRole)["id"] if selected else None
+        kind = self.interest_kind.currentData()
+        identifier = self._interests.remember(self.interest_topic.text(), kind=kind,
+            origin="Informado na interface pelo usuário", confidence=.6 if kind == "inferred_preference" else 1)
+        if previous and identifier and previous != identifier:
+            self._interests.delete(previous)
+        self.interest_topic.clear()
+        self._refresh_social()
+
+    def _delete_interest(self):
+        item = self.interest_list.currentItem()
+        if item:
+            self._interests.delete(item.data(Qt.ItemDataRole.UserRole)["id"])
+            self.interest_topic.clear()
+            self._refresh_social()
 
     def _research_enabled_changed(self, enabled: bool) -> None:
         self.settings.setValue("idle_research", enabled)
@@ -621,6 +766,13 @@ class DesktopWindow(QMainWindow):
             message = f"{labels.get(result['state'], result['state'])}: {result['topic']}"
             self.research_status.setText(message)
             self._add_activity(message)
+            if result["state"] == "completed":
+                self._context.emit("research", "research_found", result.get("note_id", result["topic"]),
+                                   result["topic"], source=result.get("source", ""))
+                if self._context.permissions()["research"]:
+                    self._interests.remember(result["topic"], kind="simulated_interest", origin="Estudo autorizado",
+                                             confidence=.6, relevance=.6, source=result.get("source", ""),
+                                             experience="Referência coletada; conteúdo não verificado")
         self._refresh_learning()
 
     def _refresh_learning(self) -> None:
@@ -759,9 +911,28 @@ class DesktopWindow(QMainWindow):
         form.addRow(self.speech_check)
         self.initiative_check = QCheckBox("Nyx pode iniciar uma conversa nos intervalos")
         self.initiative_check.setChecked(self.settings.value("conversation_initiative", True, type=bool))
-        self.initiative_check.setToolTip("Após 5 minutos sem pedidos; até 3 convites por sessão/dia, das 9h às 21h. O modo foco silencia os convites.")
+        self.initiative_check.setToolTip("Somente eventos relevantes, sem convites genéricos. Limites persistem ao reiniciar. Foco silencia os convites.")
         self.initiative_check.toggled.connect(lambda value: self.settings.setValue("conversation_initiative", value))
         form.addRow(self.initiative_check)
+        self.initiative_level = QComboBox()
+        for label, value in (("Desligada", "off"), ("Discreta", "discreet"), ("Normal", "normal"), ("Conversadora", "chatty")):
+            self.initiative_level.addItem(label, value)
+        self.initiative_level.setCurrentIndex(max(0, self.initiative_level.findData(self.settings.value("initiative_level", "discreet"))))
+        self.initiative_level.currentIndexChanged.connect(lambda: self.settings.setValue("initiative_level", self.initiative_level.currentData()))
+        form.addRow("Iniciativa contextual", self.initiative_level)
+        self.initiative_limits = {}
+        for key, label, low, high, default in (
+            ("daily_limit", "Máximo de sugestões por dia", 0, 20, 3),
+            ("interval_minutes", "Intervalo mínimo (minutos)", 5, 1440, 30),
+            ("start_hour", "Início permitido (hora)", 0, 23, 9),
+            ("end_hour", "Fim permitido (hora)", 0, 23, 21),
+        ):
+            spin = QSpinBox()
+            spin.setRange(low, high)
+            spin.setValue(self.settings.value("initiative_" + key, default, type=int))
+            spin.valueChanged.connect(lambda value, name=key: self.settings.setValue("initiative_" + name, value))
+            self.initiative_limits[key] = spin
+            form.addRow(label, spin)
         self.ram_reserve_spin = QSpinBox()
         self.ram_reserve_spin.setRange(1024, 8192)
         self.ram_reserve_spin.setSingleStep(256)
@@ -1131,17 +1302,42 @@ class DesktopWindow(QMainWindow):
         self.controller.process_prompt(text)
 
     def _initiative_tick(self) -> None:
+        from core.initiative import InitiativePreferences
+        from core.resource_governor import RESOURCE_GOVERNOR
+        pressure = RESOURCE_GOVERNOR.telemetry()["mode"] == "pressure"
+        self._process_sensor.poll(under_load=pressure or self._busy)
+        if pressure and self._pressure_event is None:
+            self._pressure_event = self._context.emit("resources", "resource_pressure", "resource-admission", "memória", ttl=1800)
+        elif not pressure and self._pressure_event:
+            self._context.resolve(self._pressure_event)
+            self._pressure_event = None
+        self._initiative.preferences = InitiativePreferences(
+            level=self.initiative_level.currentData(),
+            daily_limit=self.initiative_limits["daily_limit"].value(),
+            interval_seconds=self.initiative_limits["interval_minutes"].value() * 60,
+            start_hour=self.initiative_limits["start_hour"].value(),
+            end_hour=self.initiative_limits["end_hour"].value(),
+        )
         message = self._initiative.poll(
             enabled=self.initiative_check.isChecked() and not self._closing,
             busy=(self._busy or self._research_busy or self._backup_busy
                   or bool(self.composer.toPlainText().strip())
                   or self.controller.current_emotion in {"listening", "think", "talk"}),
             focused=self.focus_button.isChecked(),
+            resource_pressure=pressure,
         )
         if message:
             self.controller.say(message, emotion="surprised")
+            self._add_activity(self._initiative.last_explanation)
 
     def _on_message(self, role: str, text: str) -> None:
+        if role == "user":
+            self._initiative.activity()
+            reply = text.strip().lower().rstrip(".!?")
+            if self._initiative.last_offer_id and reply in {"agora não", "não", "estou ocupado", "sim", "pode falar"}:
+                response = "accepted" if reply in {"sim", "pode falar"} else "declined"
+                self._initiative.respond(self._initiative.last_offer_id, response)
+                self._initiative.last_offer_id = None
         self.store.append(self.chat_id, role, text)
         self._add_card(role, text)
         self._reload_chats()
@@ -1236,6 +1432,13 @@ class DesktopWindow(QMainWindow):
             if not progress.get("ok"):
                 state = "Falhou"
             self._add_activity(f"Etapa {step} · {progress['tool']} · {state}\n{progress.get('preview', '')}")
+            key = f"{progress.get('task_id', '')}:{progress['tool']}"
+            if not progress.get("ok"):
+                event = self._context.emit("own_tasks", "task_failed", key, progress["tool"])
+                if event:
+                    self._pending_task_events[key] = event
+            elif progress.get("verified") and key in self._pending_task_events:
+                self._context.resolve(self._pending_task_events.pop(key))
 
     def _on_processing(self, busy: bool) -> None:
         self._busy = busy

@@ -347,9 +347,12 @@ class MemoryManager:
         self.store = EpisodicStore(self.db_path)
         self.core = CoreMemory(self.store)
         self.compactor = ContextCompactor(max_recent_turns=10)
+        from core.interests import InterestEngine
+        self.interests = InterestEngine(self.db_path)
 
     def record_user_message(self, text: str) -> None:
         self.core.learn_from_text(text)
+        self.interests.learn_explicit(text)
         self.store.save_turn(
             ConversationRecord(
                 session_id=self.session_id,
@@ -384,6 +387,9 @@ class MemoryManager:
     def build_system_prompt_context(self) -> str:
         """Gera o contexto de memória para acoplar ao System Prompt."""
         parts = [self.core.format_prompt_block()]
+        social = self.interests.prompt_context()
+        if social:
+            parts.append(social)
         if self.compactor.task_summary:
             parts.append(f"\n[CONTEXTO DE TAREFA / RESUMO PROGRESSIVO]\n{self.compactor.task_summary}")
         return "\n\n".join(parts)

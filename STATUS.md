@@ -2,6 +2,30 @@
 
 Última atualização: 2026-10-22
 
+## Evolution 2.0 — iniciativa contextual e memória social
+
+- ProactiveInteractionEngine substitui convites genéricos. Eventos deduplicados,
+  com prazo de validade, pontuação, horários, foco, limites diários persistentes,
+  modos desligada/discreta/normal/conversadora e redução de frequência após recusa.
+  Nenhuma inferência é feita apenas por ociosidade.
+- Falhas de tarefas, pesquisa autorizada e pressão de recursos alimentam o motor;
+  sucesso verificado de uma nova tentativa resolve a sugestão de falha anterior.
+- ContextAwarenessEngine verifica permissão antes de coletar. Observação de
+  processos é opcional, restrita a PIDs escolhidos na interface, sem enumerar
+  aplicativos, ler seus conteúdos ou encerrá-los. Teste real inicia e encerra
+  somente um processo temporário do próprio ensaio e confirma um único evento.
+- Painéis em Aprendizado: observação/iniciativa com motivos e acessos, memória e
+  interesses com correção, exclusão e desativação. Prévia Qt renderizada e revisada.
+- InterestEngine separa preferências confirmadas/inferidas, fatos informados,
+  projetos e interesses simulados, com fontes/confiança/experiências limitadas.
+  Pedidos explícitos como “lembre que gosto de astronomia” são persistidos.
+  Uma menção casual não é convertida automaticamente em preferência confirmada.
+- Memória social entra no contexto do modelo como dados sem autoridade sobre
+  permissões. Estudos autorizados podem atualizar interesses simulados com fonte.
+- Limites: observação de janelas/pastas/navegador ainda não conectada; preferências
+  por tópico usam correspondência literal, não compreensão semântica comprovada;
+  mensagens espontâneas são modelos de texto contextuais, sem geração pelo LLM.
+
 ## Evolution 2.0 — recursos e fila
 
 - **462 aprovados, 1 ignorado**, 17,04 s. Avisos: pynvml legado no ambiente e COM
