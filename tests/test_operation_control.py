@@ -45,7 +45,7 @@ def test_visual_uncertainty_bounds_or_late_cancel_never_clicks(tmp_path, monkeyp
     ui = UITool(tmp_path)
     shot = tmp_path / "test.png"
     shot.write_bytes(b"test fixture, no real screenshot")
-    monkeypatch.setattr(ui, "take_screenshot", lambda: ToolResult(True, meta={"path": str(shot), "width": 800, "height": 600}))
+    monkeypatch.setattr(ui, "take_screenshot", lambda p=None: ToolResult(True, meta={"path": str(shot), "width": 800, "height": 600}))
     monkeypatch.setattr(ui, "get_dpi_scale", lambda: 1)
     monkeypatch.setitem(sys.modules, "pyautogui", SimpleNamespace(click=lambda *a: pytest.fail("must not click")))
     def infer(*args, **kwargs):

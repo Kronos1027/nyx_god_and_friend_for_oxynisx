@@ -9,8 +9,8 @@ Automação desktop para Windows 11:
 from __future__ import annotations
 
 import logging
+import json
 import os
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -29,16 +29,17 @@ class UITool:
             Path(screenshots_dir) if screenshots_dir else Path("assets/screenshots")
         )
         self.screenshots_dir.mkdir(parents=True, exist_ok=True)
-        self._cached_elements: list[dict] = []
+        from tools.windows_client import WindowsAutomationClient
+        self.targets = WindowsAutomationClient(self.control)
 
     def is_destructive(self, action: str, params: dict) -> bool:
         """Determina se uma ação de UI é considerada potencialmente destrutiva."""
         # Fechar janelas ou combinações de teclas forçadas (Alt+F4, etc.) são destrutivas
-        if action in ("close_window", "kill_window", "close_app", "kill_process"):
+        if action in ("close_window", "kill_window", "close_app", "kill_process", "terminate_process"):
             return True
         if action == "press_key":
             key = str(params.get("key", "")).lower()
-            if key in ("alt+f4", "ctrl+w", "ctrl+q", "delete"):
+            if key in ("alt+f4", "ctrl+w", "ctrl+q") or "delete" in key.split("+"):
                 return True
         return False
 
@@ -55,99 +56,51 @@ class UITool:
             ]
             # Remove duplicatas preservando ordem
             unique_visible = list(dict.fromkeys(visible))
+            identities = [{"title": w.title, "hwnd": w._hWnd} for w in all_windows
+                          if w.title and w.title.strip() and w.visible]
+            from tools.windows_targets import window_identity
+            for entry in identities:
+                try:
+                    window = next(w for w in all_windows if w._hWnd == entry["hwnd"])
+                    _, pid, created = window_identity(window)
+                    entry.update(pid=pid, created=created)
+                except Exception:
+                    continue
             return ToolResult(
                 ok=True,
-                output="\n".join(f"- {title}" for title in unique_visible)
+                output=json.dumps(identities, ensure_ascii=False)
                 if unique_visible
                 else "Nenhuma janela visível encontrada.",
-                meta={"count": len(unique_visible), "windows": unique_visible},
+                meta={"count": len(identities), "windows": identities},
             )
         except Exception as exc:
             return ToolResult(ok=False, error=f"Falha ao listar janelas: {exc}")
 
     def focus_window(self, params: dict) -> ToolResult:
-        """Traz uma janela com título correspondente para primeiro plano."""
-        title_query = str(params.get("title", "")).strip().lower()
-        if not title_query:
-            return ToolResult(ok=False, error="Parâmetro 'title' é obrigatório.")
-
         try:
-            import pygetwindow as gw
-
-            matches = [
-                w
-                for w in gw.getAllWindows()
-                if title_query in w.title.lower() and w.title.strip()
-            ]
-            if not matches:
-                return ToolResult(
-                    ok=False,
-                    error=f"Nenhuma janela contendo '{title_query}' foi encontrada.",
-                )
-
-            target = matches[0]
-            if target.isMinimized:
-                target.restore()
-            target.activate()
-            return ToolResult(
-                ok=True,
-                output=f"Janela focalizada: '{target.title}'",
-                meta={"title": target.title},
-            )
+            info = self.targets.call("focus", params)
+            return ToolResult(True, f"Janela focalizada: '{info['title']}'", meta=info)
         except Exception as exc:
-            return ToolResult(ok=False, error=f"Erro ao focar janela: {exc}")
+            return ToolResult(False, error=f"Foco não confirmado: {exc}",
+                              meta={"outcome_unknown": getattr(exc, "outcome_unknown", False)})
+
+    def _window_state(self, params, minimized):
+        try:
+            from tools.windows_targets import select_window
+            window = select_window(params)
+            self.control.check()
+            (window.minimize if minimized else window.maximize)()
+            verified = window.isMinimized if minimized else window.isMaximized
+            return ToolResult(True, "Estado de janela observado.", meta={"hwnd": window._hWnd,
+                "verified": bool(verified), "check": "window_state"})
+        except Exception as exc:
+            return ToolResult(False, error=f"Estado de janela não confirmado: {exc}")
 
     def minimize_window(self, params: dict) -> ToolResult:
-        """Minimiza uma janela pelo título."""
-        title_query = str(params.get("title", "")).strip().lower()
-        if not title_query:
-            return ToolResult(ok=False, error="Parâmetro 'title' é obrigatório.")
-        try:
-            import pygetwindow as gw
-
-            matches = [
-                w
-                for w in gw.getAllWindows()
-                if title_query in w.title.lower() and w.title.strip()
-            ]
-            if not matches:
-                return ToolResult(
-                    ok=False, error=f"Janela '{title_query}' não encontrada."
-                )
-            matches[0].minimize()
-            return ToolResult(
-                ok=True,
-                output=f"Janela minimizada: '{matches[0].title}'",
-                meta={"title": matches[0].title},
-            )
-        except Exception as exc:
-            return ToolResult(ok=False, error=f"Erro ao minimizar janela: {exc}")
+        return self._window_state(params, True)
 
     def maximize_window(self, params: dict) -> ToolResult:
-        """Maximiza uma janela pelo título."""
-        title_query = str(params.get("title", "")).strip().lower()
-        if not title_query:
-            return ToolResult(ok=False, error="Parâmetro 'title' é obrigatório.")
-        try:
-            import pygetwindow as gw
-
-            matches = [
-                w
-                for w in gw.getAllWindows()
-                if title_query in w.title.lower() and w.title.strip()
-            ]
-            if not matches:
-                return ToolResult(
-                    ok=False, error=f"Janela '{title_query}' não encontrada."
-                )
-            matches[0].maximize()
-            return ToolResult(
-                ok=True,
-                output=f"Janela maximizada: '{matches[0].title}'",
-                meta={"title": matches[0].title},
-            )
-        except Exception as exc:
-            return ToolResult(ok=False, error=f"Erro ao maximizar janela: {exc}")
+        return self._window_state(params, False)
 
     @staticmethod
     def get_dpi_scale() -> float:
@@ -160,85 +113,43 @@ class UITool:
             return 1.0
 
     def take_screenshot(self, params: dict | None = None) -> ToolResult:
-        """Captura screenshot da tela inteira e salva no diretório de assets."""
+        """Capture a selected monitor or window in physical pixels, on demand."""
         params = params or {}
-        custom_name = params.get("filename")
-        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        filename = f"screenshot_{ts}.png" if not custom_name else str(custom_name)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+        filename = str(params.get("filename") or f"screenshot_{stamp}.png")
         if not filename.endswith(".png"):
             filename += ".png"
-
-        target_path = self.screenshots_dir / filename
-
-        # Tentativa 1: MSS (ultra-rápido, nativo, sem overhead gráfico)
+        if Path(filename).name != filename or ":" in filename or "\\" in filename:
+            return ToolResult(False, error="Use apenas um nome de arquivo PNG dentro da pasta de capturas.")
+        target_path = (self.screenshots_dir / filename).resolve()
+        if self.screenshots_dir.resolve() not in target_path.parents:
+            return ToolResult(False, error="Caminho de captura fora da pasta permitida.")
         try:
             import mss
             import mss.tools
-
-            with mss.MSS() as sct:  # mss.MSS() — API pública (mss.mss foi depreciado)
-                monitor = sct.monitors[1] if len(sct.monitors) > 1 else sct.monitors[0]
-                sct_img = sct.grab(monitor)
-                mss.tools.to_png(sct_img.rgb, sct_img.size, output=str(target_path))
-                return ToolResult(
-                    ok=True,
-                    output=(
-                        f"Screenshot capturado via MSS: {target_path} "
-                        f"({sct_img.width}x{sct_img.height})"
-                    ),
-                    meta={
-                        "path": str(target_path),
-                        "width": sct_img.width,
-                        "height": sct_img.height,
-                        "engine": "mss",
-                    },
-                )
-        except Exception:
-            pass
-
-        # Tentativa 2: PyQt6 grabWindow
-        try:
-            from PyQt6.QtWidgets import QApplication
-            from PyQt6.QtGui import QGuiApplication
-
-            app = QApplication.instance() or QApplication(sys.argv if sys.argv else [])  # noqa: F841
-            screen = QGuiApplication.primaryScreen()
-            if screen:
-                pixmap = screen.grabWindow(0)
-                if not pixmap.isNull() and pixmap.width() > 0:
-                    pixmap.save(str(target_path), "PNG")
-                    return ToolResult(
-                        ok=True,
-                        output=(
-                            f"Screenshot capturado via PyQt6: {target_path} "
-                            f"({pixmap.width()}x{pixmap.height()})"
-                        ),
-                        meta={
-                            "path": str(target_path),
-                            "width": pixmap.width(),
-                            "height": pixmap.height(),
-                            "engine": "pyqt6",
-                        },
-                    )
-        except Exception:
-            pass
-
-        # Tentativa 3: pyautogui / Pillow
-        try:
-            import pyautogui
-
-            img = pyautogui.screenshot()
-            img.save(str(target_path))
-            return ToolResult(
-                ok=True,
-                output=f"Screenshot capturado: {target_path} ({img.width}x{img.height})",
-                meta={
-                    "path": str(target_path),
-                    "width": img.width,
-                    "height": img.height,
-                },
-            )
+            from tools.windows_targets import physical_pixels, select_window
+            self.control.check()
+            with physical_pixels(), mss.MSS() as capture:
+                index = int(params.get("monitor", 1))
+                if not 0 <= index < len(capture.monitors):
+                    raise ValueError("Monitor não encontrado.")
+                region = dict(capture.monitors[index])
+                hwnd = None
+                if params.get("hwnd") is not None or params.get("title"):
+                    window = select_window(params)
+                    if window.isMinimized:
+                        raise ValueError("Restaure a janela antes de capturá-la.")
+                    hwnd = window._hWnd
+                    region = {"left": window.left, "top": window.top,
+                              "width": window.width, "height": window.height}
+                shot = capture.grab(region)
+                self.control.check()
+                mss.tools.to_png(shot.rgb, shot.size, output=str(target_path))
+                return ToolResult(True, f"Captura salva: {target_path}", meta={"path": str(target_path),
+                    "width": shot.width, "height": shot.height, "left": region["left"], "top": region["top"],
+                    "monitor": index, "hwnd": hwnd, "coordinate_space": "physical_pixels", "engine": "mss"})
         except Exception as exc:
-            return ToolResult(ok=False, error=f"Falha ao capturar screenshot: {exc}")
+            return ToolResult(False, error=f"Falha ao capturar a região solicitada: {exc}")
 
     def click_coordinate(self, params: dict) -> ToolResult:
         """Clica nas coordenadas (x, y) da tela."""
@@ -249,47 +160,34 @@ class UITool:
             return ToolResult(ok=False, error="Coordenadas 'x' e 'y' são obrigatórias.")
 
         try:
-            from ui.window_manager import WindowManager
-
-            WindowManager.get_instance().show_control_halo(int(x), int(y))
-        except Exception:
-            pass
-
-        try:
             import pyautogui
+            import win32gui
+            from tools.windows_targets import physical_pixels, select_window
 
             pyautogui.FAILSAFE = True
-            pyautogui.click(x=int(x), y=int(y), button=button)
+            with physical_pixels():
+                window = select_window(params)
+                focused = self.focus_window({"hwnd": window._hWnd})
+                if not focused.ok:
+                    return focused
+                if not (window.left <= int(x) < window.right and window.top <= int(y) < window.bottom):
+                    raise ValueError("Coordenada fora da janela escolhida.")
+                hit = win32gui.WindowFromPoint((int(x), int(y)))
+                if win32gui.GetAncestor(hit, 2) != window._hWnd:
+                    raise ValueError("Coordenada coberta por outra janela; nenhum clique realizado.")
+                self.control.check()
+                pyautogui.click(x=int(x), y=int(y), button=button)
             return ToolResult(
                 ok=True,
                 output=f"Clique ({button}) executado em ({x}, {y}).",
-                meta={"x": x, "y": y, "button": button},
+                meta={"x": x, "y": y, "button": button, "verified": False, "check": "dispatch_only"},
             )
         except Exception as exc:
             return ToolResult(ok=False, error=f"Erro ao clicar: {exc}")
 
     def type_text(self, params: dict) -> ToolResult:
-        """Digita texto na janela ativa."""
-        text = params.get("text")
-        if text is None:
-            return ToolResult(ok=False, error="Parâmetro 'text' é obrigatório.")
-
-        try:
-            import pyautogui
-
-            pyautogui.FAILSAFE = True
-            # Escreve via clipboard para preservar acentuação no Windows
-            import pyperclip
-
-            pyperclip.copy(str(text))
-            pyautogui.hotkey("ctrl", "v")
-            return ToolResult(
-                ok=True,
-                output=f"Texto digitado: {text[:80]}...",
-                meta={"length": len(str(text))},
-            )
-        except Exception as exc:
-            return ToolResult(ok=False, error=f"Erro ao digitar texto: {exc}")
+        """Address an inspected Edit control without overwriting the clipboard."""
+        return self.element_action("type_element", params)
 
     def press_key(self, params: dict) -> ToolResult:
         """Pressiona uma tecla ou combinação de teclas."""
@@ -299,8 +197,11 @@ class UITool:
 
         try:
             import pyautogui
-
             pyautogui.FAILSAFE = True
+            focused = self.focus_window(params)
+            if not focused.ok:
+                return focused
+            self.control.check()
             key_str = str(key).lower().strip()
             if "+" in key_str:
                 parts = [p.strip() for p in key_str.split("+")]
@@ -334,137 +235,59 @@ class UITool:
 
         import webbrowser
         try:
-            webbrowser.open(url)
-            return ToolResult(ok=True, output=f"Navegador aberto em: '{url}'", meta={"url": url})
+            browser = getattr(self, "browser_session", None)
+            if browser is not None:
+                info = browser.open(url)
+                return ToolResult(True, json.dumps(info, ensure_ascii=False),
+                                  meta={"url": info.get("url"), "verified": True, "check": "controlled_navigation"})
+            if not webbrowser.open(url):
+                return ToolResult(False, error="O Windows não confirmou a abertura do navegador.")
+            return ToolResult(ok=True, output=f"Pedido enviado ao navegador: '{url}'", meta={"url": url, "verified": False})
         except Exception as exc:
             return ToolResult(ok=False, error=f"Erro ao abrir URL '{url}': {exc}")
 
     def inspect_elements(self, params: dict | None = None) -> ToolResult:
-        """Lê os elementos e controles interativos da janela ativa via UI Automation."""
+        """Inspect only the chosen or active window, with an expiring identity."""
         try:
-            import pygetwindow as gw
-            from pywinauto.application import Application
-            w = gw.getActiveWindow()
-            top = None
-            title = ""
-            self._cached_elements = []
-            elements = []
-            idx = 1
-            if w and getattr(w, "_hWnd", None):
-                try:
-                    app = Application(backend="uia").connect(handle=w._hWnd)
-                    top = app.window(handle=w._hWnd)
-                    title = top.window_text() or getattr(w, "title", "")
-                    for c in top.children()[:25]:
-                        t = c.window_text().strip()
-                        ct = getattr(getattr(c, "element_info", None), "control_type", "Control")
-                        if t or ct:
-                            self._cached_elements.append({"id": idx, "control": c, "text": t, "type": ct})
-                            elements.append(f"- [ID {idx:02d}] [{ct}] '{t[:50]}'")
-                            idx += 1
-                except Exception:
-                    pass
-
-            if not top:
-                try:
-                    from pywinauto import Desktop
-                    desk = Desktop(backend="uia")
-                    wins = desk.windows()
-                    if wins:
-                        top = wins[0]
-                        title = top.window_text()
-                        for c in top.children()[:25]:
-                            t = c.window_text().strip()
-                            ct = getattr(getattr(c, "element_info", None), "control_type", "Control")
-                            if t or ct:
-                                self._cached_elements.append({"id": idx, "control": c, "text": t, "type": ct})
-                                elements.append(f"- [ID {idx:02d}] [{ct}] '{t[:50]}'")
-                                idx += 1
-                except Exception:
-                    pass
-
-            display_title = title if title else "(Sem janela ativa detectada)"
-            summary = "\n".join(elements) if elements else "(Nenhum controle textual direto visível)"
-            return ToolResult(
-                ok=True,
-                output=f"Janela ativa: '{display_title}'\nControles detectados ({len(elements)}):\n{summary}",
-                meta={"title": display_title, "count": len(elements), "elements": [{"id": e["id"], "text": e["text"], "type": e["type"]} for e in self._cached_elements]},
-            )
+            info = self.targets.inspect(params or {})
+            return ToolResult(True, json.dumps(info, ensure_ascii=False), meta=info)
         except Exception as exc:
-            return ToolResult(ok=False, error=f"Erro ao inspecionar elementos UIA: {exc}")
+            return ToolResult(False, error=f"Inspeção UIA indisponível: {exc}")
+
+    def element_action(self, action, params):
+        try:
+            info = self.targets.act(action, params)
+            return ToolResult(True, json.dumps(info, ensure_ascii=False), meta=info)
+        except Exception as exc:
+            return ToolResult(False, error=f"Ação UIA não confirmada: {exc}",
+                              meta={"outcome_unknown": getattr(exc, "outcome_unknown", False)})
 
     def click_element(self, params: dict) -> ToolResult:
-        """Clica diretamente em um controle de interface por ID ou nome via UIA."""
-        if self.control.is_cancelled():
-            return ToolResult(ok=False, error="Operação abortada: Kill-switch de emergência ativo.")
-
-        raw_id = params.get("id", params.get("element_id"))
-        target_name = str(params.get("name", params.get("text", ""))).strip().lower()
-
-        matched = None
-        if raw_id is not None:
-            try:
-                el_id = int(raw_id)
-                for item in self._cached_elements:
-                    if item["id"] == el_id:
-                        matched = item
-                        break
-            except Exception:
-                pass
-
-        if not matched and target_name:
-            for item in self._cached_elements:
-                if target_name in item["text"].lower():
-                    matched = item
-                    break
-
-        if matched:
-            try:
-                matched["control"].click_input()
-                return ToolResult(
-                    ok=True,
-                    output=f"Elemento [ID {matched['id']}] '{matched['text']}' clicado via UIA.",
-                    meta={"id": matched["id"], "text": matched["text"]},
-                )
-            except Exception as exc:
-                return ToolResult(ok=False, error=f"Falha ao clicar no elemento [ID {matched['id']}]: {exc}")
-
-        return ToolResult(
-            ok=False,
-            error="Controle não encontrado no cache. Execute 'inspect_elements' primeiro para mapear a janela.",
-        )
+        return self.element_action("click_element", params)
 
     def kill_process(self, params: dict) -> ToolResult:
-        """Encerra um processo do Windows via psutil (requer confirmação se crítico)."""
-        target = str(params.get("process", params.get("name", params.get("pid", "")))).strip()
-        if not target:
-            return ToolResult(ok=False, error="Parâmetro 'process', 'name' ou 'pid' é obrigatório.")
-
-        import psutil
-        killed = []
+        """Terminate one explicitly identified process, never substring matches."""
+        if params.get("pid") is None or params.get("created") is None:
+            return ToolResult(False, error="É obrigatório informar pid e created retornados por list_windows.")
         try:
-            # Se for PID numérico
-            if target.isdigit():
-                pid = int(target)
-                p = psutil.Process(pid)
-                p_name = p.name()
-                p.terminate()
-                return ToolResult(ok=True, output=f"Processo {p_name} (PID {pid}) finalizado com sucesso.", meta={"killed": [pid]})
-
-            # Busca por nome do processo
-            for proc in psutil.process_iter(["pid", "name"]):
-                try:
-                    if target.lower() in proc.info["name"].lower():
-                        proc.terminate()
-                        killed.append(f"{proc.info['name']} (PID {proc.info['pid']})")
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    continue
-
-            if killed:
-                return ToolResult(ok=True, output=f"Processo(s) encerrado(s): {', '.join(killed)}", meta={"killed": killed})
-            return ToolResult(ok=False, error=f"Nenhum processo ativo correspondente a '{target}' encontrado.")
+            import psutil
+            pid = int(params["pid"])
+            if pid <= 4 or pid == os.getpid():
+                raise ValueError("Este processo não pode ser encerrado por esta ferramenta.")
+            process = psutil.Process(pid)
+            if process.create_time() != float(params["created"]):
+                raise ValueError("O PID foi reutilizado; obtenha uma nova identificação antes de confirmar.")
+            self.control.check()
+            process.terminate()
+            try:
+                process.wait(timeout=2)
+                verified = True
+            except psutil.TimeoutExpired:
+                verified = False
+            return ToolResult(True, "Pedido de encerramento enviado ao processo identificado.",
+                              meta={"pid": pid, "verified": verified, "check": "process_exited"})
         except Exception as exc:
-            return ToolResult(ok=False, error=f"Erro ao finalizar processo '{target}': {exc}")
+            return ToolResult(False, error=f"Encerramento de processo não confirmado: {exc}")
 
     def list_running_apps(self, params: dict | None = None) -> ToolResult:
         """Varre e lista as janelas de aplicativos visíveis do usuário no Windows 11."""
@@ -523,23 +346,20 @@ class UITool:
             return ToolResult(ok=False, error=f"Erro ao listar aplicativos abertos: {exc}")
 
     def close_app(self, params: dict) -> ToolResult:
-        """Fecha uma janela de aplicativo pelo título ou nome."""
-        target = str(params.get("app", params.get("title", params.get("name", "")))).strip()
-        if not target:
-            return ToolResult(ok=False, error="Parâmetro 'app' ou 'title' é obrigatório para fechar.")
+        """Request close on one window; an unsaved-data dialog remains unverified."""
         try:
-            import pygetwindow as gw
-            matching = [w for w in gw.getAllWindows() if target.lower() in (w.title or "").lower()]
-            if matching:
-                closed = []
-                for w in matching:
-                    t = w.title
-                    w.close()
-                    closed.append(t)
-                return ToolResult(ok=True, output=f"Janela(s) fechada(s): {', '.join(closed)}", meta={"closed": closed})
-            return ToolResult(ok=False, error=f"Nenhuma janela correspondente a '{target}' encontrada para fechar.")
+            import win32gui
+            from tools.windows_targets import select_window
+            target = dict(params)
+            target["title"] = params.get("title") or params.get("app") or params.get("name") or ""
+            window = select_window(target)
+            self.control.check()
+            window.close()
+            verified = not win32gui.IsWindow(window._hWnd)
+            return ToolResult(True, "Pedido de fechamento enviado; confirme eventuais diálogos do aplicativo.",
+                meta={"hwnd": window._hWnd, "verified": verified, "check": "window_closed"})
         except Exception as exc:
-            return ToolResult(ok=False, error=f"Erro ao fechar aplicativo '{target}': {exc}")
+            return ToolResult(False, error=f"Fechamento não confirmado: {exc}")
 
     def screen_vision(self, params: dict | None = None) -> ToolResult:
         """Captura screenshot e analisa o conteúdo visual com o modelo moondream via Ollama."""
@@ -600,10 +420,25 @@ class UITool:
         if low_app in web_services or low_app.startswith(("http://", "https://", "www.")):
             return self.open_url({"url": web_services.get(low_app, app_name)})
 
-        import subprocess
         try:
-            cmd = f'start "" "{app_name}"'
-            subprocess.Popen(cmd, shell=True)
+            import re
+            if any(c in app_name for c in ('"', '\n', '\r', '&', '|', '<', '>', '%')):
+                raise ValueError("Informe somente o nome ou caminho de um aplicativo, sem comandos ou argumentos.")
+            suffix = Path(app_name).suffix.lower()
+            if suffix and suffix != ".exe":
+                raise ValueError("Abertura de scripts e arquivos executáveis indiretos não é permitida por esta ferramenta.")
+            if not suffix and not re.fullmatch(r"[\w -]{1,80}", app_name):
+                raise ValueError("Nome de aplicativo inválido.")
+            if Path(app_name).is_absolute():
+                executable = Path(app_name).resolve()
+                trusted = [Path(value).resolve() for value in (os.environ.get("WINDIR"),
+                    os.environ.get("ProgramFiles"), os.environ.get("ProgramFiles(x86)")) if value]
+                if not executable.is_file() or not any(root in executable.parents for root in trusted):
+                    raise ValueError("Executável fora das pastas de aplicativos instalados; use um aplicativo registrado pelo Windows.")
+            elif "\\" in app_name or "/" in app_name:
+                raise ValueError("Caminhos relativos não são aceitos para iniciar aplicativos.")
+            self.control.check()
+            os.startfile(app_name)
             return ToolResult(ok=True, output=f"Aplicativo/item iniciado: '{app_name}'", meta={"app": app_name})
         except Exception as exc:
             return ToolResult(ok=False, error=f"Falha ao abrir '{app_name}': {exc}")
@@ -636,7 +471,7 @@ class UITool:
             return ToolResult(ok=True, output=f"Mouse movido para ({x}, {y}).", meta={"x": x, "y": y})
         except Exception as exc:
             if "fail-safe" in str(exc).lower():
-                return ToolResult(ok=True, output=f"Mouse movido para ({x}, {y}) (failsafe acionado em canto de tela).", meta={"x": x, "y": y})
+                return ToolResult(ok=False, error="Entrada interrompida pelo fail-safe do mouse.")
             return ToolResult(ok=False, error=f"Erro ao mover mouse: {exc}")
 
     def mouse_scroll(self, params: dict) -> ToolResult:
@@ -649,7 +484,7 @@ class UITool:
             return ToolResult(ok=True, output=f"Scroll de {clicks} unidades executado.", meta={"clicks": clicks})
         except Exception as exc:
             if "fail-safe" in str(exc).lower():
-                return ToolResult(ok=True, output=f"Scroll de {clicks} unidades simulado (failsafe acionado).", meta={"clicks": clicks})
+                return ToolResult(ok=False, error="Entrada interrompida pelo fail-safe do mouse.")
             return ToolResult(ok=False, error=f"Erro no scroll: {exc}")
 
     def mouse_drag(self, params: dict) -> ToolResult:
@@ -726,7 +561,10 @@ class UITool:
             wins = [w for w in gw.getAllWindows() if title in w.title.lower() and w.title.strip()]
             if not wins:
                 return ToolResult(ok=False, error=f"Janela '{title}' não encontrada.")
+            if len(wins) != 1:
+                return ToolResult(False, error="Título ambíguo; nenhuma janela foi alterada.")
             w = wins[0]
+            self.control.check()
             w.resizeTo(int(width), int(height))
             return ToolResult(
                 ok=True,
@@ -752,7 +590,10 @@ class UITool:
             wins = [w for w in gw.getAllWindows() if title in w.title.lower() and w.title.strip()]
             if not wins:
                 return ToolResult(ok=False, error=f"Janela '{title}' não encontrada.")
+            if len(wins) != 1:
+                return ToolResult(False, error="Título ambíguo; nenhuma janela foi alterada.")
             w = wins[0]
+            self.control.check()
             w.moveTo(int(x), int(y))
             return ToolResult(
                 ok=True,
@@ -766,15 +607,19 @@ class UITool:
         """Ajusta o volume de som do Windows (aumentar, diminuir ou definir)."""
         action = str(params.get("volume_action", params.get("mode", "up"))).lower()
         steps = int(params.get("steps", 5))
+        if not 1 <= steps <= 50:
+            return ToolResult(False, error="Volume aceita de 1 a 50 passos por chamada.")
         try:
             import pyautogui
 
             if "up" in action or "aumentar" in action:
                 for _ in range(steps):
+                    self.control.check()
                     pyautogui.press("volumeup")
                 return ToolResult(ok=True, output=f"Volume aumentado em {steps} níveis.")
             elif "down" in action or "diminuir" in action:
                 for _ in range(steps):
+                    self.control.check()
                     pyautogui.press("volumedown")
                 return ToolResult(ok=True, output=f"Volume diminuído em {steps} níveis.")
             elif "mute" in action or "mutar" in action:
@@ -782,11 +627,12 @@ class UITool:
                 return ToolResult(ok=True, output="Volume mutado/desmutado.")
             else:
                 for _ in range(steps):
+                    self.control.check()
                     pyautogui.press("volumeup")
                 return ToolResult(ok=True, output=f"Volume ajustado ({action}).")
         except Exception as exc:
             if "fail-safe" in str(exc).lower():
-                return ToolResult(ok=True, output=f"Volume ajustado ({action}) [failsafe acionado].")
+                return ToolResult(ok=False, error="Entrada interrompida pelo fail-safe do mouse.")
             return ToolResult(ok=False, error=f"Erro ao ajustar volume: {exc}")
 
     def mute_volume(self, params: dict | None = None) -> ToolResult:
@@ -798,7 +644,7 @@ class UITool:
             return ToolResult(ok=True, output="Áudio mutado/desmutado com sucesso.")
         except Exception as exc:
             if "fail-safe" in str(exc).lower():
-                return ToolResult(ok=True, output="Áudio mutado/desmutado com sucesso [failsafe acionado].")
+                return ToolResult(ok=False, error="Entrada interrompida pelo fail-safe do mouse.")
             return ToolResult(ok=False, error=f"Erro ao alternar mudo: {exc}")
 
     def vision_locate_and_click(self, params: dict) -> ToolResult:
@@ -808,7 +654,7 @@ class UITool:
             return ToolResult(ok=False, error="Parâmetro 'target' ou 'description' é obrigatório.")
 
         # 1. Captura screenshot da tela
-        shot = self.take_screenshot()
+        shot = self.take_screenshot(params)
         if not shot.ok or "path" not in shot.meta:
             return ToolResult(ok=False, error=f"Falha ao capturar screenshot: {shot.error}")
 
@@ -853,22 +699,18 @@ class UITool:
             else:
                 return ToolResult(ok=False, error="Não há coordenadas verificáveis para o elemento; nenhum clique foi feito.")
 
-            # Clica com DPI ajustado
-            dpi = self.get_dpi_scale()
-            target_x = int(cx / dpi)
-            target_y = int(cy / dpi)
-
-            import pyautogui
-
-            pyautogui.FAILSAFE = True
+            # MSS and UIA share physical pixels; preserve monitor/window origin.
             self.control.check()
-            pyautogui.click(target_x, target_y)
-
-            return ToolResult(
-                ok=True,
-                output=f"Elemento visual '{target}' localizado e clicado em ({target_x}, {target_y}) [DPI scale: {dpi:.2f}].",
-                meta={"target": target, "x": target_x, "y": target_y, "dpi": dpi},
-            )
+            if shot.meta.get("coordinate_space") != "physical_pixels" or not shot.meta.get("hwnd"):
+                return ToolResult(False, error="Selecione uma janela por hwnd/title antes de um clique visual.")
+            from tools.windows_targets import physical_pixels, select_window
+            with physical_pixels():
+                window = select_window({"hwnd": shot.meta["hwnd"]})
+                if (window.left, window.top, window.width, window.height) != (
+                    shot.meta["left"], shot.meta["top"], img_w, img_h):
+                    return ToolResult(False, error="A janela mudou desde a captura; inspecione novamente.")
+            return self.click_coordinate({"hwnd": shot.meta["hwnd"],
+                "x": shot.meta["left"] + cx, "y": shot.meta["top"] + cy})
         except Exception as exc:
             return ToolResult(
                 ok=False,
@@ -983,6 +825,8 @@ class UITool:
             "apps": self.list_running_apps,
             "close_app": self.close_app,
             "close_window": self.close_app,
+            "read_element": lambda p: self.element_action("read_element", p),
+            "type_element": self.type_text,
             "click_element": self.click_element,
             "click_id": self.click_element,
             "kill_process": self.kill_process,

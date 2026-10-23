@@ -109,6 +109,11 @@ def build_registry(cfg: NyxConfig) -> ToolRegistry:
             destructive=False,
             sensitive=True,
             destructive_probe=lambda p: ui.is_destructive(p.get("action", ""), p),
+            input_contract={"action": "list_windows|focus_window|inspect_elements|read_element|click_element|type_element|screenshot|open_app",
+                "hwnd": "Identificador retornado por list_windows; evita títulos ambíguos",
+                "snapshot": "Obrigatório em read_element/click_element/type_element; retornado por inspect_elements, expira em 30 s",
+                "id": "ID de controle da mesma inspeção", "text": "Texto para type_element",
+                "verification": "click_element envia Invoke; depois leia o resultado com read_element/inspect_elements. Senhas exigem entrada humana."},
         ),
         make_ui_tool_func(ui),
     )
@@ -162,6 +167,7 @@ def build_registry(cfg: NyxConfig) -> ToolRegistry:
     from tools.browser_tool import BrowserSession, is_sensitive_action, make_browser_tool_func
 
     browser = BrowserSession(control=registry.control)
+    ui.browser_session = browser
     registry.browser_session = browser
     import atexit
 

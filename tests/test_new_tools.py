@@ -116,12 +116,9 @@ def test_ui_tool_basic():
     assert res_win.ok is True
     assert isinstance(res_win.output, str)
 
-    # Screenshot
-    res_scr = tool.take_screenshot({"filename": "test_scr.png"})
-    assert res_scr.ok is True
-    assert Path(res_scr.meta["path"]).exists()
-    # Limpa arquivo temporário de teste
-    Path(res_scr.meta["path"]).unlink(missing_ok=True)
+    # Path guard is unit-tested here; real capture uses an owned Windows fixture.
+    res_scr = tool.take_screenshot({"filename": "../outside.png"})
+    assert not res_scr.ok
 
 
 def test_sprite_renderer_all_emotions():

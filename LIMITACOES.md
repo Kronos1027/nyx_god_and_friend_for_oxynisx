@@ -16,6 +16,11 @@ do desenvolvimento inicial, não descrevem a máquina atual.
   build/evolution-baseline/task-after-b.json. Não é comparação de velocidade.
 - Spotify abriu no Edge isolado e mostrou “Entrar”; reprodução autenticada
   depende de login humano. Não foram importadas credenciais ou cookies.
+- O usuário adiou o login; trabalho independente continua. UIA foi validada
+  contra aplicação Windows própria, em conjunto com Qt, em escala da aplicação
+  1,0/1,5. Não prova múltiplos monitores, DPI do sistema diferente, jogos ou OCR.
+  O auxiliar UIA separado resolve conflito observado no processo com Qt, mas
+  ainda falta distribuí-lo no pacote congelado. Execução pelo fonte disponível.
 - Localizadores atuais cobrem DOM comum; frames, shadow DOM e acessibilidade
   completa não são suportados. Mídia inacessível retorna incerteza. Perfil
   separado protege dados entre sessões, mas não é sandbox de código gerado.

@@ -232,6 +232,8 @@ class TaskRunner:
         self.on_progress({"phase": "observed", "task_id": self.task_id, "step": len(self.steps),
                           "tool": action.type, "ok": step["ok"], "verified": result.verified,
                           "preview": step["output"][:350]})
+        if output and output.meta.get("outcome_unknown"):
+            raise TaskStopped("A operação pode ter sido aplicada, mas não foi confirmada. Confira o estado antes de repetir; a tarefa foi interrompida.")
 
     def _stop(self, message: str) -> LoopResult:
         return self._finish(LoopResult(response=NyxResponse(emotion="idle", speech_output=message)), "stopped")

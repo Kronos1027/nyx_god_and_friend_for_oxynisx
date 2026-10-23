@@ -37,6 +37,19 @@ def test_new_task_cannot_clear_emergency_latch(tmp_path):
     assert not runner.active
 
 
+def test_uncertain_external_effect_stops_without_replanning_or_replay(tmp_path):
+    runner, _, registry = make_runner(tmp_path, [reply("ui_action", {"action": "click_element"}),
+                                               reply("ui_action", {"action": "click_element"})])
+    calls = []
+    def uncertain(params):
+        calls.append(params)
+        return ToolResult(False, error="Timeout após envio", meta={"outcome_unknown": True})
+    registry.register(ToolSpec("ui_action", "native UI"), uncertain)
+    result = runner.start("Clique uma vez")
+    assert len(calls) == 1 and not runner.active
+    assert "Confira o estado" in result.response.speech_output
+
+
 def test_task_catalog_reaches_model_and_internal_typeerror_is_not_retried(tmp_path):
     runner, loop, registry = make_runner(tmp_path, [])
     registry.register(ToolSpec("read_file", "Read a file"), lambda p: ToolResult(True, "ok"))

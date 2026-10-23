@@ -1,7 +1,33 @@
-"""Testes para o subsistema de Pesquisa Web e Automação Avançada do Windows 11 (estilo Manus/Kimi K3)"""
+"""Unit routing tests with explicit network/input fixtures; real UI lives in test_windows_live."""
+
+import io
+import json
+import sys
+from types import SimpleNamespace
+
+import pytest
 
 from tools.web_tool import WebTool
 from tools.ui_tool import UITool
+
+
+@pytest.fixture(autouse=True)
+def network_fixture(monkeypatch):
+    """Known payloads test parsing/routing, not current external availability."""
+    def response(request, **kwargs):
+        url = request.full_url
+        if "duckduckgo" in url:
+            return io.BytesIO(b"<html></html>")
+        if "wikipedia" in url:
+            data = ["Python", ["Python"], ["Fixture language"], ["https://example.test/python"]]
+        elif "ipapi" in url:
+            data = {"city": "Fixture City", "country": "Fixture Country", "latitude": 1, "longitude": 2}
+        elif "wttr.in" in url:
+            data = {"current_condition": [{"temp_C": "21"}], "nearest_area": [{"areaName": [{"value": "Fixture City"}]}]}
+        else:
+            raise AssertionError("Unexpected endpoint: " + url)
+        return io.BytesIO(json.dumps(data).encode())
+    monkeypatch.setattr("urllib.request.urlopen", response)
 
 
 def test_web_tool_initialization():
@@ -26,57 +52,25 @@ def test_web_tool_dispatch():
     assert "desconhecida" in res.error.lower()
 
 
-def test_ui_tool_new_methods():
+def test_network_failure_never_invents_a_city(monkeypatch):
+    def unavailable(*args, **kwargs):
+        raise OSError("offline fixture")
+    monkeypatch.setattr("urllib.request.urlopen", unavailable)
+    result = WebTool().get_location()
+    assert not result.ok and not result.meta.get("city")
+
+
+def test_ui_tool_new_methods(monkeypatch):
     ui = UITool()
-
-    # 1. Obter janela ativa
-    res_win = ui.get_active_window()
-    assert res_win.ok is True
-
-    # 2. Scroll
-    res_scroll = ui.mouse_scroll({"clicks": 1})
-    assert res_scroll.ok is True
-    assert "scroll" in res_scroll.output.lower()
-
-    # 3. Validação de coordenadas
-    res_err = ui.mouse_move({})
-    assert res_err.ok is False
-    assert "obrigatórias" in res_err.error.lower()
-
-    # 4. Abertura de URL e inspeção UIA
-    res_url = ui.run({"action": "open_url", "url": "https://example.com"})
-    assert res_url.ok is True
-    assert "navegador" in res_url.output.lower()
-
-    # 5. Redirecionamento de serviço (ex: spotify)
-    res_spotify = ui.run({"action": "open_app", "app": "spotify"})
-    assert res_spotify.ok is True
-    assert "spotify.com" in res_spotify.output.lower()
-
-    # 6. Inspeção de elementos da janela ativa (robusto)
-    res_elem = ui.run({"action": "inspect_elements"})
-    assert res_elem.ok is True
-    assert "janela ativa" in res_elem.output.lower()
-
-    # 7. Listagem de aplicativos em execução
-    res_apps = ui.run({"action": "list_apps"})
-    assert res_apps.ok is True
-    assert "aplicativo" in res_apps.output.lower()
-
-    # 8. Validação de fechar app
-    res_close = ui.run({"action": "close_app"})
-    assert res_close.ok is False
-    assert "obrigatório" in res_close.error.lower()
-
-    # 9. Validação de clique em elemento UIA por ID
-    res_click_el = ui.run({"action": "click_element", "id": 9999})
-    assert res_click_el.ok is False
-    assert "não encontrado" in res_click_el.error.lower()
-
-    # 10. Validação de finalização de processo via psutil
-    res_kill = ui.run({"action": "kill_process"})
-    assert res_kill.ok is False
-    assert "obrigatório" in res_kill.error.lower()
+    opened = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    assert not ui.mouse_move({}).ok
+    assert ui.run({"action": "open_url", "url": "https://example.com"}).ok
+    assert ui.run({"action": "open_app", "app": "spotify"}).ok
+    assert opened == ["https://example.com", "https://open.spotify.com"]
+    assert not ui.run({"action": "close_app"}).ok
+    assert not ui.run({"action": "click_element", "id": 9999}).ok
+    assert not ui.run({"action": "kill_process"}).ok
 
 
 def test_web_tool_weather_and_location():
@@ -94,7 +88,8 @@ def test_web_tool_weather_and_location():
 
 
 def test_ui_phase2_extended_features(monkeypatch):
-    import sys
+    keys = []
+    monkeypatch.setitem(sys.modules, "pyautogui", SimpleNamespace(press=lambda key: keys.append(key)))
 
     class MemoryClipboard:
         text = ""

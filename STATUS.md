@@ -2,6 +2,49 @@
 
 Última atualização: 2026-10-23
 
+## Evolution 2.0 — Windows com alvos identificados
+
+Regressão conjunta: **537 passaram, 1 pulado em 36,95 s**, com
+`NYX_TEST_BROWSER=1` e `NYX_TEST_DESKTOP=1`; skip por symlink indisponível.
+Ruff aprovado. Relatórios locais: `build/evolution-baseline/phase-d-integrated.*`.
+
+- UIA usa snapshot de 30 segundos, HWND, PID/data de criação e runtime ID do
+  controle. Reconsulta em processo auxiliar sem Qt, com COM MTA persistente;
+  não transfere objetos COM entre workers.
+  Não escolhe a primeira janela na ausência de foco. Títulos/nomes ambíguos,
+  controles removidos, desabilitados, protegidos ou inspeção vencida são recusados.
+- Entrada por ValuePattern/Invoke e leitura do mesmo controle. Digitação compara
+  o valor e não sobrescreve o clipboard. Clique enviado continua sem verificação
+  até observar uma pós-condição. Campos de senha exigem entrada humana.
+- Foco confere HWND ativo e bloqueio modal nativo. Captura MSS por monitor ou
+  janela usa pixels físicos com origem explícita; clique por coordenadas exige
+  janela escolhida, limites e hit-test. A localização visual não divide pixels
+  físicos por DPI e rejeita janela movida desde a captura.
+- Abertura de aplicativos não monta comando shell. Scripts, injeção por aspas,
+  caminhos relativos e executáveis fora das pastas de instalação são recusados.
+  Serviços web conhecidos usam a sessão controlada quando conectada ao runtime.
+- Fechamento atua sobre uma janela única; encerramento de processo requer PID
+  e data de criação, checa reutilização e confirma saída. Alias `terminate_process`
+  mantém confirmação destrutiva. Fail-safe do mouse nunca é relatado como sucesso.
+- Ensaios reais contra `tools/windows_test_app.py` cobrem
+  texto Unicode, leitura, Invoke, clique físico, snapshot entre threads, senha,
+  ambiguidade, modal e captura. A fixture foi renderizada com Qt scale 1,0 e 1,5;
+  não alteramos escala do Windows. Há um monitor disponível, 1440×900; múltiplos
+  monitores e escalas de sistema diferentes ainda não têm evidência real.
+- Testes legados de web/UI agora usam dados e entradas explicitamente simulados
+  para verificar lógica, sem abrir navegador pessoal, alterar volume ou rolar
+  janelas. A integração real fica nas fixtures opt-in. Falha de geolocalização
+  retorna indisponibilidade, em vez da antiga cidade fixa inventada.
+- A execução conjunta com Qt revelou inspeção vazia/falha de foco que o ensaio
+  isolado não detectava. O auxiliar dedicado corrigiu essa integração: 38 testes
+  Qt/Windows passaram juntos. Chamadas têm prazo de oito segundos e cancelamento;
+  o auxiliar próprio é encerrado se travar. Efeito enviado e não confirmado
+  interrompe a tarefa, sem retentativa automática. O auxiliar não é sandbox.
+- Limites: padrões UIA variam por aplicativo. O novo auxiliar ainda não está
+  integrado ao executável congelado; UIA desse pacote falha explicitamente até
+  a etapa de empacotamento. Não foi validado controle geral de jogos ou OCR.
+  Spotify autenticado foi adiado por escolha do usuário; demais fases continuam.
+
 ## Evolution 2.0 — navegador e interrupção (D, primeira entrega)
 
 Atualização de sessão (23/10): Personalizar controla navegador visível (padrão

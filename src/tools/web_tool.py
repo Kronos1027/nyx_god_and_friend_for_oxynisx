@@ -161,11 +161,7 @@ class WebTool:
             except Exception:
                 continue
 
-        return ToolResult(
-            ok=True,
-            output="Localização estimada: São Paulo, SP - Brasil (fuso horário local)",
-            meta={"city": "São Paulo", "country": "Brasil"},
-        )
+        return ToolResult(False, error="Não foi possível consultar a localização; informe a cidade desejada.")
 
     def get_weather(self, params: dict | None = None) -> ToolResult:
         """Obtém previsão do tempo atualizada usando wttr.in sem necessidade de chave de API."""

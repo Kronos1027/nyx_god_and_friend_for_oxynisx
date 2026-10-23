@@ -2,6 +2,29 @@
 
 ## Evolution 2.0: ações verificáveis e interrupção
 
+`WindowsAutomationClient` inicia sob demanda um auxiliar próprio sem Qt e
+serializa pedidos JSON limitados. `UIATargets` mantém descritores e reconsulta
+HWND/PID/create_time/runtime ID em COM MTA de vida persistente. O walker limita
+80 controles, profundidade quatro e três segundos entre chamadas UIA. O cliente
+impõe oito segundos ao pedido inteiro e consulta cancelamento a cada 50 ms;
+em falha encerra somente o auxiliar criado por ele. Mutações enviadas sem resposta
+têm resultado desconhecido e interrompem TaskRunner, sem repetição automática.
+Não é um sandbox para código gerado; só aceita inspeção, foco e ações UIA fixas.
+Integração com pacote congelado permanece pendente e falha explicitamente.
+Snapshot vence em 30 segundos. Diálogos pertencentes a uma janela são
+selecionados por HWND próprio; o ancestral superior de UIA pode ser a janela
+dona, por isso a validação usa presença na subárvore consultada, não esse ancestral.
+
+UI Automation/MSS e entrada de mouse usam pixels físicos sob contexto DPI da
+thread, restaurado ao sair. Captura informa origem, tamanho e janela/monitor;
+localização visual usa essa origem sem dividir por escala global. Nenhuma
+captura fica em loop contínuo. Testes reais usam processo Qt dedicado com arquivo
+de resultado independente do verificador, sem agir em aplicativos pessoais.
+Referências: [coordenadas UIA](https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-screenscaling),
+[threading e COM UIA](https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-threading),
+[DPI por thread](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setthreaddpiawarenesscontext),
+[padrões de controles pywinauto](https://pywinauto.readthedocs.io/en/latest/code/pywinauto.controls.uia_controls.html).
+
 `OperationControl` pertence ao registro de ferramentas e é compartilhado com
 TaskRunner, BrowserSession e UITool. Cancelamento normal admite um novo pedido;
 emergência permanece até ação direta na UI. Nenhuma ferramenta recebe API de

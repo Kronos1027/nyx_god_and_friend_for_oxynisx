@@ -140,7 +140,20 @@ class ActionVerifier:
     def _verify_ui_action(self, params: dict, result: ToolResult) -> VerificationResult:
         sub_action = params.get("action", params.get("ui_action", ""))
 
+        if sub_action in {"click", "click_coordinate", "click_element", "click_id", "type", "type_text", "type_element",
+                          "press_key", "vision_locate_and_click", "locate_and_click", "click_visual", "focus_window",
+                          "open_url", "url", "browser", "minimize_window", "maximize_window",
+                          "close_app", "close_window", "kill_process", "terminate_process"}:
+            confirmed = result.meta.get("verified") is True
+            return VerificationResult(confirmed, "ui_action", result.meta.get("check", "observed" if confirmed else "dispatch_only"),
+                "Pós-condição conferida no controle." if confirmed else
+                "Entrada enviada; inspecione o resultado antes de declarar conclusão ou repetir a ação.",
+                taxonomy_error=None if confirmed else ErrorTaxonomy.VERIFICATION_FAILED)
+
         if sub_action in ("open_app", "launch"):
+            if result.meta.get("check") == "controlled_navigation":
+                return VerificationResult(result.meta.get("verified") is True, "ui_action", "controlled_navigation",
+                                          "Página verificada no navegador isolado; isso não confirma reprodução de mídia.")
             app_target = str(params.get("app", params.get("name", ""))).lower()
             # Verifica se alguma janela contém o nome do app
             try:

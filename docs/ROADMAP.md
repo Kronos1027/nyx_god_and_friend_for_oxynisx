@@ -56,7 +56,9 @@ Isto é um mapa honesto do que existe, do que falta e da ordem sugerida; não é
   como trabalho de integração, sem declarar capacidade geral de percepção.
 - D: CDP com entrada real, locators DOM, abas, perfil isolado autorizado,
   formulários e verificação de mídia implementados. Ensaios locais reais passam;
-  Spotify aguardando login humano. UIA/monitor/DPI e ensaio Windows dedicado pendentes.
+  Spotify autenticado adiado pelo usuário. UIA com identidade/snapshot, modalidade,
+  foco, entrada e captura passou em fixture Windows real (Qt 1,0/1,5).
+  Múltiplos monitores, escalas de sistema e aplicativos diversos ainda não validados.
 - E: tarefas persistentes e microagentes com recuperação.
 - F: skills/MCP/Creation Studio e execução isolada real.
 - G: laboratório supervisionado e avaliações independentes.
