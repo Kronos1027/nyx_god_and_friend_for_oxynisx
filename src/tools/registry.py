@@ -74,6 +74,11 @@ class ToolRegistry:
         self._tools: dict[str, tuple[ToolSpec, ToolFunc]] = {}
         from core.operation_control import OperationControl
         self.control = OperationControl()
+        from threading import Lock
+        self.team_run_lock = Lock()
+        self.team_inference_lock = Lock()
+        self.team_outstanding = []
+        self.disabled_tools: set[str] = set()
 
     def register(self, spec: ToolSpec, func: ToolFunc) -> None:
         if spec.name in self._tools:
@@ -96,6 +101,9 @@ class ToolRegistry:
     def execute(self, name: str, params: dict) -> ToolResult:
         """Executa ferramenta registrada. Ferramenta desconhecida = erro,
         nunca exceção estourando (o loop audita o resultado)."""
+        if name in self.disabled_tools:
+            return ToolResult(False, error="Ferramenta desabilitada no runtime.",
+                              meta={"blocked": True, "reason": "disabled_tool"})
         if self.control.is_cancelled():
             return ToolResult(False, error="Ferramentas interrompidas; confira a atividade antes de retomar.",
                               meta={"blocked": True, "reason": "cancelled"})

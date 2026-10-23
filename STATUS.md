@@ -2,6 +2,37 @@
 
 Última atualização: 2026-10-23
 
+## Evolution 2.0 — dependências e encerramento de microagentes
+
+- `agent_team` aceita IDs e `depends_on` em até quatro investigações. Rejeita
+  ciclos, IDs repetidos e referências ausentes antes de iniciar workers.
+  Dependentes recebem relatórios estruturados como dados sem autoridade;
+  uma dependência falha impede seu início. O contrato está disponível ao LLM.
+- Até três consultas independentes podem progredir; a inferência continua
+  compartilhada e serial. Investigações de navegador compartilham sessão e
+  são serializadas inteiras para não misturar páginas entre agentes.
+- Timeout não espera mais o shutdown bloqueante do executor. Cancelamento local
+  permanece ativo mesmo se um novo pedido retomar o controle global. Respostas
+  atrasadas não podem iniciar ferramentas; chamadas em curso ficam identificadas,
+  e outra equipe é recusada até elas terminarem. Threads não são mortas à força.
+- Circuit breaker agora vale no registro central, incluindo os microagentes.
+  Pressão de memória interrompe novas inferências da equipe e é diferenciada
+  de falha comum. TaskRunner grava `RESOURCE_PRESSURE`, retomável explicitamente
+  com orçamento original quando não há resultado externo incerto.
+- IDs, dependências, estados e resumos de subtarefas entram no checkpoint do
+  pedido principal e no painel. Isso não permite retomar parcialmente uma equipe
+  que caiu em voo; o bloqueio de efeitos incertos continua prevalecendo.
+- **Ensaio real Qwen3.5 4B:** dois arquivos temporários com 28 e 68 foram lidos;
+  terceiro agente dependente respondeu 96. Passou em 32,17 s, com RAM livre de
+  2,81 GiB antes e 1,66 GiB depois. Não é comparação de ganho de desempenho.
+  A tentativa anterior falhou por orçamento de memória e foi preservada em
+  `build/evolution-baseline/team-live-before-pressure-fix.json`. Novo relatório:
+  `team-live.json`, com histórico em `team-attempts/` no mesmo diretório.
+- Regressão conjunta: **557 passaram, 1 pulado em 37,34 s**, Windows/navegador
+  reais habilitados. Após acrescentar o estado de pressão na inferência direta,
+  38 testes focados passaram. Ruff aprovado. Persistência geral de um plano
+  com dependências de escrita e verificação semântica do objetivo ainda pendem.
+
 ## Evolution 2.0 — tarefas persistentes (E, primeira entrega)
 
 - Runtime desktop grava checkpoints SQLite antes de cada efeito e depois da

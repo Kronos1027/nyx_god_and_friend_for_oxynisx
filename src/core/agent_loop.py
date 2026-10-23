@@ -80,7 +80,7 @@ class AgentLoop:
         self.memory = memory
         self.verifier = verifier or ActionVerifier()
         self.tool_failure_counts: dict[str, int] = {}
-        self.disabled_tools: set[str] = set()
+        self.disabled_tools = registry.disabled_tools
 
     # ------------------------------------------------------------------
     # Modo de permissão (seção 4.1)

@@ -605,6 +605,7 @@ class DesktopWindow(QMainWindow):
             self.task_preview.setPlainText("Histórico persistente indisponível nesta sessão de diagnóstico.")
             return
         labels = {"PAUSED": "Pausada", "WAITING_REVIEW": "Revisão necessária",
+                  "RESOURCE_PRESSURE": "Pausada por pressão de recursos",
                   "PLANNING_FINISHED": "Resposta concluída · objetivo não verificado",
                   "CANCELLED": "Cancelada", "FAILED": "Interrompida com pendência",
                   "ACT": "Executando", "PLAN": "Planejando", "OBSERVE": "Resultado observado",
@@ -626,6 +627,10 @@ class DesktopWindow(QMainWindow):
             for number, step in enumerate(task["steps"], 1):
                 state = "confirmada" if step["verified"] else "sem confirmação"
                 lines += [f"{number}. {step['tool']} · {state}", step["output"], ""]
+                for subtask in step.get("subtasks", []):
+                    dependencies = ", ".join(subtask["depends_on"]) or "nenhuma"
+                    lines += [f"Subtarefa {subtask['id']} · {subtask['role']} · {subtask['state']}",
+                              f"Dependências: {dependencies}", subtask["summary"], ""]
             self.task_preview.setPlainText("\n".join(lines))
 
     def _continue_saved_task(self):

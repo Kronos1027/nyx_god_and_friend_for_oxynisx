@@ -45,7 +45,7 @@ from tools.registry import ToolRegistry, ToolSpec  # noqa: E402
 from tools.shell_tool import ShellTool, make_shell_tool_func  # noqa: E402
 from tools.ui_tool import UITool, make_ui_tool_func  # noqa: E402
 from tools.workspace_tool import WorkspaceTool, make_workspace_tool_func  # noqa: E402
-from tools.agent_team_tool import make_agent_team_tool_func  # noqa: E402
+from tools.agent_team_tool import make_agent_team_tool_func, agent_team_contract  # noqa: E402
 
 CYAN = "\033[96m"
 GREEN = "\033[92m"
@@ -277,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
     registry = build_registry(cfg)
     llm = build_llm(args, cfg)
     registry.register(
-        ToolSpec(name="agent_team", description="Delega até 4 investigações paralelas (3 por vez, 2 passos cada) somente de leitura", sensitive=False),
+        ToolSpec(name="agent_team", description="Delega até 4 investigações com dependências (3 independentes por vez, 2 passos cada), somente consultas permitidas", sensitive=False, input_contract=agent_team_contract()),
         make_agent_team_tool_func(llm, registry, audit),
     )
     from tools.code_task_tool import make_code_task_tool_func

@@ -28,10 +28,12 @@ do desenvolvimento inicial, não descrevem a máquina atual.
   exigem evidência específica. Ver docs/EVOLUTION_2_BASELINE.md.
 - Tarefas persistentes estão conectadas ao desktop. Retomada exige ação humana;
   efeitos externos incertos bloqueiam continuação e exigem inspeção/novo pedido.
-  Ainda faltam dependências de subtarefas, reconciliação guiada e verificação
-  semântica do objetivo. Testes de recuperação usam planejamento roteirizado com
-  arquivos reais, não comprovam sequências longas com o LLM real. Microagentes
-  ainda precisam revisão de encerramento e isolamento de trabalhos concorrentes.
+  Dependências existem para equipes de consulta; ainda falta plano geral com
+  dependências de escrita, reconciliação guiada e verificação semântica do objetivo.
+  Testes de recuperação usam planejamento roteirizado com arquivos reais.
+  Um ensaio de três microagentes dependentes passou com Qwen real; não comprova
+  ganho de desempenho. Cancelamento bloqueia ações tardias, mas chamadas nativas
+  ou HTTP já em curso dependem de seus próprios timeouts; não mata threads.
 
 > Regra do prompt mestre (seção 1): bloqueio real vai pra cá com o erro
 > exato, depois de ~2 tentativas de abordagens diferentes. Nada de solução

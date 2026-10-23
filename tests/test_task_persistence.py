@@ -152,3 +152,51 @@ def test_exclusive_journal_redaction_and_bounded_pending_retention(tmp_path):
         assert len(journal.list()) == 1
     finally:
         journal.close()
+
+
+def test_team_pressure_and_subtask_states_survive_in_parent_checkpoint(tmp_path):
+    from core.agent_team import make_agent_team_tool_func
+    from core.runtime_budget import InferencePressureError
+    journal = TaskJournal(tmp_path / "tasks.db")
+    runner, registry = runner_at(tmp_path, journal, [])
+    class Model:
+        calls = 0
+        def generate(self, prompt, **kwargs):
+            self.calls += 1
+            if self.calls == 1:
+                return reply("agent_team", {"tasks": [{"id": "read", "role": "arquivos", "task": "Leia"}]})
+            if self.calls == 2:
+                raise InferencePressureError("Memória reservada")
+            return reply()
+    runner.loop.llm = model = Model()
+    registry.register(ToolSpec("agent_team", "delegation"),
+                      make_agent_team_tool_func(model, registry, runner.loop.audit))
+    try:
+        runner.start("Investigue")
+        saved = journal.get(runner.task_id)
+        assert saved["state"] == "RESOURCE_PRESSURE"
+        assert saved["steps"][0]["subtasks"][0]["state"] == "RESOURCE_PRESSURE"
+        assert not runner.active
+        runner.continue_task(runner.task_id)
+        assert journal.get(runner.task_id)["state"] == "PLANNING_FINISHED"
+        assert len(runner.steps) == 1  # no automatic repeat of the prior delegation
+    finally:
+        journal.close()
+
+
+def test_direct_inference_pressure_is_resumable_without_new_budget(tmp_path):
+    from core.runtime_budget import InferencePressureError
+    journal = TaskJournal(tmp_path / "tasks.db")
+    runner, _ = runner_at(tmp_path, journal, [])
+    def pressure(*args, **kwargs):
+        raise InferencePressureError("RAM livre insuficiente")
+    runner.loop.llm.generate = pressure
+    try:
+        runner.start("Leia depois")
+        saved = journal.get(runner.task_id)
+        assert saved["state"] == "RESOURCE_PRESSURE" and not saved["steps"]
+        runner.loop.llm = OfflineLLM([reply()])
+        runner.continue_task(runner.task_id)
+        assert journal.get(runner.task_id)["timeout"] == saved["timeout"]
+    finally:
+        journal.close()

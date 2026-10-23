@@ -70,8 +70,10 @@ Esta seção prevalece sobre a matriz histórica de 21/10 acima.
 - E: primeira entrega implementa checkpoints antes dos efeitos, pausa, retomada
   explícita com orçamento original, descarte de aprovações antigas e bloqueio de
   efeitos incertos. Painel Tarefas conectado e teste de queda real de subprocesso.
-  Faltam dependências, pós-condições do objetivo, reconciliação guiada e evolução
-  dos microagentes. Não considerar a fase inteira concluída.
+  Microagentes agora têm dependências validadas, cancelamento com prazo de retorno,
+  bloqueio de chamadas tardias e pressão de recursos explícita; ensaio com Qwen
+  real passou. Faltam plano geral com dependências de escrita, pós-condições do
+  objetivo e reconciliação guiada. Não considerar a fase inteira concluída.
 - F: skills/MCP/Creation Studio e execução isolada real.
 - G: laboratório supervisionado e avaliações independentes.
 - H: voz, painéis, animações e integração.

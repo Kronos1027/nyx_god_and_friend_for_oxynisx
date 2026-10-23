@@ -1,5 +1,32 @@
 # Nyx adaptativa: arquitetura e evidências
 
+## Evolution 2.0: equipes com dependências
+
+`task_graph.normalize_tasks` valida até quatro nós identificados, suas referências
+e ausência de ciclos. AgentTeam agenda somente nós com dependências bem-sucedidas.
+As respostas das dependências têm autoridade `untrusted_observation`; permissões
+continuam determinadas pelo papel e pelo registro, inclusive circuit breaker.
+O limite de seis chamadas do pedido principal permanece; uma delegação tem seu
+próprio limite de quatro agentes/duas etapas cada. Não são seis consultas físicas
+somando toda a equipe. O painel e checkpoint guardam os resultados subordinados.
+
+Um token de cancelamento por execução atravessa a fila de inferência e as checagens
+de OperationControl nas ferramentas. Expirar encerra a espera do chamador, solicita
+cancelamento de pendentes e bloqueia novas ações das threads antigas. Chamadas
+bloqueadas já em curso podem continuar até seus próprios timeouts; não há promessa
+de término forçado de thread. O registro conserva até quatro futures e impede
+nova equipe enquanto houver trabalho anterior vivo. Resultado externo potencialmente
+incerto propaga para WAITING_REVIEW do pedido principal. Falta de recursos antes
+de ferramentas produz RESOURCE_PRESSURE sem inventar um efeito externo.
+
+Somente consultas de escopo permitido podem se sobrepor. Inferência usa um lock
+compartilhado por registro e a fila global; agentes de navegador são serializados
+durante toda a investigação para preservar contexto de página. Resultados textuais
+não comprovam suas próprias afirmações: o verificador confere recebimento dos
+relatórios, separadamente de pós-condições do objetivo. O ensaio local de dependências
+usa Qwen real e arquivos temporários reais; testes de falha usam barreiras e eventos
+determinísticos. Ainda não há prova de ganho de latência contra uma tarefa simples.
+
 ## Evolution 2.0: checkpoints e recuperação
 
 O TaskRunner do desktop usa `TaskJournal` em `data/nyx_tasks.db`, com transações

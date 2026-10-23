@@ -78,7 +78,7 @@ class TaskRunner:
                 raise ValueError("O registro contém dados protegidos removidos. Formule um novo pedido sem credenciais.")
             if item.get("inflight") or item.get("uncertain") or item["state"] == "WAITING_REVIEW":
                 raise ValueError("Resultado externo incerto. Inspecione o estado e formule um novo pedido; esta ação não será repetida.")
-            if item["state"] != "PAUSED":
+            if item["state"] not in {"PAUSED", "RESOURCE_PRESSURE"}:
                 raise ValueError("Somente uma tarefa pausada pode ser retomada.")
             if item["spent"] >= item["timeout"] or len(item["steps"]) >= item["max_actions"]:
                 raise ValueError("Orçamento original esgotado. Revise os resultados antes de um novo pedido.")
@@ -90,6 +90,7 @@ class TaskRunner:
             self.started_at, self.spent = self.clock(), item["spent"]
             self.deadline = self.started_at + self.timeout - self.spent
             self.pending, self.inflight, self.uncertain = None, None, False
+            self.resource_pressure = False
             self.observations = []
             self.planning_feedback = "Tarefa retomada por ação do usuário. Confira o estado atual; aprovações anteriores não valem para novas ações."
             self.on_progress = on_progress or (lambda item: None)
@@ -145,6 +146,7 @@ class TaskRunner:
             self.started_at, self.spent = self.clock(), 0
             self.deadline = self.started_at + self.timeout
             self.uncertain = False
+            self.resource_pressure = False
             self.pending = None
             self.steps = []
             self.inflight = None
@@ -179,8 +181,10 @@ class TaskRunner:
                 return self._stop("Ação recusada. As etapas anteriores permanecem registradas.")
             try:
                 self._check()
-                result = self.loop.confirm_pending(exact, True, synthesize=False,
-                                                   record_history=False, before_execute=self._guard)
+                from core.operation_control import operation_scope
+                with operation_scope(lambda: self.cancelled.is_set() or self.clock() >= self.deadline):
+                    result = self.loop.confirm_pending(exact, True, synthesize=False,
+                                                       record_history=False, before_execute=self._guard)
                 if not result.executed:
                     return self._finish(result, "blocked")
                 self._observe(result)
@@ -259,8 +263,10 @@ class TaskRunner:
                         self.loop.audit.log_event("task_replan", task_id=self.task_id, reason="repeated_action", attempt=self.replans)
                         continue
                 self.planning_feedback = ""
-                result = self.loop.process(self.goal, raw_response=raw, synthesize=False,
-                                           record_history=False, before_execute=self._guard)
+                from core.operation_control import operation_scope
+                with operation_scope(lambda: self.cancelled.is_set() or self.clock() >= self.deadline):
+                    result = self.loop.process(self.goal, raw_response=raw, synthesize=False,
+                                               record_history=False, before_execute=self._guard)
                 if result.tool_result and result.tool_result.meta.get("blocked"):
                     return self._stop(result.tool_result.error or "A ferramenta foi bloqueada")
                 if result.needs_confirmation:
@@ -277,6 +283,8 @@ class TaskRunner:
         except TaskStopped as exc:
             return self._stop(str(exc))
         except Exception as exc:
+            from core.agent_team import model_error_state
+            self.resource_pressure = model_error_state(exc) == "RESOURCE_PRESSURE"
             return self._stop(f"Não consegui continuar o pedido: {exc}")
 
     def _planning_history(self) -> list[dict]:
@@ -309,8 +317,15 @@ class TaskRunner:
         text = ((output.output if output.ok else output.error) or "") if output else ""
         step = {"tool": action.type, "params": action.params, "ok": bool(output and output.ok),
                 "verified": result.verified, "output": text[:1600], "output_truncated": len(text) > 1600}
+        if action.type == "agent_team" and output:
+            step["subtasks"] = [{"id": item.get("id"), "role": item.get("role"),
+                "state": item.get("state"), "ok": bool(item.get("ok")),
+                "depends_on": item.get("depends_on", []), "steps": item.get("steps", 0),
+                "summary": str(item.get("summary") or item.get("error") or "")[:500]}
+                for item in output.meta.get("agents", [])[:4]]
         self.steps.append(step)
         self.uncertain = bool(output and output.meta.get("outcome_unknown"))
+        self.resource_pressure = bool(output and output.meta.get("resource_pressure"))
         try:
             self._checkpoint("WAITING_REVIEW" if self.uncertain else "OBSERVE")
         except Exception:
@@ -326,6 +341,8 @@ class TaskRunner:
                           "preview": step["output"][:350]})
         if output and output.meta.get("outcome_unknown"):
             raise TaskStopped("A operação pode ter sido aplicada, mas não foi confirmada. Confira o estado antes de repetir; a tarefa foi interrompida.")
+        if self.resource_pressure:
+            raise TaskStopped("Pressão de recursos: novas inferências foram suspensas. Revise o histórico e retome quando houver memória disponível.")
 
     def _stop(self, message: str) -> LoopResult:
         return self._finish(LoopResult(response=NyxResponse(emotion="idle", speech_output=message)), "stopped")
@@ -335,6 +352,8 @@ class TaskRunner:
         self.pending = None
         if self.uncertain or self.inflight:
             persisted_state = "WAITING_REVIEW"
+        elif self.resource_pressure:
+            persisted_state = "RESOURCE_PRESSURE"
         elif self.pause_requested.is_set() and not self.cancelled.is_set():
             persisted_state = "PAUSED"
         elif self.cancelled.is_set():

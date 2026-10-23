@@ -108,6 +108,6 @@ class TaskJournal:
     def delete(self, task_id):
         with self._db() as db:
             row = db.execute("SELECT state FROM tasks WHERE id=?", (task_id,)).fetchone()
-            if row and row[0] not in (*self.TERMINAL, "PAUSED", "WAITING_REVIEW"):
+            if row and row[0] not in (*self.TERMINAL, "PAUSED", "WAITING_REVIEW", "RESOURCE_PRESSURE"):
                 raise ValueError("Interrompa a tarefa antes de excluir seu histórico.")
             db.execute("DELETE FROM tasks WHERE id=?", (task_id,))

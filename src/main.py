@@ -31,7 +31,7 @@ from cli import build_registry
 from core.llm_client import create_llm_client
 from core.memory import MemoryManager
 from tools.registry import ToolSpec
-from tools.agent_team_tool import make_agent_team_tool_func
+from tools.agent_team_tool import make_agent_team_tool_func, agent_team_contract
 
 logging.basicConfig(
     level=logging.INFO,
@@ -84,7 +84,7 @@ def run_gui(args: argparse.Namespace) -> int:
     registry = build_registry(cfg)
     llm = build_llm_for_app(args, cfg)
     registry.register(
-        ToolSpec(name="agent_team", description="Delega até 4 investigações paralelas (3 por vez, 2 passos cada) somente de leitura", sensitive=False),
+        ToolSpec(name="agent_team", description="Delega até 4 investigações com dependências (3 independentes por vez, 2 passos cada), somente consultas permitidas", sensitive=False, input_contract=agent_team_contract()),
         make_agent_team_tool_func(llm, registry, audit),
     )
     from tools.code_task_tool import make_code_task_tool_func

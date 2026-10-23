@@ -137,6 +137,22 @@ class ActionVerifier:
             details="Ação concluiu com saída válida.",
         )
 
+    def _verify_agent_team(self, params: dict, result: ToolResult) -> VerificationResult:
+        from core.task_graph import normalize_tasks
+        from core.agent_team import ROLES
+        try:
+            tasks = normalize_tasks(params.get("tasks"), ROLES)
+            agents = result.meta.get("agents", [])
+            valid = (len(agents) == len(tasks) and
+                     {a.get("id") for a in agents} == {t["id"] for t in tasks} and
+                     all(a.get("ok") and a.get("state") == "REPORTED" for a in agents) and
+                     not result.meta.get("draining"))
+        except (ValueError, TypeError, AttributeError):
+            valid = False
+        return VerificationResult(valid, "agent_team", "reports_received",
+            "Relatórios das subtarefas recebidos; suas afirmações continuam sujeitas à verificação."
+            if valid else "Relatórios incompletos ou trabalho ainda em curso.")
+
     def _verify_ui_action(self, params: dict, result: ToolResult) -> VerificationResult:
         sub_action = params.get("action", params.get("ui_action", ""))
 

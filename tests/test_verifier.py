@@ -4,6 +4,16 @@ from core.verifier import ActionVerifier, ErrorTaxonomy
 from tools.registry import ToolResult
 
 
+def test_team_reports_need_complete_structured_results():
+    params = {"tasks": [{"id": "a", "role": "arquivos", "task": "Leia"}]}
+    verifier = ActionVerifier()
+    assert not verifier.verify("agent_team", params, ToolResult(True, "feito")).verified
+    result = ToolResult(True, "relatório", meta={"agents": [{"id": "a", "ok": True, "state": "REPORTED"}]})
+    assert verifier.verify("agent_team", params, result).verified
+    result.meta["draining"] = True
+    assert not verifier.verify("agent_team", params, result).verified
+
+
 def test_verifier_diagnose_command_not_found():
     v = ActionVerifier()
     res = ToolResult(ok=False, error="Comando 'notepad_xyz' não encontrado no sistema.")
