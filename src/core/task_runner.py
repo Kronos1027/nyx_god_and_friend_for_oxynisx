@@ -32,6 +32,7 @@ class TaskRunner:
 
     def cancel(self):
         self.cancelled.set()
+        self.loop.registry.control.stop()
 
     def _check(self):
         if self.cancelled.is_set():
@@ -60,6 +61,7 @@ class TaskRunner:
                 raise RuntimeError("A tarefa anterior ainda aguarda conclusão ou confirmação")
             if not goal.strip() or len(goal) > 8000:
                 raise ValueError("O pedido precisa ter entre 1 e 8000 caracteres")
+            self.loop.registry.control.begin()
             self.active = True
             self.cancelled.clear()
             self.task_id = uuid4().hex

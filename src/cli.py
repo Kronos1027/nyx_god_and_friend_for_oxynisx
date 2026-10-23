@@ -101,7 +101,7 @@ def build_registry(cfg: NyxConfig) -> ToolRegistry:
         make_macro_tool_func(store, registry),
     )
 
-    ui = UITool(screenshots_dir=cfg.log_dir.parent / "assets" / "screenshots")
+    ui = UITool(screenshots_dir=cfg.log_dir.parent / "assets" / "screenshots", control=registry.control)
     registry.register(
         ToolSpec(
             name="ui_action",
@@ -161,7 +161,7 @@ def build_registry(cfg: NyxConfig) -> ToolRegistry:
 
     from tools.browser_tool import BrowserSession, is_sensitive_action, make_browser_tool_func
 
-    browser = BrowserSession()
+    browser = BrowserSession(control=registry.control)
     registry.browser_session = browser
     import atexit
 
@@ -173,6 +173,11 @@ def build_registry(cfg: NyxConfig) -> ToolRegistry:
             destructive=False,
             sensitive=False,
             sensitive_probe=lambda p: is_sensitive_action(p.get("action")),
+            input_contract={"action": "open|read|click|type|wait|wait_text|status|tabs|new_tab|switch_tab|close_tab|links|tables|screenshot|close",
+                "url": "http(s), para open/new_tab", "selector": "CSS, para click/type/wait",
+                "locator": "Alternativa a selector em click/type: {role, name}, {label} ou {text}; correspondência exata",
+                "text": "Texto de type/wait_text", "expected_text": "Pós-condição de click; sem ela, clique enviado não prova conclusão",
+                "tab_id": "ID retornado por tabs, para switch_tab/close_tab"},
         ),
         make_browser_tool_func(browser, cfg.allowed_roots),
     )

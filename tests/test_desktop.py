@@ -48,6 +48,18 @@ def test_social_controls_are_connected_to_persistence(desktop):
     assert not window._interests.enabled
 
 
+def test_emergency_hotkey_blocks_tools_until_manual_resume(desktop, monkeypatch):
+    from core.operation_control import OperationCancelled
+    window, _, _ = desktop
+    pet = window.controller
+    monkeypatch.setattr(pet, "say", lambda *a, **k: None)
+    pet._stop_screen_control()
+    with pytest.raises(OperationCancelled):
+        pet.loop.registry.control.begin()
+    pet.resume_tools()
+    assert not pet.loop.registry.control.is_cancelled()
+
+
 def test_failed_task_generates_context_and_verified_retry_resolves(desktop):
     window, _, _ = desktop
     event = {"phase": "observed", "task_id": "test", "step": 1, "tool": "read_file", "ok": False}

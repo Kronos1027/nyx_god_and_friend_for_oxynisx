@@ -1,5 +1,32 @@
 # Nyx adaptativa: arquitetura e evidências
 
+## Evolution 2.0: ações verificáveis e interrupção
+
+`OperationControl` pertence ao registro de ferramentas e é compartilhado com
+TaskRunner, BrowserSession e UITool. Cancelamento normal admite um novo pedido;
+emergência permanece até ação direta na UI. Nenhuma ferramenta recebe API de
+retomada. A barreira bloqueia novas chamadas, e CDP checa entre mensagens/esperas;
+não se promete interrupção forçada de HTTP, código nativo ou subprocessos ativos.
+
+BrowserSession mantém CDP e usa `Page.navigate.loaderId`/`Page.getFrameTree` para
+confirmar o novo documento. O servidor do autoteste é multithread para tolerar
+conexões antecipadas do Chromium. Elementos são referenciados pelo objeto remoto:
+unicidade/visibilidade, dois retângulos estáveis e hit-test antecedem a entrada.
+O DOM é inspecionado por código fixo; os localizadores são dados JSON. Clique usa
+Input.dispatchMouseEvent; edição usa teclado/Input.insertText e compara o valor.
+Eventos `isTrusted` foram conferidos em fixture local real, não em mocks.
+
+Playwright foi avaliado como referência de locators/actionability, mas não foi
+adicionado: CDP já controla o navegador instalado sem baixar outro runtime.
+Os locators atuais implementam apenas nomes e papéis DOM comuns; não equivalem
+à árvore de acessibilidade completa do Playwright. Frames/shadow DOM exigem
+uma extensão explícita futura. Resultados de cliques sem pós-condição ficam
+não verificados; texto de página é observação, nunca instrução de segurança.
+
+Referências: [CDP Page](https://chromedevtools.github.io/devtools-protocol/tot/Page/),
+[CDP Input](https://chromedevtools.github.io/devtools-protocol/tot/Input/),
+[Playwright actionability](https://playwright.dev/python/docs/actionability).
+
 ## Evolution 2.0: percepção e iniciativa
 
 `ContextAwarenessEngine` guarda permissões, eventos com TTL/deduplicação e até

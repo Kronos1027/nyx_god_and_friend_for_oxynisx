@@ -25,6 +25,18 @@ def make_runner(tmp_path, responses, **kwargs):
     return runner, loop, registry
 
 
+def test_new_task_cannot_clear_emergency_latch(tmp_path):
+    from core.operation_control import OperationCancelled
+    runner, _, registry = make_runner(tmp_path, [reply()])
+    registry.control.stop(emergency=True)
+    with pytest.raises(OperationCancelled):
+        runner.start("Novo pedido")
+    assert not runner.active
+    registry.control.resume()
+    runner.start("Novo pedido explícito")
+    assert not runner.active
+
+
 def test_task_catalog_reaches_model_and_internal_typeerror_is_not_retried(tmp_path):
     runner, loop, registry = make_runner(tmp_path, [])
     registry.register(ToolSpec("read_file", "Read a file"), lambda p: ToolResult(True, "ok"))

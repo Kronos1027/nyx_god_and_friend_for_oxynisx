@@ -146,7 +146,7 @@ class ActionVerifier:
             try:
                 import pygetwindow as gw
                 windows = gw.getAllTitles()
-                matched = any(app_target in t.lower() for t in windows if t.strip())
+                matched = bool(app_target) and any(app_target in t.lower() for t in windows if t.strip())
                 if matched:
                     return VerificationResult(
                         verified=True,
@@ -157,10 +157,12 @@ class ActionVerifier:
             except Exception:
                 pass
             return VerificationResult(
-                verified=True,
+                verified=False,
                 action_type="ui_action",
-                check_type="process_spawned",
-                details=f"Comando de inicialização para '{app_target}' disparado.",
+                check_type="dispatch_only",
+                details=f"Comando para '{app_target}' disparado, mas nenhuma janela correspondente foi confirmada.",
+                taxonomy_error=ErrorTaxonomy.VERIFICATION_FAILED,
+                suggested_recovery_route="Inspecione as janelas antes de repetir a abertura.",
             )
 
         if sub_action in ("screenshot", "screen_vision"):
@@ -190,6 +192,17 @@ class ActionVerifier:
                 details=f"Listagem confirmada ({len(apps)} itens detectados).",
             )
 
+        return self._verify_generic(params, result)
+
+    def _verify_browser(self, params: dict, result: ToolResult) -> VerificationResult:
+        action = str(params.get("action") or "").lower()
+        if action in {"click", "type"}:
+            verified = result.meta.get("verified") is True
+            return VerificationResult(verified, "browser", result.meta.get("check", "unknown"),
+                "Pós-condição observada na página." if verified else
+                "Entrada enviada; o efeito ainda precisa ser observado. Não repita a ação sem conferir o estado.",
+                taxonomy_error=None if verified else ErrorTaxonomy.VERIFICATION_FAILED,
+                suggested_recovery_route=None if verified else "Leia o estado da página e confira a pós-condição desejada.")
         return self._verify_generic(params, result)
 
     def _verify_write_file(self, params: dict, result: ToolResult) -> VerificationResult:

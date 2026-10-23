@@ -22,13 +22,14 @@ log = logging.getLogger(__name__)
 class UITool:
     """Automação de interface de usuário no Windows com verificações de segurança."""
 
-    def __init__(self, screenshots_dir: Path | str | None = None) -> None:
+    def __init__(self, screenshots_dir: Path | str | None = None, control=None) -> None:
+        from core.operation_control import OperationControl
+        self.control = control or OperationControl()
         self.screenshots_dir = (
             Path(screenshots_dir) if screenshots_dir else Path("assets/screenshots")
         )
         self.screenshots_dir.mkdir(parents=True, exist_ok=True)
         self._cached_elements: list[dict] = []
-        self._kill_switch_active: bool = False
 
     def is_destructive(self, action: str, params: dict) -> bool:
         """Determina se uma ação de UI é considerada potencialmente destrutiva."""
@@ -394,7 +395,7 @@ class UITool:
 
     def click_element(self, params: dict) -> ToolResult:
         """Clica diretamente em um controle de interface por ID ou nome via UIA."""
-        if self._kill_switch_active:
+        if self.control.is_cancelled():
             return ToolResult(ok=False, error="Operação abortada: Kill-switch de emergência ativo.")
 
         raw_id = params.get("id", params.get("element_id"))
@@ -845,12 +846,12 @@ class UITool:
             if match:
                 xp = float(match.group(1)) / 100.0
                 yp = float(match.group(2)) / 100.0
+                if not (0 <= xp < 1 and 0 <= yp < 1):
+                    return ToolResult(False, error="Coordenadas visuais fora da captura; nenhum clique foi feito.")
                 cx = int(xp * img_w)
                 cy = int(yp * img_h)
             else:
-                # Fallback centro se VLM confirmou existência
-                cx = img_w // 2
-                cy = img_h // 2
+                return ToolResult(ok=False, error="Não há coordenadas verificáveis para o elemento; nenhum clique foi feito.")
 
             # Clica com DPI ajustado
             dpi = self.get_dpi_scale()
@@ -860,6 +861,7 @@ class UITool:
             import pyautogui
 
             pyautogui.FAILSAFE = True
+            self.control.check()
             pyautogui.click(target_x, target_y)
 
             return ToolResult(
@@ -944,6 +946,8 @@ class UITool:
 
     def run(self, params: dict) -> ToolResult:
         """Despacha a ação de UI solicitada com base no subcampo 'action' ou no payload."""
+        if self.control.is_cancelled():
+            return ToolResult(False, error="Controle de interface interrompido.", meta={"blocked": True})
         action = params.get("action", params.get("ui_action", "list_windows"))
         dispatch = {
             "list_windows": self.list_windows,

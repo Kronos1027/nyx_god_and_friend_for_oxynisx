@@ -22,6 +22,9 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from core.operation_control import OperationCancelled
+from tools.browser_locators import ACTIONABLE, RESOLVE, clean_locator
+
 log = logging.getLogger(__name__)
 
 MAX_TEXT_CHARS = 8000
@@ -82,10 +85,13 @@ class BrowserSession:
         browser_path: Path | str | None = None,
         headless: bool = True,
         timeout: float = 25.0,
+        control=None,
     ) -> None:
         self.browser_path = Path(browser_path) if browser_path else find_browser()
         self.headless = headless
         self.timeout = timeout
+        from core.operation_control import OperationControl
+        self.control = control or OperationControl()
         self._process: subprocess.Popen | None = None
         self._profile: str | None = None
         self._port = 0
@@ -100,6 +106,7 @@ class BrowserSession:
         return self._started and self._process is not None and self._process.poll() is None
 
     def start(self) -> None:
+        self.control.check()
         if self.started:
             return
         if self.browser_path is None or not Path(self.browser_path).is_file():
@@ -131,9 +138,13 @@ class BrowserSession:
             )
         except OSError as exc:
             raise BrowserError(f"Falha ao iniciar o navegador: {exc}") from exc
-        self._wait_for_devtools()
-        self._started = True
-        self._open_tab()
+        try:
+            self._wait_for_devtools()
+            self._started = True
+            self._open_tab()
+        except Exception:
+            self.close()
+            raise
 
     def close(self) -> None:
         try:
@@ -199,18 +210,23 @@ class BrowserSession:
 
     # -- transport ---------------------------------------------------------
     def _devtools(self, path: str) -> object:
+        self.control.check()
         url = f"http://127.0.0.1:{self._port}{path}"
         try:
             with urllib.request.urlopen(url, timeout=self.timeout) as response:
-                return json.loads(response.read().decode("utf-8") or "{}")
+                body = response.read(2 * 1024 * 1024).decode("utf-8")
+                if path.startswith(("/json/activate/", "/json/close/")):
+                    return body
+                return json.loads(body or "{}")
         except (OSError, ValueError) as exc:
             raise BrowserError(f"O navegador não respondeu em {path}: {exc}") from exc
 
     def _wait_for_devtools(self) -> None:
         deadline = time.monotonic() + self.timeout
         while time.monotonic() < deadline:
+            self.control.check()
             if self._process is not None and self._process.poll() is not None:
-                raise BrowserError("O navegador encerrou durante a inicialização.")
+                raise BrowserError(f"O navegador encerrou durante a inicialização (código {self._process.returncode}).")
             try:
                 self._devtools("/json/version")
                 return
@@ -228,6 +244,7 @@ class BrowserSession:
         self._connect()
 
     def _devtools_put(self, path: str) -> dict:
+        self.control.check()
         url = f"http://127.0.0.1:{self._port}{path}"
         request = urllib.request.Request(url, data=b"", method="PUT")
         try:
@@ -240,13 +257,14 @@ class BrowserSession:
         try:
             import websocket  # type: ignore
 
-            self._ws = websocket.create_connection(
-                self._ws_url, timeout=self.timeout, suppress_origin=True
-            )
+            self._ws = websocket.create_connection(self._ws_url, timeout=self.timeout, suppress_origin=True)
+            self._ws.settimeout(0.25)
         except Exception as exc:
             raise BrowserError(f"Não consegui falar com o navegador: {exc}") from exc
 
     def _call(self, method: str, params: dict | None = None) -> dict:
+        from websocket import WebSocketTimeoutException
+        self.control.check()
         if not self.started:
             self.start()
         self._message_id += 1
@@ -256,7 +274,11 @@ class BrowserSession:
             self._ws.send(payload)
             deadline = time.monotonic() + self.timeout
             while time.monotonic() < deadline:
-                raw = self._ws.recv()
+                self.control.check()
+                try:
+                    raw = self._ws.recv()
+                except (TimeoutError, WebSocketTimeoutException):
+                    continue
                 if not raw:
                     continue
                 data = json.loads(raw)
@@ -266,7 +288,7 @@ class BrowserSession:
                     error = data["error"]
                     raise BrowserError(f"{method} falhou: {error.get('message', error)}")
                 return data.get("result", {})
-        except BrowserError:
+        except (BrowserError, OperationCancelled):
             raise
         except Exception as exc:
             raise BrowserError(f"Falha de comunicação com o navegador: {exc}") from exc
@@ -288,21 +310,33 @@ class BrowserSession:
         self.start()
         self._call("Page.enable")
         self._call("Runtime.enable")
-        self._call("Page.navigate", {"url": target})
-        self._wait_loaded()
+        navigation = self._call("Page.navigate", {"url": target})
+        if navigation.get("errorText"):
+            raise BrowserError(f"Navegação recusada: {navigation['errorText']}")
+        if navigation.get("isDownload"):
+            raise BrowserError("O endereço iniciou um download; nenhuma página carregada foi verificada.")
+        self._wait_loaded(expected_url=target, loader_id=navigation.get("loaderId"))
         return self.status()
 
     def navigate(self, url: str) -> dict:
         return self.open(url)
 
-    def _wait_loaded(self, timeout: float | None = None) -> None:
+    def _wait_loaded(self, timeout: float | None = None, expected_url: str | None = None,
+                     loader_id: str | None = None) -> None:
         deadline = time.monotonic() + (timeout or self.timeout)
         while time.monotonic() < deadline:
+            self.control.check()
             try:
-                state = self._evaluate("document.readyState")
+                frame = self._call("Page.getFrameTree").get("frameTree", {}).get("frame", {})
+                state = self.status()
             except BrowserError:
                 state = None
-            if state == "complete":
+                frame = {}
+            committed = (frame.get("loaderId") == loader_id if loader_id else
+                         not expected_url or state and state.get("url") == expected_url)
+            if isinstance(state, dict) and state.get("ready") == "complete" and (
+                committed and state.get("url") == frame.get("url")
+            ):
                 return
             time.sleep(0.2)
         raise BrowserError("A página não terminou de carregar a tempo.")
@@ -327,33 +361,77 @@ class BrowserSession:
         info["chars"] = len(text)
         return info
 
-    def click(self, selector: str) -> str:
-        selector = _clean_selector(selector)
-        outcome = self._evaluate(
-            "(() => { const el = document.querySelector(%s);"
-            " if (!el) return 'missing';"
-            " el.scrollIntoView({block: 'center'});"
-            " el.click(); return 'clicked'; })()" % json.dumps(selector)
-        )
-        if outcome != "clicked":
-            raise BrowserError(f"Nenhum elemento encontrado para {selector!r}.")
-        return "clicked"
+    def _resolve(self, selector) -> str:
+        try:
+            locator = clean_locator(selector)
+        except ValueError as exc:
+            raise BrowserError(str(exc)) from exc
+        result = self._call("Runtime.evaluate", {"expression": RESOLVE + "(" + json.dumps(locator) + ")",
+                                                 "returnByValue": False})
+        if result.get("exceptionDetails"):
+            detail = result["exceptionDetails"].get("exception", {}).get("description", "Alvo indisponível.")
+            raise BrowserError(str(detail).split("\n")[0])
+        object_id = result.get("result", {}).get("objectId")
+        if not object_id:
+            raise BrowserError("Não foi possível confirmar o alvo.")
+        return object_id
 
-    def type_text(self, selector: str, text: str) -> str:
-        selector = _clean_selector(selector)
-        value = str(text or "")[:MAX_TYPE_CHARS]
-        outcome = self._evaluate(
-            "(() => { const el = document.querySelector(%s);"
-            " if (!el) return 'missing';"
-            " el.focus();"
-            " if ('value' in el) { el.value = %s; } else { el.textContent = %s; }"
-            " el.dispatchEvent(new Event('input', {bubbles: true}));"
-            " el.dispatchEvent(new Event('change', {bubbles: true}));"
-            " return 'typed'; })()" % (json.dumps(selector), json.dumps(value), json.dumps(value))
-        )
-        if outcome != "typed":
-            raise BrowserError(f"Nenhum campo encontrado para {selector!r}.")
-        return "typed"
+    def _on_element(self, object_id, function, *args):
+        result = self._call("Runtime.callFunctionOn", {"objectId": object_id,
+            "functionDeclaration": function, "arguments": [{"value": v} for v in args], "returnByValue": True})
+        if result.get("exceptionDetails"):
+            detail = result["exceptionDetails"].get("exception", {}).get("description", "Alvo indisponível.")
+            raise BrowserError(str(detail).split("\n")[0])
+        return result.get("result", {}).get("value")
+
+    def _target_point(self, object_id, editable=False):
+        first = self._on_element(object_id, ACTIONABLE, editable)
+        time.sleep(0.1)
+        second = self._on_element(object_id, ACTIONABLE, editable)
+        if not isinstance(first, dict) or not isinstance(second, dict) or any(
+            abs(first[k] - second[k]) > 1 for k in ("x", "y", "width", "height")
+        ):
+            raise BrowserError("O alvo ainda está em movimento; inspecione novamente antes de agir.")
+        return {k: second[k] for k in ("x", "y")}
+
+    def _release_element(self, object_id):
+        if not self.control.is_cancelled():
+            try:
+                self._call("Runtime.releaseObject", {"objectId": object_id})
+            except BrowserError:
+                pass
+
+    def click(self, selector) -> str:
+        object_id = self._resolve(selector)
+        try:
+            point = self._target_point(object_id)
+            self._call("Input.dispatchMouseEvent", {"type": "mousePressed", "button": "left", "clickCount": 1, **point})
+            self._call("Input.dispatchMouseEvent", {"type": "mouseReleased", "button": "left", "clickCount": 1, **point})
+            return "clicked"
+        finally:
+            self._release_element(object_id)
+
+    def type_text(self, selector, text: str) -> str:
+        value = str(text or "")
+        if len(value) > MAX_TYPE_CHARS:
+            raise BrowserError("Texto excede o limite; nenhuma digitação realizada.")
+        object_id = self._resolve(selector)
+        try:
+            self._target_point(object_id, editable=True)
+            focused = self._on_element(object_id, "function() { this.focus(); return document.activeElement === this; }")
+            if not focused:
+                raise BrowserError("O campo não recebeu foco.")
+            self._call("Input.dispatchKeyEvent", {"type": "keyDown", "modifiers": 2, "key": "a", "code": "KeyA", "windowsVirtualKeyCode": 65})
+            self._call("Input.dispatchKeyEvent", {"type": "keyUp", "modifiers": 2, "key": "a", "code": "KeyA", "windowsVirtualKeyCode": 65})
+            self._call("Input.dispatchKeyEvent", {"type": "keyDown", "key": "Backspace", "windowsVirtualKeyCode": 8})
+            self._call("Input.dispatchKeyEvent", {"type": "keyUp", "key": "Backspace", "windowsVirtualKeyCode": 8})
+            if value:
+                self._call("Input.insertText", {"text": value})
+            if not self._on_element(object_id, "function(value) { return this.isConnected && this.value === value; }", value):
+                raise BrowserError("O conteúdo do campo não corresponde ao texto solicitado; não repeti a entrada.")
+            return "typed"
+        finally:
+            self._release_element(object_id)
 
     def wait_for(self, selector: str, timeout: float = 10.0) -> bool:
         selector = _clean_selector(selector)
@@ -491,8 +569,7 @@ class BrowserSession:
         if not self.started:
             self.start()
         target = validate_url(url) if url and url != "about:blank" else "about:blank"
-        escaped = urllib.parse.quote(target, safe=":/?#[]@!$&'()*+,;=%")
-        data = self._devtools_put(f"/json/new?{escaped}")
+        data = self._devtools_put("/json/new?about:blank")
         ws_url = str(data.get("webSocketDebuggerUrl") or "")
         if not ws_url:
             raise BrowserError("O navegador não abriu a nova aba.")
@@ -507,7 +584,7 @@ class BrowserSession:
         self._call("Page.enable")
         self._call("Runtime.enable")
         if target != "about:blank":
-            self._wait_loaded()
+            return self.open(target)
         return self.status()
 
     def switch_tab(self, tab_id: str) -> dict:
@@ -519,16 +596,14 @@ class BrowserSession:
         raw = self._devtools("/json/list")
         if not isinstance(raw, list):
             raise BrowserError("Não foi possível listar as abas.")
-        target = next((item for item in raw if isinstance(item, dict) and str(item.get("id")) == clean_id), None)
+        target = next((item for item in raw if isinstance(item, dict) and item.get("type") == "page"
+                       and str(item.get("id")) == clean_id), None)
         if not target:
             raise BrowserError(f"Aba {clean_id} não encontrada.")
         ws_url = str(target.get("webSocketDebuggerUrl") or "")
         if not ws_url:
             raise BrowserError("Aba selecionada não suporta conexão de depuração.")
-        try:
-            self._devtools(f"/json/activate/{clean_id}")
-        except Exception:
-            pass
+        self._devtools(f"/json/activate/{clean_id}")
         if self._ws is not None:
             try:
                 self._ws.close()
@@ -554,24 +629,29 @@ class BrowserSession:
         if not target_id:
             current = next((p for p in pages if p.get("webSocketDebuggerUrl") == self._ws_url), pages[0])
             target_id = str(current.get("id") or "")
+        if target_id not in {str(page.get("id")) for page in pages}:
+            raise BrowserError("Aba não pertence à sessão controlada.")
         try:
             self._devtools(f"/json/close/{target_id}")
         except Exception as exc:
             raise BrowserError(f"Falha ao fechar aba {target_id}: {exc}") from exc
         remaining = [p for p in pages if str(p.get("id")) != target_id]
         if remaining:
-            new_ws = str(remaining[0].get("webSocketDebuggerUrl") or "")
+            selected = next((p for p in remaining if p.get("webSocketDebuggerUrl") == self._ws_url), remaining[0])
+            new_ws = str(selected.get("webSocketDebuggerUrl") or "")
             if new_ws:
                 if self._ws is not None:
                     try:
                         self._ws.close()
                     except Exception:
                         pass
+                    self._ws = None
                 self._ws_url = new_ws
                 self._connect()
                 self._call("Page.enable")
                 self._call("Runtime.enable")
                 return self.status()
+        self.close()
         return {"status": "closed", "remaining_tabs": 0}
 
 
@@ -602,20 +682,20 @@ onclick="document.getElementById('status').textContent = 'Clicado: ' + document.
 def browser_self_check() -> dict:
     """Drive a local page end to end; used by the packaged application check."""
     import http.server
-    import socketserver
     import threading
 
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):  # noqa: N802
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(_SELF_CHECK_HTML)))
             self.end_headers()
             self.wfile.write(_SELF_CHECK_HTML)
 
         def log_message(self, *args):
             pass
 
-    server = socketserver.TCPServer(("127.0.0.1", 0), Handler)
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{server.server_address[1]}/"
     session = BrowserSession(headless=True)
@@ -640,6 +720,7 @@ def browser_self_check() -> dict:
     finally:
         session.close()
         server.shutdown()
+        server.server_close()
     return report
 
 
@@ -663,14 +744,20 @@ def make_browser_tool_func(session: BrowserSession, allowed_roots: list[Path] | 
                                         "title": info.get("title", ""), "chars": info.get("chars", 0),
                                         "truncated": info.get("truncated", False)})
             if action == "click":
-                selector = _clean_selector(params.get("selector"))
+                selector = params.get("locator") or _clean_selector(params.get("selector"))
                 session.click(selector)
+                expected_text = params.get("expected_text")
+                if expected_text:
+                    session.wait_for_text(str(expected_text), float(params.get("timeout") or 10))
                 return ToolResult(True, session.read_text()["text"],
-                                  meta={"action": "click", "selector": selector})
+                                  meta={"action": "click", "selector": selector,
+                                        "dispatched": True, "verified": bool(expected_text),
+                                        "check": "expected_text" if expected_text else "dispatch_only"})
             if action == "type":
-                selector = _clean_selector(params.get("selector"))
+                selector = params.get("locator") or _clean_selector(params.get("selector"))
                 session.type_text(selector, str(params.get("text") or ""))
-                return ToolResult(True, f"Texto digitado em {selector}.", meta={"action": "type"})
+                return ToolResult(True, f"Texto digitado e conferido em {selector}.",
+                                  meta={"action": "type", "verified": True, "check": "field_value"})
             if action == "wait":
                 selector = _clean_selector(params.get("selector"))
                 session.wait_for(selector, float(params.get("timeout") or 10))
@@ -734,7 +821,7 @@ def make_browser_tool_func(session: BrowserSession, allowed_roots: list[Path] | 
                 session.close()
                 return ToolResult(True, "Navegador encerrado.", meta={"action": "close"})
             return ToolResult(False, error=f"Ação de navegador desconhecida: {action!r}")
-        except BrowserError as exc:
+        except (BrowserError, OperationCancelled) as exc:
             return ToolResult(False, error=str(exc), meta={"action": action})
         except (OSError, ValueError) as exc:
             return ToolResult(False, error=f"Falha no navegador: {exc}", meta={"action": action})

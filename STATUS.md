@@ -1,6 +1,38 @@
 # Nyx — estado verificado
 
-Última atualização: 2026-10-22
+Última atualização: 2026-10-23
+
+## Evolution 2.0 — navegador e interrupção (D, primeira entrega)
+
+- Navegação CDP aguarda o loader do documento novo, incluindo redirecionamentos;
+  não aceita o `readyState` da página anterior como prova de carregamento.
+- Clique por eventos reais de mouse; digitação via teclado/entrada CDP e comparação
+  do valor final. Localizadores CSS, role/name, label e texto com correspondência
+  exata, unicidade, visibilidade, estabilidade e teste de elemento coberto.
+  São localizadores DOM limitados, sem suporte completo a ARIA, iframes ou shadow DOM.
+- Abas: ativação/fechamento aceitam resposta textual do endpoint, validam que o ID
+  pertence à sessão e preservam a aba selecionada ao fechar outra.
+- Verificador distingue clique enviado de pós-condição textual confirmada.
+  Abrir um aplicativo sem encontrar janela correspondente também fica não verificado.
+- Interrupção compartilhada entre registro, tarefas, navegador e entrada de UI;
+  Ctrl+Alt+K mantém bloqueio até “Retomar ferramentas” no menu do mascote.
+  Não repete ações anteriores. Esperas CDP consultam cancelamento; chamadas externas
+  já em execução ainda podem terminar antes da próxima checagem cooperativa.
+- Removido fallback de clique no centro quando a visão não localiza o alvo.
+  Coordenadas fora da imagem e cancelamento durante a inferência impedem o clique.
+- Evidência real: `--browser-check` passou; nove testes opt-in em
+  `tests/test_browser_live.py` exercitaram Edge instalado contra servidor local,
+  Unicode, `isTrusted`, página dinâmica, redirecionamento, abas, alvos inválidos e
+  interrupção em menos de 1,5 s. Houve falhas anteriores de inicialização do Edge
+  (saída 0 sem porta); a causa intermitente não está demonstrada como resolvida.
+  Após as últimas mudanças, suíte focada navegador/emergência/verificador/tarefas/UI:
+  82 passaram em 13,31 s; Ruff limpo em `src/` e `tests/`.
+- Regressão: 482 passaram, 10 skips (nove opt-in e symlink), excluindo
+  `tests/test_web_and_ui.py`: seis testes legados acessam rede ou modificam o
+  desktop pessoal. Isso não equivale à validação completa do Windows.
+- Pendentes nesta fase: perfil persistente com autorização na UI, Spotify real,
+  extração de formulários/mídia, controles UIA com identidade de janela e ensaio
+  Windows dedicado. Não há nova instalação ou release desta revisão.
 
 ## Evolution 2.0 — iniciativa contextual e memória social
 

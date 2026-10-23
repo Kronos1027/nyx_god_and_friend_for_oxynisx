@@ -80,3 +80,19 @@ def test_write_verification_uses_sandbox_resolved_relative_path(tmp_path):
     result = FileTool([tmp_path]).write_file(params)
     assert ActionVerifier().verify("write_file", params, result).verified
     assert not ActionVerifier().verify("write_file", params, ToolResult(True, "claimed")).verified
+
+
+def test_browser_dispatch_is_not_a_verified_effect():
+    verifier = ActionVerifier()
+    assert not verifier.verify("browser", {"action": "click"}, ToolResult(True, "clicked")).verified
+    assert verifier.verify("browser", {"action": "click"}, ToolResult(True, "observed",
+        meta={"verified": True, "check": "expected_text"})).verified
+
+
+def test_open_app_without_matching_window_is_unverified(monkeypatch):
+    import sys
+    from types import SimpleNamespace
+    monkeypatch.setitem(sys.modules, "pygetwindow", SimpleNamespace(getAllTitles=lambda: ["Unrelated"]))
+    result = ActionVerifier().verify("ui_action", {"action": "open_app", "app": "Nyx fixture"},
+                                     ToolResult(True, "spawned"))
+    assert not result.verified and result.check_type == "dispatch_only"

@@ -286,6 +286,7 @@ class OverlayWindow(QWidget):
         menu.addSeparator()
         menu.addAction(self.btn_mode.text(), self._toggle_mode_clicked)
         menu.addAction("Interromper tarefa", self.cancel_task)
+        menu.addAction("Retomar ferramentas após interrupção", self.resume_tools)
         from core.updater import updater_supported
         update = menu.addAction("Verificar atualizações", self._check_for_updates)
         update.setEnabled(updater_supported())
@@ -523,9 +524,7 @@ class OverlayWindow(QWidget):
         self._update_avatar_pixmap()
 
     def _stop_screen_control(self) -> None:
-        from tools.ui_tool import set_kill_switch
-
-        set_kill_switch(True)
+        self.loop.registry.control.stop(emergency=True)
         self.cancel_task()
         if self.loop:
             if self.loop.mode_name != "assistida":
@@ -534,6 +533,15 @@ class OverlayWindow(QWidget):
                 self._update_mode_button_style()
             self.loop.audit.log_event("kill_switch_triggered", source="hotkey_ctrl_alt_k")
         self.say("Controle da tela bloqueado e cancelamento solicitado. Uma operação já em curso pode precisar terminar.", emotion="error")
+
+    def resume_tools(self) -> None:
+        runner = getattr(self.loop, "task_runner", None)
+        if runner and runner.active:
+            self.say("Aguarde a tarefa interrompida encerrar antes de retomar ferramentas.", emotion="idle")
+            return
+        self.loop.registry.control.resume()
+        self.loop.audit.log_event("tools_resumed", source="ui")
+        self.say("Ferramentas liberadas para novos pedidos. Ações interrompidas não serão repetidas automaticamente.", emotion="idle")
 
     def _center_on_screen_bottom_right(self) -> None:
         from PyQt6.QtGui import QGuiApplication

@@ -72,6 +72,8 @@ ToolFunc = Callable[[dict], ToolResult]
 class ToolRegistry:
     def __init__(self) -> None:
         self._tools: dict[str, tuple[ToolSpec, ToolFunc]] = {}
+        from core.operation_control import OperationControl
+        self.control = OperationControl()
 
     def register(self, spec: ToolSpec, func: ToolFunc) -> None:
         if spec.name in self._tools:
@@ -94,6 +96,9 @@ class ToolRegistry:
     def execute(self, name: str, params: dict) -> ToolResult:
         """Executa ferramenta registrada. Ferramenta desconhecida = erro,
         nunca exceção estourando (o loop audita o resultado)."""
+        if self.control.is_cancelled():
+            return ToolResult(False, error="Ferramentas interrompidas; confira a atividade antes de retomar.",
+                              meta={"blocked": True, "reason": "cancelled"})
         entry = self._tools.get(name)
         if entry is None:
             return ToolResult(
