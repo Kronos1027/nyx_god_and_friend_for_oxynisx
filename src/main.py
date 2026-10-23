@@ -111,7 +111,9 @@ def run_gui(args: argparse.Namespace) -> int:
     )
 
     from core.task_runner import TaskRunner
-    loop.task_runner = TaskRunner(loop)
+    from core.task_journal import TaskJournal
+    task_journal = TaskJournal(Path("data") / "nyx_tasks.db")
+    loop.task_runner = TaskRunner(loop, journal=task_journal)
     overlay = OverlayWindow(loop=loop)
     desktop = None
     if getattr(args, "overlay", False):
@@ -173,6 +175,8 @@ def run_gui(args: argparse.Namespace) -> int:
         ret = app.exec()
     finally:
         hotkey_listener.stop()
+        loop.task_runner.cancel()
+        task_journal.close()
         audit.log_event("session_end")
 
     return ret

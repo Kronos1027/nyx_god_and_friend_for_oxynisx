@@ -98,7 +98,8 @@ def main() -> None:
                                          "emotion": "talk", "action": {"type": "read_file" if path else "none", "params": {"path": str(path)} if path else {}},
                                          "requires_confirmation": False, "confirmation_prompt": None,
                                          "speech_output": "Li os dois arquivos: A = 12 e B = 7. A soma é 19. Este é um teste com planejamento roteirizado."}))
-            loop.task_runner = TaskRunner(loop)
+            from core.task_journal import TaskJournal
+            loop.task_runner = TaskRunner(loop, journal=TaskJournal(temporary / "tasks.db"))
         controller = OverlayWindow(loop)
         from ui.chat_store import ChatStore
 
@@ -133,6 +134,14 @@ def main() -> None:
             output = destination / "desktop-task-demo.png"
             window.grab().save(str(output))
             print(output)
+            window.set_page(3)
+            window.learning_tabs.setCurrentIndex(window.learning_tabs.count() - 1)
+            window._refresh_tasks()
+            window.task_history.setCurrentRow(0)
+            window._show_saved_task(window.task_history.currentItem())
+            app.processEvents()
+            window.grab().save(str(destination / "desktop-task-history.png"))
+            loop.task_runner.journal.close()
         # Inspect the connected social/privacy panels with temporary local state.
         window._interests.remember("Astronomia", kind="confirmed_preference", origin="Demonstração de interface")
         window._refresh_social()

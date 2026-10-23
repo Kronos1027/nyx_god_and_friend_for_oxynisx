@@ -46,16 +46,20 @@ class _PromptSignals(QObject):
 class _PromptWorker(QRunnable):
     """Runs the slow model/tool cycle away from Qt's UI thread."""
 
-    def __init__(self, loop: AgentLoop, prompt: str) -> None:
+    def __init__(self, loop: AgentLoop, prompt: str, task_id=None) -> None:
         super().__init__()
         self.loop = loop
         self.prompt = prompt
+        self.task_id = task_id
         self.signals = _PromptSignals()
 
     def run(self) -> None:
         try:
             runner = getattr(self.loop, "task_runner", None)
-            result = runner.start(self.prompt, self.signals.progress.emit) if runner else self.loop.process(self.prompt)
+            if self.task_id:
+                result = runner.continue_task(self.task_id, self.signals.progress.emit)
+            else:
+                result = runner.start(self.prompt, self.signals.progress.emit) if runner else self.loop.process(self.prompt)
             self.signals.finished.emit(self.prompt, result, None)
         except Exception as exc:
             self.signals.finished.emit(self.prompt, None, exc)
@@ -742,6 +746,25 @@ class OverlayWindow(QWidget):
         if runner and runner.active:
             runner.cancel()
             self.bubble.set_message("Cancelamento solicitado. A operação em curso pode precisar terminar.")
+
+    def pause_task(self) -> None:
+        runner = getattr(self.loop, "task_runner", None)
+        if runner and runner.active:
+            runner.pause()
+            self.bubble.set_message("Pausa solicitada. A etapa atual será registrada antes de parar.")
+
+    def continue_task(self, task_id) -> None:
+        if self._processing:
+            self.show_error("Aguarde a tarefa atual antes de retomar outra.")
+            return
+        self._processing = True
+        self.processing_changed.emit(True)
+        self.txt_input.setEnabled(False)
+        self.think()
+        worker = _PromptWorker(self.loop, "", task_id=task_id)
+        worker.signals.finished.connect(self._prompt_signals.finished)
+        worker.signals.progress.connect(self._on_task_progress)
+        self._prompt_pool.start(worker)
 
     def _show_confirmation_result(self, result: object, suggestion: str | None) -> None:
         self.action_observed.emit(result)

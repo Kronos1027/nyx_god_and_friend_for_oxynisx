@@ -26,6 +26,12 @@ do desenvolvimento inicial, não descrevem a máquina atual.
   separado protege dados entre sessões, mas não é sandbox de código gerado.
 - Spotify com login, microfone real, sessão prolongada e novas fases A–J ainda
   exigem evidência específica. Ver docs/EVOLUTION_2_BASELINE.md.
+- Tarefas persistentes estão conectadas ao desktop. Retomada exige ação humana;
+  efeitos externos incertos bloqueiam continuação e exigem inspeção/novo pedido.
+  Ainda faltam dependências de subtarefas, reconciliação guiada e verificação
+  semântica do objetivo. Testes de recuperação usam planejamento roteirizado com
+  arquivos reais, não comprovam sequências longas com o LLM real. Microagentes
+  ainda precisam revisão de encerramento e isolamento de trabalhos concorrentes.
 
 > Regra do prompt mestre (seção 1): bloqueio real vai pra cá com o erro
 > exato, depois de ~2 tentativas de abordagens diferentes. Nada de solução

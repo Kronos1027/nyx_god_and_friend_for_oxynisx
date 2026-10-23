@@ -1,5 +1,28 @@
 # Nyx adaptativa: arquitetura e evidências
 
+## Evolution 2.0: checkpoints e recuperação
+
+O TaskRunner do desktop usa `TaskJournal` em `data/nyx_tasks.db`, com transações
+SQLite e exclusão de escritores por lock do sistema operacional. Persiste PLAN,
+ACT (antes de executar), OBSERVE e WAITING_USER. Pausa mantém as etapas e os
+limites; pausa não cancela uma operação nativa já enviada. Cancelamento continua
+usando OperationControl. O painel aciona a retomada em worker, não na thread Qt.
+
+Ao reabrir, registros não terminais tornam-se PAUSED ou WAITING_REVIEW quando
+há ação em voo. A recuperação desconta conservadoramente o tempo desde o último
+checkpoint de uma tarefa que estava ativa, incluindo o período desligado.
+Pausas registradas não consomem orçamento durante a espera. Confirmações antigas
+são descartadas. Efeitos incertos nunca são reenviados: nesta versão a revisão
+requer inspeção e novo pedido. Não há reconciliação automática por heurística.
+
+O histórico guarda no máximo 200 tarefas e 128 KiB por registro. Excluir um
+registro não desfaz suas ações. Credenciais reconhecidas por chave/padrão são
+redigidas; isso não é um classificador completo de segredos em texto livre. O
+banco local, como a memória existente, depende da proteção da conta Windows;
+o arquivo exportado por BackupVault é criptografado. Dados externos continuam
+sem autoridade para alterar permissões. PLANNING_FINISHED distingue o término
+da resposta de comprovação semântica do objetivo, ainda pendente nesta fase.
+
 ## Evolution 2.0: ações verificáveis e interrupção
 
 `WindowsAutomationClient` inicia sob demanda um auxiliar próprio sem Qt e

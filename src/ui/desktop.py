@@ -551,7 +551,101 @@ class DesktopWindow(QMainWindow):
         layout.addWidget(self._muted("Guarde a chave separada do backup: ela é necessária para recuperar os dados e permite ler seu conteúdo."))
         layout.addStretch()
         self._build_social_panels()
+        self._build_task_history()
         self.pages.addWidget(page)
+
+    def _build_task_history(self):
+        layout = self._tab_section(self.learning_tabs, "Tarefas")
+        layout.addWidget(self._muted("Histórico local com pausa e retomada explícita. Resposta concluída não comprova que todo o objetivo foi alcançado. Efeitos incertos exigem revisão e um novo pedido."))
+        self.task_budget_combo = QComboBox()
+        self.task_budget_combo.addItem("Próximos pedidos: 6 ações / 3 minutos", "default")
+        self.task_budget_combo.addItem("Próximos pedidos: 12 ações / 10 minutos", "extended")
+        saved = str(self.settings.value("task_budget", "default"))
+        self.task_budget_combo.setCurrentIndex(max(0, self.task_budget_combo.findData(saved)))
+        self.task_budget_combo.currentIndexChanged.connect(self._set_task_budget)
+        layout.addWidget(self.task_budget_combo)
+        self._set_task_budget()
+        self.task_history = QListWidget()
+        self.task_history.itemClicked.connect(self._show_saved_task)
+        layout.addWidget(self.task_history)
+        self.task_preview = SafeMarkdown()
+        self.task_preview.setObjectName("StudyPreview")
+        layout.addWidget(self.task_preview)
+        buttons = QHBoxLayout()
+        for index, (label, callback) in enumerate((("Atualizar", self._refresh_tasks),
+                                ("Pausar tarefa atual", self.controller.pause_task),
+                                ("Retomar selecionada", self._continue_saved_task),
+                                ("Excluir histórico selecionado", self._delete_saved_task))):
+            if index == 2:
+                layout.addLayout(buttons)
+                buttons = QHBoxLayout()
+            button = QPushButton(label)
+            button.clicked.connect(callback)
+            buttons.addWidget(button)
+        layout.addLayout(buttons)
+        self._refresh_tasks()
+
+    def _set_task_budget(self):
+        profile = self.task_budget_combo.currentData()
+        self.settings.setValue("task_budget", profile)
+        runner = getattr(self.controller.loop, "task_runner", None)
+        if runner:
+            runner.set_budget_profile(profile)
+
+    def _task_journal(self):
+        runner = getattr(self.controller.loop, "task_runner", None)
+        return getattr(runner, "journal", None)
+
+    def _refresh_tasks(self):
+        if not hasattr(self, "task_history"):
+            return
+        self.task_history.clear()
+        journal = self._task_journal()
+        if journal is None:
+            self.task_preview.setPlainText("Histórico persistente indisponível nesta sessão de diagnóstico.")
+            return
+        labels = {"PAUSED": "Pausada", "WAITING_REVIEW": "Revisão necessária",
+                  "PLANNING_FINISHED": "Resposta concluída · objetivo não verificado",
+                  "CANCELLED": "Cancelada", "FAILED": "Interrompida com pendência",
+                  "ACT": "Executando", "PLAN": "Planejando", "OBSERVE": "Resultado observado",
+                  "WAITING_USER": "Aguardando confirmação"}
+        for task in journal.list():
+            item = QListWidgetItem(f"{labels.get(task['state'], task['state'])} · {task['goal'][:100]}")
+            item.setData(Qt.ItemDataRole.UserRole, task["id"])
+            self.task_history.addItem(item)
+
+    def _show_saved_task(self, item):
+        journal = self._task_journal()
+        if journal:
+            task = journal.get(item.data(Qt.ItemDataRole.UserRole))
+            lines = [task["goal"], "", f"Tarefa {task['id'][:12]}",
+                     f"Etapas: {len(task['steps'])} de {task['max_actions']}",
+                     f"Tempo utilizado: {task['spent']:.1f} de {task['timeout']} segundos", ""]
+            if task.get("inflight") or task.get("uncertain"):
+                lines += ["Resultado incerto. Confira o aplicativo antes de formular um novo pedido.", ""]
+            for number, step in enumerate(task["steps"], 1):
+                state = "confirmada" if step["verified"] else "sem confirmação"
+                lines += [f"{number}. {step['tool']} · {state}", step["output"], ""]
+            self.task_preview.setPlainText("\n".join(lines))
+
+    def _continue_saved_task(self):
+        item = self.task_history.currentItem()
+        if item:
+            self.controller.continue_task(item.data(Qt.ItemDataRole.UserRole))
+
+    def _delete_saved_task(self):
+        item = self.task_history.currentItem()
+        journal = self._task_journal()
+        if not item or not journal:
+            return
+        if QMessageBox.question(self, "Excluir histórico", "Excluir este registro? Arquivos e efeitos das ações serão preservados.") != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            journal.delete(item.data(Qt.ItemDataRole.UserRole))
+            self.task_preview.clear()
+            self._refresh_tasks()
+        except Exception as exc:
+            self.toast.show_message(str(exc))
 
     def _build_social_panels(self):
         layout = self._tab_section(self.learning_tabs, "Observação e iniciativa")
@@ -1464,6 +1558,8 @@ class DesktopWindow(QMainWindow):
                 self._context.resolve(self._pending_task_events.pop(key))
 
     def _on_processing(self, busy: bool) -> None:
+        if not busy:
+            self._refresh_tasks()
         self._busy = busy
         self._initiative.activity()
         self.cancel_task_button.setEnabled(busy and getattr(self.controller.loop, "task_runner", None) is not None)

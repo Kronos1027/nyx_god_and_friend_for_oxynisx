@@ -2,6 +2,32 @@
 
 Última atualização: 2026-10-23
 
+## Evolution 2.0 — tarefas persistentes (E, primeira entrega)
+
+- Runtime desktop grava checkpoints SQLite antes de cada efeito e depois da
+  observação, com ID, objetivo, etapas, orçamento consumido e assinaturas SHA256
+  para impedir repetição literal. Um lock do SO impede dois escritores de runtime.
+- Pausa cooperativa termina a etapa atual antes de parar. Retomada explícita
+  mantém ID e limites originais; aprovações não sobrevivem à reabertura do banco.
+  Interrupção entre efeito e observação vira `WAITING_REVIEW`, sem retomada ou
+  replay automático. A primeira entrega exige inspeção e novo pedido nesse caso.
+- Painel Aprendizado → Tarefas mostra registros, etapas e tempo, permite pausar,
+  retomar e excluir histórico sem desfazer efeitos. Perfis para próximos pedidos:
+  padrão 6 ações/180 s, ampliado 12/600 s. Nunca aumenta orçamento ao retomar.
+- Limites: 200 registros, 128 KiB por checkpoint; retenção remove somente um
+  registro terminal mais antigo quando necessário. Pendências não são descartadas
+  automaticamente. Campos reconhecidos como credenciais são redigidos; registros
+  redigidos exigem novo pedido. Banco incluído no backup criptografado permitido.
+- A conclusão do planejamento fica `PLANNING_FINISHED`, sem afirmar que o
+  objetivo inteiro foi comprovado. Dependências de subtarefas, pós-condições do
+  objetivo e reconciliação guiada permanecem pendentes, assim como microagentes.
+- Evidências: oito leituras de arquivos reais atravessaram pausa/reabertura;
+  teste em subprocesso próprio encerra abruptamente após gravar um arquivo e
+  comprova bloqueio da repetição. Planejador roteirizado nesses testes, sem alegar
+  inferência real. A UI executou retomada por worker e foi renderizada/revisada.
+- Regressão: **543 passaram, 1 pulado em 36,50 s**, incluindo ensaios reais
+  Windows/navegador. Relatórios `build/evolution-baseline/phase-e-integrated.*`.
+
 ## Evolution 2.0 — Windows com alvos identificados
 
 Regressão conjunta: **537 passaram, 1 pulado em 36,95 s**, com

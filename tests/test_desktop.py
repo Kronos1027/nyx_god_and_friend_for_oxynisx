@@ -84,6 +84,37 @@ def test_failed_task_generates_context_and_verified_retry_resolves(desktop):
     assert not window._pending_task_events
 
 
+def test_task_panel_continues_paused_checkpoint_and_updates_budget(desktop, tmp_path):
+    from core.task_journal import TaskJournal
+    from core.task_runner import TaskRunner
+    from tools.registry import ToolResult, ToolSpec
+    window, app, llm = desktop
+    journal = TaskJournal(tmp_path / "tasks.db")
+    loop = window.controller.loop
+    runner = loop.task_runner = TaskRunner(loop, journal=journal)
+    loop.registry.register(ToolSpec("read_file", "fixture"), lambda p: ToolResult(True, "observed"))
+    llm.queue(json.dumps({"emotion": "idle", "action": {"type": "read_file", "params": {}}, "speech_output": "Lendo"}))
+    try:
+        runner.start("Leia e relate", lambda event: runner.pause() if event["phase"] == "observed" else None)
+        identity = runner.task_id
+        window._refresh_tasks()
+        window.task_history.setCurrentRow(0)
+        window._show_saved_task(window.task_history.currentItem())
+        assert "Etapas: 1 de 6" in window.task_preview.toPlainText()
+        window.task_budget_combo.setCurrentIndex(1)
+        assert runner.default_budget == (12, 600)
+        assert journal.get(identity)["max_actions"] == 6
+        llm.queue(json.dumps({"emotion": "idle", "action": {"type": "none", "params": {}}, "speech_output": "Resultado: observed"}))
+        window._continue_saved_task()
+        _wait(app, lambda: not window._busy)
+        assert journal.get(identity)["state"] == "PLANNING_FINISHED"
+        assert len(journal.get(identity)["steps"]) == 1
+        assert "Resposta concluída" in window.task_history.item(0).text()
+    finally:
+        journal.close()
+        loop.task_runner = None
+
+
 class SilentVoice:
     enabled = False
 

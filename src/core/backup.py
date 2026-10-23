@@ -18,7 +18,7 @@ from cryptography.fernet import Fernet
 
 class BackupVault:
     # Explicit allowlist: no tokens, logs, screenshots, model weights or runtime paths.
-    FILES = ("data/nyx_chats.db", "data/nyx_memory.db", "data/nyx_schedule.db", "data/nyx_evolution.db", "data/nyx_context.db")
+    FILES = ("data/nyx_chats.db", "data/nyx_memory.db", "data/nyx_schedule.db", "data/nyx_evolution.db", "data/nyx_context.db", "data/nyx_tasks.db")
     MAX_BYTES = 32 * 1024 * 1024
 
     def __init__(self, root: Path):

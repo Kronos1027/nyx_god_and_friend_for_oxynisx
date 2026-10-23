@@ -1,5 +1,9 @@
 # Nyx — rota para uma quase-AGI (estado e prioridades)
 
+> A matriz inicial abaixo é histórica. Para o estado de 23/10/2026, consulte
+> **Evolution 2.0 — acompanhamento** ao final e `STATUS.md`. Em particular,
+> execução de código não confiável permanece bloqueada sem sandbox real.
+
 Atualizado em 2026-10-21 pelo DeepSeek Harness. A meta declarada pelo usuário: chegar ao nível
 de um agente como o Codex do ChatGPT — criar, pesquisar, programar, controlar o Windows, o
 navegador e jogos, conversar e orquestrar subagentes menores — com tudo funcional e testado.
@@ -44,12 +48,15 @@ Isto é um mapa honesto do que existe, do que falta e da ordem sugerida; não é
 - O que não foi testado fica declarado como não testado no `STATUS.md`.
 # Evolution 2.0 — acompanhamento
 
+Esta seção prevalece sobre a matriz histórica de 21/10 acima.
+
 - A: baseline e primeira correção de execução/rollback concluídos; evidências
   em `EVOLUTION_2_BASELINE.md`. Auditoria das demais áreas continua por fase.
 - B: governador, prioridade, cancelamento de espera, reutilização de contexto
   residente e NVML implementados. Telemetria e tarefas reais verificadas.
-  Medição de memória comprometida, integração integral STT/TTS/visão e painel
-  configurável ainda pendentes; não considerar a fase inteira concluída.
+  Memória comprometida do Windows e painel de reservas já estão conectados.
+  Integração integral STT/TTS/visão e medições prolongadas ainda pendentes;
+  não considerar a fase inteira concluída.
 - C: eventos internos e processos autorizados, iniciativa contextual e interesses
   implementados e testados. Painéis conectados; sem vigilância de tela.
   Sensores de janelas/pastas/navegador e ajuste de traços persistentes permanecem
@@ -59,7 +66,12 @@ Isto é um mapa honesto do que existe, do que falta e da ordem sugerida; não é
   Spotify autenticado adiado pelo usuário. UIA com identidade/snapshot, modalidade,
   foco, entrada e captura passou em fixture Windows real (Qt 1,0/1,5).
   Múltiplos monitores, escalas de sistema e aplicativos diversos ainda não validados.
-- E: tarefas persistentes e microagentes com recuperação.
+  Auxiliar UIA funciona pelo fonte; distribuição congelada pendente na fase I.
+- E: primeira entrega implementa checkpoints antes dos efeitos, pausa, retomada
+  explícita com orçamento original, descarte de aprovações antigas e bloqueio de
+  efeitos incertos. Painel Tarefas conectado e teste de queda real de subprocesso.
+  Faltam dependências, pós-condições do objetivo, reconciliação guiada e evolução
+  dos microagentes. Não considerar a fase inteira concluída.
 - F: skills/MCP/Creation Studio e execução isolada real.
 - G: laboratório supervisionado e avaliações independentes.
 - H: voz, painéis, animações e integração.
