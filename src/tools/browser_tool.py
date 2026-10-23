@@ -15,8 +15,6 @@ import logging
 import os
 import socket
 import subprocess
-import shutil
-import tempfile
 import time
 import urllib.parse
 import urllib.request
@@ -24,6 +22,7 @@ from pathlib import Path
 
 from core.operation_control import OperationCancelled
 from tools.browser_locators import ACTIONABLE, RESOLVE, clean_locator
+from tools.browser_profile import BrowserProfile
 
 log = logging.getLogger(__name__)
 
@@ -86,10 +85,13 @@ class BrowserSession:
         headless: bool = True,
         timeout: float = 25.0,
         control=None,
+        persistent_profile: Path | None = None,
     ) -> None:
         self.browser_path = Path(browser_path) if browser_path else find_browser()
         self.headless = headless
         self.timeout = timeout
+        self.persistent_profile = persistent_profile
+        self._profile_lease = None
         from core.operation_control import OperationControl
         self.control = control or OperationControl()
         self._process: subprocess.Popen | None = None
@@ -114,7 +116,13 @@ class BrowserSession:
                 "Não encontrei Edge ou Chrome instalado. Instale um navegador Chromium ou defina NYX_BROWSER_PATH."
             )
         self._port = _free_port()
-        self._profile = tempfile.mkdtemp(prefix="nyx-browser-")
+        if self._profile_lease is not None:
+            self.close()
+        try:
+            self._profile_lease = BrowserProfile(self.persistent_profile)
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
+            raise BrowserError(str(exc)) from exc
+        self._profile = str(self._profile_lease.path)
         flags = [
             str(self.browser_path),
             f"--remote-debugging-port={self._port}",
@@ -137,6 +145,7 @@ class BrowserSession:
                 creationflags=creation,
             )
         except OSError as exc:
+            self.close()
             raise BrowserError(f"Falha ao iniciar o navegador: {exc}") from exc
         try:
             self._wait_for_devtools()
@@ -149,6 +158,14 @@ class BrowserSession:
     def close(self) -> None:
         try:
             if self._ws is not None:
+                # Ask the owned browser to flush its profile before fallback termination.
+                self._message_id += 1
+                self._ws.send(json.dumps({"id": self._message_id, "method": "Browser.close"}))
+                if self._process is not None:
+                    try:
+                        self._process.wait(timeout=2)
+                    except subprocess.TimeoutExpired:
+                        pass
                 self._ws.close()
         except Exception:
             log.debug("Falha ao fechar o WebSocket do navegador", exc_info=True)
@@ -161,9 +178,10 @@ class BrowserSession:
         # Chromium can leave renderer/GPU children behind when the root exits;
         # they all carry the unique profile path, so clean those up precisely.
         self._kill_profile_orphans()
-        if self._profile:
-            shutil.rmtree(self._profile, ignore_errors=True)
-            self._profile = None
+        if self._profile_lease is not None:
+            self._profile_lease.close()
+            self._profile_lease = None
+        self._profile = None
         self._started = False
 
     def _terminate_tree(self, process: subprocess.Popen) -> None:
@@ -199,10 +217,10 @@ class BrowserSession:
         for proc in psutil.process_iter(["pid", "name", "cmdline"]):
             try:
                 name = str(proc.info.get("name") or "").casefold()
-                cmdline = " ".join(proc.info.get("cmdline") or []).casefold()
+                args = [str(a).casefold() for a in (proc.info.get("cmdline") or [])]
             except (psutil.Error, TypeError):
                 continue
-            if name in {"msedge.exe", "chrome.exe", "chromium", "chromium-browser"} and marker in cmdline:
+            if name in {"msedge.exe", "chrome.exe", "chromium", "chromium-browser"} and f"--user-data-dir={marker}" in args:
                 try:
                     proc.kill()
                 except psutil.Error:
@@ -360,6 +378,56 @@ class BrowserSession:
         info["truncated"] = truncated
         info["chars"] = len(text)
         return info
+
+    def inspect_page(self) -> dict:
+        """Bounded form/control observations, without passwords or field values."""
+        result = self._evaluate("""(() => {
+            const visible = e => { const r=e.getBoundingClientRect(); const s=getComputedStyle(e);
+                return r.width>0 && r.height>0 && s.visibility==='visible' && s.display!=='none'; };
+            const caption = e => (e.getAttribute('aria-label') ||
+                Array.from(e.labels || []).map(l=>l.textContent).join(' ') || e.innerText ||
+                e.getAttribute('placeholder') || '').trim().slice(0,160);
+            const controls = Array.from(document.querySelectorAll('button,a,input,select,textarea,[role=button]'))
+                .filter(visible).slice(0,80).map(e=>({tag:e.tagName.toLowerCase(), type:e.type || '',
+                    name:caption(e), disabled:e.matches(':disabled') || e.getAttribute('aria-disabled')==='true',
+                    selector:e.id ? '#'+CSS.escape(e.id) : null}));
+            return {url:location.href, title:document.title, controls,
+                forms:Array.from(document.forms).slice(0,15).map(f=>({method:f.method,
+                    fields:Array.from(f.elements).slice(0,30).map(e=>({tag:e.tagName.toLowerCase(),
+                        type:e.type || '', label:caption(e), required:!!e.required}))})),
+                login_indicators:controls.filter(e=>e.type==='password' ||
+                    /^(log in|login|sign in|entrar|iniciar sess[aã]o)$/i.test(e.name)).map(e=>({type:e.type,name:e.name}))};
+        })()""")
+        if not isinstance(result, dict):
+            raise BrowserError("Não consegui inspecionar a página.")
+        return result
+
+    def media_status(self) -> dict:
+        """Observe advancing HTML media twice; inaccessible players remain unknown."""
+        sampled = self._call("Runtime.evaluate", {"expression":
+            "Array.from(document.querySelectorAll('audio,video')).slice(0,12).map(e=>({element:e,time:e.currentTime,source:e.currentSrc}))",
+            "returnByValue": False})
+        object_id = sampled.get("result", {}).get("objectId")
+        if not object_id or sampled.get("exceptionDetails"):
+            raise BrowserError("Estado de mídia indisponível.")
+        try:
+            time.sleep(0.35)
+            self.control.check()
+            second = self._on_element(object_id, """function() { return this.map((sample,i)=>{
+                const e=sample.element;
+                return {index:i,tag:e.tagName.toLowerCase(),paused:e.paused,ended:e.ended,muted:e.muted,
+                    volume:e.volume,time:e.currentTime,ready:e.readyState,error:e.error?e.error.code:null,
+                    advancing:e.isConnected && sample.source===e.currentSrc && !e.paused && !e.ended &&
+                        !e.muted && e.volume>0 && e.readyState>=2 && e.currentTime>sample.time+0.05};
+            }); }""")
+        finally:
+            self._release_element(object_id)
+        if not isinstance(second, list):
+            raise BrowserError("Estado de mídia indisponível.")
+        advancing = [item["index"] for item in second if item.get("advancing")]
+        return {"state": "playing" if advancing else "not_confirmed" if second else "unavailable",
+                "playback_verified": bool(advancing), "advancing": advancing, "elements": second,
+                "scope": "Tempo de mídia HTML avançando e não mutado; não confirma áudio nos alto-falantes."}
 
     def _resolve(self, selector) -> str:
         try:
@@ -763,6 +831,8 @@ def make_browser_tool_func(session: BrowserSession, allowed_roots: list[Path] | 
                 session.wait_for(selector, float(params.get("timeout") or 10))
                 return ToolResult(True, f"Elemento {selector} disponível.", meta={"action": "wait"})
             if action == "screenshot":
+                if not roots:
+                    return ToolResult(False, error="Não há pastas permitidas configuradas para salvar capturas.")
                 target = Path(params.get("path") or "") if params.get("path") else None
                 if target is not None:
                     resolved = target.resolve()
@@ -779,6 +849,13 @@ def make_browser_tool_func(session: BrowserSession, allowed_roots: list[Path] | 
             if action == "status":
                 info = session.status()
                 return ToolResult(True, json.dumps(info, ensure_ascii=False), meta={"action": "status"})
+            if action == "inspect":
+                info = session.inspect_page()
+                return ToolResult(True, json.dumps(info, ensure_ascii=False), meta={"action": action})
+            if action == "media_status":
+                info = session.media_status()
+                return ToolResult(True, json.dumps(info, ensure_ascii=False),
+                                  meta={"action": action, "verified": info["playback_verified"], "check": "media_time_advancing"})
             if action in {"links", "extract_links"}:
                 selector = params.get("selector")
                 limit = int(params.get("limit") or 50)

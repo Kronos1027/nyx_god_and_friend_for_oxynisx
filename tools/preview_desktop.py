@@ -229,6 +229,14 @@ def main() -> None:
         output = destination / "desktop-settings.png"
         window.grab().save(str(output))
         print(output)
+        from PyQt6.QtWidgets import QScrollArea
+        ancestor = window.browser_persist_check.parentWidget()
+        while ancestor and not isinstance(ancestor, QScrollArea):
+            ancestor = ancestor.parentWidget()
+        if ancestor:
+            ancestor.ensureWidgetVisible(window.browser_preferences_note)
+            app.processEvents()
+            window.grab().save(str(destination / "desktop-browser-settings.png"))
         window.settings_tabs.setCurrentIndex(1)
         app.processEvents()
         window.grab().save(str(destination / "desktop-model-settings.png"))

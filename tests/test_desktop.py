@@ -60,6 +60,21 @@ def test_emergency_hotkey_blocks_tools_until_manual_resume(desktop, monkeypatch)
     assert not pet.loop.registry.control.is_cancelled()
 
 
+def test_browser_preferences_authorize_only_separate_profile(desktop):
+    from tools.browser_tool import BrowserSession
+    window, _, _ = desktop
+    browser = BrowserSession()
+    window.controller.loop.registry.browser_session = browser
+    window._update_browser_preferences()
+    assert not browser.headless and browser.persistent_profile is None
+    window.browser_persist_check.setChecked(True)
+    assert browser.persistent_profile == window.store.database.parent / "browser_profiles" / "default"
+    assert window.settings.value("browser_persistent", type=bool)
+    assert not browser.started
+    window.browser_persist_check.setChecked(False)
+    assert browser.persistent_profile is None
+
+
 def test_failed_task_generates_context_and_verified_retry_resolves(desktop):
     window, _, _ = desktop
     event = {"phase": "observed", "task_id": "test", "step": 1, "tool": "read_file", "ok": False}

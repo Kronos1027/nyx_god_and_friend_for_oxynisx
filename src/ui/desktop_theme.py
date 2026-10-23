@@ -36,7 +36,7 @@ def desktop_stylesheet(theme: str = "midnight", accent: str = "violet", font_siz
     QPushButton#Nav:checked {{ background: {p['card']}; color: {ink}; }}
     QPushButton#Quiet {{ background: transparent; color: {p['muted']}; padding: 4px 8px; font-size: 11px; }}
     QPushButton#Suggestion {{ background: {p['panel']}; border: 1px solid {p['line']}; text-align: left; padding: 16px; }}
-    QLineEdit, QTextEdit#Composer, QComboBox, QDateTimeEdit {{ background: {p['card']}; border: 1px solid {p['line']}; border-radius: 12px; padding: 9px; selection-background-color: {a}; }}
+    QLineEdit, QTextEdit#Composer, QComboBox, QDateTimeEdit, QSpinBox {{ background: {p['card']}; border: 1px solid {p['line']}; border-radius: 12px; padding: 9px; selection-background-color: {a}; }}
     QLineEdit:focus, QTextEdit#Composer:focus {{ border: 1px solid {a}; }}
     QFrame#ComposerFrame {{ background: {p['panel']}; border: 1px solid {p['line']}; border-radius: 18px; }}
     QTextEdit#Composer {{ background: transparent; border: none; padding: 8px; }}

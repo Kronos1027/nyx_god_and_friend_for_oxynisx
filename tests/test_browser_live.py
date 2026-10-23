@@ -4,9 +4,11 @@ NYX_TEST_BROWSER=1 python -m pytest tests/test_browser_live.py
 No personal profiles, external sites, generated programs or account actions.
 """
 import http.server
+import io
 import os
 import threading
 import time
+import wave
 
 import pytest
 
@@ -16,13 +18,16 @@ from tools.browser_tool import BrowserError, BrowserSession
 pytestmark = pytest.mark.skipif(os.environ.get("NYX_TEST_BROWSER") != "1", reason="real browser opt-in")
 
 PAGE = b'''<!doctype html><meta charset="utf-8"><title>Nyx live fixture</title>
-<label for="input">Nome</label><input id="input" value="old">
+<form><label for="input">Nome</label><input id="input" value="old">
+<label for="secret">Password</label><input type="password" id="secret" value="never-export-this"></form>
 <button id="go">Enviar</button><output id="result">pending</output>
 <button disabled id="disabled">Disabled</button>
 <button class="duplicate">Duplicate</button><button class="duplicate">Duplicate</button>
 <button id="covered" style="position:absolute;left:700px;top:200px">Covered</button>
 <div style="position:absolute;left:690px;top:190px;width:160px;height:90px;background:black"></div>
 <button id="hidden" style="display:none">Hidden</button>
+<audio id="media" src="/silence.wav" loop></audio>
+<button id="play" onclick="document.querySelector('#media').play()">Play fixture</button>
 <script>
 window.trustedInput=false; window.trustedClick=false;
 document.querySelector('#input').addEventListener('input', e => window.trustedInput=e.isTrusted);
@@ -35,6 +40,12 @@ document.querySelector('#go').addEventListener('click', e => {
 
 @pytest.fixture(scope="module")
 def browser():
+    audio_bytes = io.BytesIO()
+    with wave.open(audio_bytes, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(8000)
+        wav.writeframes(b"\0\0" * 16000)
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):  # noqa: N802
             if self.path == "/redirect":
@@ -45,11 +56,13 @@ def browser():
                 return
             if self.path == "/slow":
                 time.sleep(0.4)
+            is_audio = self.path == "/silence.wav"
+            body = audio_bytes.getvalue() if is_audio else PAGE
             self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(PAGE)))
+            self.send_header("Content-Type", "audio/wav" if is_audio else "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
             self.end_headers()
-            self.wfile.write(PAGE)
+            self.wfile.write(body)
 
         def log_message(self, *args):
             pass
@@ -121,3 +134,34 @@ def test_wait_interrupts_and_latches_emergency(browser):
     finally:
         timer.join()
         session.control.resume()
+
+
+def test_isolated_profile_retains_own_session_after_restart(browser, tmp_path):
+    _, url = browser
+    profile = tmp_path / "browser"
+    first = BrowserSession(timeout=8, persistent_profile=profile)
+    second = BrowserSession(timeout=8, persistent_profile=profile)
+    try:
+        first.open(url)
+        first._evaluate("localStorage.setItem('nyx-test','retained')")
+        first.close()
+        second.open(url)
+        assert second._evaluate("localStorage.getItem('nyx-test')") == "retained"
+    finally:
+        first.close()
+        second.close()
+
+
+def test_forms_hide_values_and_media_checks_progress_not_just_presence(browser):
+    session, url = browser
+    session.open(url)
+    info = session.inspect_page()
+    assert info["forms"] and info["login_indicators"]
+    assert "never-export-this" not in str(info)
+    assert not session.media_status()["playback_verified"]
+    session.click("#play")
+    try:
+        assert session.media_status()["playback_verified"]
+    finally:
+        session._evaluate("document.querySelector('#media').pause()")
+    assert not session.media_status()["playback_verified"]

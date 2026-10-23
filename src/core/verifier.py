@@ -196,7 +196,7 @@ class ActionVerifier:
 
     def _verify_browser(self, params: dict, result: ToolResult) -> VerificationResult:
         action = str(params.get("action") or "").lower()
-        if action in {"click", "type"}:
+        if action in {"click", "type", "media_status"}:
             verified = result.meta.get("verified") is True
             return VerificationResult(verified, "browser", result.meta.get("check", "unknown"),
                 "Pós-condição observada na página." if verified else

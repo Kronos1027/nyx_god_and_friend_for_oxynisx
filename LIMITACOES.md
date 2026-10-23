@@ -1,6 +1,6 @@
 # LIMITACOES.md — limitações reais, sem contorno silencioso
 
-## Estado atual — Evolution 2.0 (22/10/2026)
+## Estado atual — Evolution 2.0 (23/10/2026)
 
 O ambiente atual é Windows com RTX 3060. As seções L1–L4 abaixo são histórico
 do desenvolvimento inicial, não descrevem a máquina atual.
@@ -11,8 +11,14 @@ do desenvolvimento inicial, não descrevem a máquina atual.
 - Testes automatizados de rollback usam executor roteirizado. O teste adversarial
   atual comprova que o executor padrão não inicia código; não prova isolamento
   de um backend que ainda não existe.
-- Diagnóstico Qwen3.5 4B com dois arquivos falhou por admissão de memória após
-  uma leitura. Relatório: build/evolution-baseline/task-live.json.
+- Diagnóstico inicial Qwen3.5 4B falhou por admissão de memória após uma leitura;
+  após a fase B passou com duas leituras reais e soma conferida. Evidência:
+  build/evolution-baseline/task-after-b.json. Não é comparação de velocidade.
+- Spotify abriu no Edge isolado e mostrou “Entrar”; reprodução autenticada
+  depende de login humano. Não foram importadas credenciais ou cookies.
+- Localizadores atuais cobrem DOM comum; frames, shadow DOM e acessibilidade
+  completa não são suportados. Mídia inacessível retorna incerteza. Perfil
+  separado protege dados entre sessões, mas não é sandbox de código gerado.
 - Spotify com login, microfone real, sessão prolongada e novas fases A–J ainda
   exigem evidência específica. Ver docs/EVOLUTION_2_BASELINE.md.
 

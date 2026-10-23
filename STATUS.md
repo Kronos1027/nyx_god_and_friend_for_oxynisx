@@ -4,6 +4,26 @@
 
 ## Evolution 2.0 — navegador e interrupção (D, primeira entrega)
 
+Atualização de sessão (23/10): Personalizar controla navegador visível (padrão
+no desktop) e persistência opt-in. Perfil separado em `data/browser_profiles`,
+ignorado no Git; rejeita pastas existentes não identificadas, links/junctions e
+uso concorrente por bloqueio do SO. Novos perfis têm ACL do usuário/SYSTEM no
+Windows, sem importar cookies. Desativar não apaga a sessão já guardada; mudanças
+valem na próxima abertura. Encerramento solicita flush ao navegador antes do
+fallback de término. A persistência foi verificada reiniciando Edge real.
+
+`inspect` lista formulários/controles sem valores de campos. `media_status`
+acompanha os mesmos elementos HTML em duas amostras e confirma avanço sem mute;
+não confirma som físico nem players inacessíveis/WebAudio. Ensaio com WAV
+silencioso confirmou reprodução/pausa. Spotify real abriu em português e exibiu
+“Entrar”; foi classificado `waiting_user`, sem alegar reprodução. Evidência em
+`build/evolution-baseline/spotify-initial.json`. Login humano e seleção musical
+continuam pendentes; a sessão temporária do ensaio foi encerrada.
+
+Suíte focada de sessão/abas/formulários/mídia/UI/verificador: 64 passaram em
+19,21 s antes do endurecimento final de ACL (validado separadamente). Prévia das
+preferências revisada; campos numéricos agora têm contraste no tema escuro.
+
 - Navegação CDP aguarda o loader do documento novo, incluindo redirecionamentos;
   não aceita o `readyState` da página anterior como prova de carregamento.
 - Clique por eventos reais de mouse; digitação via teclado/entrada CDP e comparação
@@ -30,8 +50,8 @@
 - Regressão: 482 passaram, 10 skips (nove opt-in e symlink), excluindo
   `tests/test_web_and_ui.py`: seis testes legados acessam rede ou modificam o
   desktop pessoal. Isso não equivale à validação completa do Windows.
-- Pendentes nesta fase: perfil persistente com autorização na UI, Spotify real,
-  extração de formulários/mídia, controles UIA com identidade de janela e ensaio
+- Pendentes nesta fase: reprodução autenticada no Spotify,
+  controles UIA com identidade de janela e ensaio
   Windows dedicado. Não há nova instalação ou release desta revisão.
 
 ## Evolution 2.0 — iniciativa contextual e memória social

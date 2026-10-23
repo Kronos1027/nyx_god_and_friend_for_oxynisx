@@ -949,6 +949,19 @@ class DesktopWindow(QMainWindow):
         self.ram_reserve_spin.valueChanged.connect(self._update_resource_policy)
         self.vram_reserve_spin.valueChanged.connect(self._update_resource_policy)
         self._update_resource_policy()
+        self.browser_visible_check = QCheckBox("Mostrar o navegador controlado pela Nyx")
+        self.browser_visible_check.setChecked(self.settings.value("browser_visible", True, type=bool))
+        form.addRow(self.browser_visible_check)
+        self.browser_persist_check = QCheckBox("Manter logins no perfil isolado da Nyx")
+        self.browser_persist_check.setChecked(self.settings.value("browser_persistent", False, type=bool))
+        self.browser_persist_check.setToolTip("Ao ativar, autoriza guardar a sessão deste navegador localmente. Entre nas contas você mesmo. Nenhum dado do navegador pessoal é copiado. Desativar deixa de usar o perfil, sem apagar seus dados.")
+        form.addRow(self.browser_persist_check)
+        self.browser_preferences_note = QLabel("Mudanças valem na próxima abertura. Login é feito por você na janela do navegador.")
+        self.browser_preferences_note.setWordWrap(True)
+        form.addRow(self.browser_preferences_note)
+        self.browser_visible_check.toggled.connect(self._update_browser_preferences)
+        self.browser_persist_check.toggled.connect(self._update_browser_preferences)
+        self._update_browser_preferences()
         from audio.tts import DEFAULT_SPEED, DEFAULT_VOLUME, KOKORO_VOICE, PT_BR_VOICES
 
         self.voice_combo = QComboBox()
@@ -1029,6 +1042,16 @@ class DesktopWindow(QMainWindow):
         self.voice_combo.currentIndexChanged.connect(self._apply_preferences)
         self.speed_slider.valueChanged.connect(self._apply_preferences)
         self.volume_slider.valueChanged.connect(self._apply_preferences)
+
+    def _update_browser_preferences(self) -> None:
+        visible = self.browser_visible_check.isChecked()
+        persistent = self.browser_persist_check.isChecked()
+        self.settings.setValue("browser_visible", visible)
+        self.settings.setValue("browser_persistent", persistent)
+        browser = getattr(self.controller.loop.registry, "browser_session", None)
+        if browser is not None:
+            browser.headless = not visible
+            browser.persistent_profile = self.store.database.parent / "browser_profiles" / "default" if persistent else None
 
     def _update_resource_policy(self, *_args) -> None:
         from core.resource_governor import RESOURCE_GOVERNOR, ResourcePolicy
