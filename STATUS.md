@@ -2,6 +2,21 @@
 
 Última atualização: 2026-10-24
 
+## Evolution 2.0 — preservação do histórico de habilidades
+
+- Corrigida sobrescrita de versões após rollback. Novas versões usam números
+  nunca reutilizados, criação exclusiva e antecessor ativo registrado. Falha de
+  ativação preserva a versão anterior e não torna a versão órfã alvo do rollback.
+- Estado ativo gravado atomicamente, lock entre processos, recarga antes das
+  operações e cópias independentes dos objetos. Nomes/caminhos, conteúdo e tamanho
+  validados. Arquivos antigos continuam legíveis sem reescrever o histórico.
+- **673 testes passaram, 1 pulado em 50,40 s**; após ajustes finais, **20 testes
+  focados passaram** e Ruff aprovado. `build/sandbox-probes/skill-history-regression.xml`.
+- O gerenciador ainda não executa habilidades nem está conectado ao runtime.
+  Contadores não são evidência independente de sucesso. Pacotes SKILL.md,
+  permissões, testes de ativação e catálogo permanecem pendentes. Detalhes:
+  `docs/SKILL_HISTORY.md`.
+
 ## Evolution 2.0 — limites adicionais do executor isolado
 
 - LPAC agora exige limite rígido de CPU no Job e confirma a configuração antes

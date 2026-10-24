@@ -178,6 +178,13 @@ comprovadas. O governador não é um limitador global de GPU.
 
 ## Princípio
 
+O `SkillManager` permanece um armazenamento declarativo separado do runtime.
+Agora serializa operações com lock do SO, grava versões exclusivamente e troca
+o ponteiro ativo por substituição atômica. Cada versão nova registra o antecessor
+ativo para não restaurar arquivos órfãos. Dados retornados são cópias independentes.
+Esse histórico não concede permissões nem comprova validação de uma habilidade;
+integração com execução e pacotes está pendente. Ver `SKILL_HISTORY.md`.
+
 O Estúdio agora possui um catálogo de projetos separado (`ProjectStore`), com
 versões imutáveis de `ProjectSnapshot`, manifesto SHA-256 e limites de espaço.
 `ProjectPanel` executa I/O em QThread e só atualiza widgets na thread da interface;
