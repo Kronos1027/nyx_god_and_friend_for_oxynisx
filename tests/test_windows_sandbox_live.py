@@ -1,0 +1,251 @@
+"""Opt-in LPAC acceptance. All candidate/probe code runs inside the LPAC.
+
+Only temporary fixture files, a fixture registry key, and an owned TCP listener
+are used as forbidden targets. Never read personal files or clipboard contents.
+"""
+
+import json
+import os
+from pathlib import Path
+import shutil
+import socket
+import sys
+import time
+from uuid import uuid4
+
+import pytest
+
+from core.windows_sandbox import profile, run_lpac
+
+pytestmark = pytest.mark.skipif(
+    os.name != "nt" or os.environ.get("NYX_TEST_SANDBOX") != "1",
+    reason="real Windows LPAC fixture opt-in",
+)
+
+
+@pytest.fixture(scope="module")
+def sandbox(tmp_path_factory):
+    base = tmp_path_factory.mktemp("lpac-acceptance")
+    staging = base / "isolated"
+    runtime, workspace = staging / "python", staging / "work"
+    runtime.mkdir(parents=True)
+    workspace.mkdir()
+    installed = Path(sys.base_prefix)
+    for path in installed.iterdir():
+        if path.is_file() and path.suffix.lower() in {".exe", ".dll"}:
+            shutil.copy2(path, runtime / path.name)
+    for name in ("Lib", "DLLs"):
+        shutil.copytree(
+            installed / name,
+            runtime / name,
+            ignore=shutil.ignore_patterns(
+                "site-packages",
+                "__pycache__",
+                "test",
+                "tests",
+                "idlelib",
+                "tkinter",
+                "ensurepip",
+                "turtledemo",
+            ),
+        )
+    with profile() as container:
+        container.grant(staging, staging)
+        container.grant(staging, workspace, writable=True)
+
+        def run(script, **kwargs):
+            return run_lpac(
+                container,
+                runtime / "python.exe",
+                ["-I", "-S", "-X", "utf8", "-c", script],
+                workspace,
+                diagnostic_registry_read=True,
+                **kwargs,
+            )
+
+        yield run, base, runtime, workspace
+
+
+def result_json(result):
+    assert result["state"] == "exited", result
+    assert result["returncode"] == 0, result
+    assert all(result["isolation"].values()), result
+    return json.loads(result["output"])
+
+
+def test_python_can_compute_and_write_only_own_workspace(sandbox):
+    run, _, _, workspace = sandbox
+    result = run(
+        "from pathlib import Path; import json; Path('result.txt').write_text(str(28+68)); print(json.dumps({'sum':28+68}))"
+    )
+    assert result_json(result) == {"sum": 96}
+    assert (workspace / "result.txt").read_text() == "96"
+
+
+def test_external_fixture_read_write_and_runtime_mutation_denied(sandbox):
+    run, base, runtime, _ = sandbox
+    outside = base / "outside-private.txt"
+    outside.write_text("fixture-private-value")
+    targets = [(str(outside), "r"), (str(outside), "w"), (str(runtime / "injected.py"), "w")]
+    result = run(f"""
+import json
+results = []
+for path, mode in {targets!r}:
+    try:
+        with open(path, mode) as stream:
+            stream.read() if mode == 'r' else stream.write('forbidden')
+        results.append('allowed')
+    except OSError as error:
+        results.append({{'errno':error.errno, 'type':type(error).__name__}})
+print(json.dumps(results))
+""")
+    assert result_json(result) == [{"errno": 13, "type": "PermissionError"}] * 3
+    assert outside.read_text() == "fixture-private-value"
+    assert not (runtime / "injected.py").exists()
+
+
+def test_parent_environment_is_not_inherited(sandbox, monkeypatch):
+    run, *_ = sandbox
+    monkeypatch.setenv("NYX_PRIVATE_FIXTURE_SECRET", "synthetic-value")
+    assert (
+        result_json(
+            run("import os,json; print(json.dumps(os.getenv('NYX_PRIVATE_FIXTURE_SECRET')))")
+        )
+        is None
+    )
+
+
+def test_private_registry_fixture_is_denied_with_registry_read_capability(sandbox):
+    import winreg
+    import win32api
+    import win32security
+
+    token = win32security.OpenProcessToken(win32api.GetCurrentProcess(), 8)
+    try:
+        user_sid = win32security.ConvertSidToStringSid(
+            win32security.GetTokenInformation(token, 1)[0]
+        )
+    finally:
+        token.Close()
+
+    run, *_ = sandbox
+    key_path = "Software\\NyxSandboxAcceptance\\" + uuid4().hex
+    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path) as key:
+        winreg.SetValueEx(key, "fixture", 0, winreg.REG_SZ, "synthetic-private")
+    try:
+        result = run(f"""
+import json, winreg
+results = []
+for root, path in [(winreg.HKEY_CURRENT_USER, {key_path!r}), (winreg.HKEY_USERS, {str(user_sid + chr(92) + key_path)!r})]:
+    try:
+        with winreg.OpenKey(root, path) as key:
+            value = winreg.QueryValueEx(key, 'fixture')[0]
+    except OSError as error:
+        value = error.winerror
+    results.append(value)
+print(json.dumps(results))
+""")
+        values = result_json(result)
+        assert len(values) == 2 and all(value in (2, 5) for value in values)
+    finally:
+        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, key_path)
+
+
+def test_loopback_and_external_network_denied(sandbox):
+    run, *_ = sandbox
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(2)
+        port = listener.getsockname()[1]
+        with socket.create_connection(("127.0.0.1", port), timeout=1):
+            connection, _ = listener.accept()
+            connection.close()
+        result = run(f"""
+import socket, json
+results = []
+for address in [('127.0.0.1', {port}), ('203.0.113.1', 9)]:
+    try:
+        with socket.socket() as connection:
+            connection.settimeout(1)
+            connection.connect(address)
+            results.append('allowed')
+    except OSError as error:
+        results.append(error.winerror)
+print(json.dumps(results))
+""")
+        assert result_json(result) == [10013, 10013]
+
+
+def test_access_to_host_process_denied(sandbox):
+    run, *_ = sandbox
+    result = run(f"""
+import _winapi, json
+try:
+    handle = _winapi.OpenProcess(0x1f0fff, False, {os.getpid()})
+    _winapi.CloseHandle(handle)
+    value = {{'opened': True}}
+except OSError as error:
+    value = {{'opened':False, 'error':error.winerror}}
+print(json.dumps(value))
+""")
+    assert result_json(result) == {"opened": False, "error": 5}
+
+
+def test_timeout_and_cancellation_terminate_owned_process(sandbox):
+    import psutil
+
+    run, *_ = sandbox
+    result = run("import time; time.sleep(60)", timeout=1)
+    assert result["state"] == "timed_out"
+    assert result["seconds"] < 3
+    assert not psutil.pid_exists(result["pid"])
+    started = time.monotonic()
+    result = run("import time; time.sleep(60)", cancelled=lambda: time.monotonic() - started > 0.3)
+    assert result["state"] == "cancelled"
+    assert result["seconds"] < 3
+    assert not psutil.pid_exists(result["pid"])
+
+
+def test_output_and_memory_are_bounded(sandbox):
+    run, *_ = sandbox
+    output = run("while True: print('x'*1000, flush=True)", output_limit=4096)
+    assert output["state"] == "output_limit"
+    assert len(output["output"]) == 4096
+    memory = run("value = bytearray(300*1024*1024)", memory_mib=64)
+    assert memory["returncode"] != 0
+    assert "MemoryError" in memory["output"], memory
+    assert memory["peak_job_memory"] <= 64 * 1048576
+
+
+def test_child_process_does_not_survive_root_exit(sandbox):
+    import _winapi
+
+    run, *_ = sandbox
+    result = run("""
+import subprocess, sys, json
+child = subprocess.Popen([sys.executable, '-I', '-S', '-c', 'import time; time.sleep(60)'])
+print(json.dumps({'pid': child.pid}), flush=True)
+""")
+    value = result_json(result)
+    try:
+        handle = _winapi.OpenProcess(0x100000 | 0x1000, False, value["pid"])
+    except OSError as error:
+        assert error.winerror == 87  # process object is already gone
+    else:
+        try:
+            assert _winapi.WaitForSingleObject(handle, 0) == 0, "Descendant is still running"
+        finally:
+            _winapi.CloseHandle(handle)
+
+
+def test_acl_grants_reject_nested_hardlink_before_mutation(tmp_path):
+    from core.windows_sandbox import LPACProfile
+
+    staging = tmp_path / "staging"
+    staging.mkdir()
+    original = tmp_path / "private.txt"
+    original.write_text("outside")
+    os.link(original, staging / "linked.txt")
+    with profile() as container:
+        with pytest.raises(ValueError, match="Links/reparse"):
+            LPACProfile.grant(container, staging, staging)

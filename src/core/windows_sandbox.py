@@ -1,0 +1,631 @@
+"""Windows LPAC launcher. Experimental until its real acceptance suite passes.
+
+No ambient environment, broad handles, network capabilities, or unsandboxed fallback.
+Only caller-owned staging paths may receive the new per-run package SID ACL.
+"""
+
+from contextlib import contextmanager
+import ctypes as C
+from ctypes import wintypes as W
+import os
+from pathlib import Path
+import subprocess
+import time
+from uuid import uuid4
+
+
+class SandboxUnavailable(RuntimeError):
+    pass
+
+
+class SecurityAttributes(C.Structure):
+    _fields_ = [
+        ("nLength", W.DWORD),
+        ("lpSecurityDescriptor", C.c_void_p),
+        ("bInheritHandle", W.BOOL),
+    ]
+
+
+class StartupInfo(C.Structure):
+    _fields_ = [
+        ("cb", W.DWORD),
+        ("lpReserved", W.LPWSTR),
+        ("lpDesktop", W.LPWSTR),
+        ("lpTitle", W.LPWSTR),
+        ("dwX", W.DWORD),
+        ("dwY", W.DWORD),
+        ("dwXSize", W.DWORD),
+        ("dwYSize", W.DWORD),
+        ("dwXCountChars", W.DWORD),
+        ("dwYCountChars", W.DWORD),
+        ("dwFillAttribute", W.DWORD),
+        ("dwFlags", W.DWORD),
+        ("wShowWindow", W.WORD),
+        ("cbReserved2", W.WORD),
+        ("lpReserved2", C.c_void_p),
+        ("hStdInput", W.HANDLE),
+        ("hStdOutput", W.HANDLE),
+        ("hStdError", W.HANDLE),
+    ]
+
+
+class StartupInfoEx(C.Structure):
+    _fields_ = [("StartupInfo", StartupInfo), ("lpAttributeList", C.c_void_p)]
+
+
+class ProcessInfo(C.Structure):
+    _fields_ = [
+        ("hProcess", W.HANDLE),
+        ("hThread", W.HANDLE),
+        ("dwProcessId", W.DWORD),
+        ("dwThreadId", W.DWORD),
+    ]
+
+
+class SecurityCapabilities(C.Structure):
+    _fields_ = [
+        ("AppContainerSid", C.c_void_p),
+        ("Capabilities", C.c_void_p),
+        ("CapabilityCount", W.DWORD),
+        ("Reserved", W.DWORD),
+    ]
+
+
+class SidAttributes(C.Structure):
+    _fields_ = [("Sid", C.c_void_p), ("Attributes", W.DWORD)]
+
+
+class WindowsAPI:
+    def __init__(self):
+        if os.name != "nt":
+            raise SandboxUnavailable("O backend LPAC exige Windows.")
+        self.kernel = C.WinDLL("kernel32", use_last_error=True)
+        self.security = C.WinDLL("advapi32", use_last_error=True)
+        self.userenv = C.WinDLL("userenv", use_last_error=True)
+        P = C.c_void_p
+
+        def bind(dll, name, result, arguments):
+            function = getattr(dll, name)
+            function.restype, function.argtypes = result, arguments
+            setattr(self, name, function)
+
+        bind(
+            self.userenv,
+            "CreateAppContainerProfile",
+            C.c_long,
+            [W.LPCWSTR, W.LPCWSTR, W.LPCWSTR, P, W.DWORD, C.POINTER(P)],
+        )
+        bind(self.userenv, "DeleteAppContainerProfile", C.c_long, [W.LPCWSTR])
+        bind(self.security, "FreeSid", P, [P])
+        bind(self.security, "ConvertSidToStringSidW", W.BOOL, [P, C.POINTER(W.LPWSTR)])
+        bind(self.security, "ConvertStringSidToSidW", W.BOOL, [W.LPCWSTR, C.POINTER(P)])
+        bind(self.security, "OpenProcessToken", W.BOOL, [W.HANDLE, W.DWORD, C.POINTER(W.HANDLE)])
+        bind(
+            self.security,
+            "GetTokenInformation",
+            W.BOOL,
+            [W.HANDLE, C.c_int, P, W.DWORD, C.POINTER(W.DWORD)],
+        )
+        bind(self.security, "DuplicateToken", W.BOOL, [W.HANDLE, C.c_int, C.POINTER(W.HANDLE)])
+        bind(
+            self.security,
+            "ConvertStringSecurityDescriptorToSecurityDescriptorW",
+            W.BOOL,
+            [W.LPCWSTR, W.DWORD, C.POINTER(P), C.POINTER(W.DWORD)],
+        )
+        bind(
+            self.security,
+            "AccessCheck",
+            W.BOOL,
+            [P, W.HANDLE, W.DWORD, P, P, C.POINTER(W.DWORD), C.POINTER(W.DWORD), C.POINTER(W.BOOL)],
+        )
+        bind(
+            self.security,
+            "GetFileSecurityW",
+            W.BOOL,
+            [W.LPCWSTR, W.DWORD, P, W.DWORD, C.POINTER(W.DWORD)],
+        )
+        bind(self.kernel, "LocalFree", P, [P])
+        bind(self.kernel, "CloseHandle", W.BOOL, [W.HANDLE])
+        bind(
+            self.kernel,
+            "InitializeProcThreadAttributeList",
+            W.BOOL,
+            [P, W.DWORD, W.DWORD, C.POINTER(C.c_size_t)],
+        )
+        bind(
+            self.kernel,
+            "UpdateProcThreadAttribute",
+            W.BOOL,
+            [P, W.DWORD, C.c_size_t, P, C.c_size_t, P, P],
+        )
+        bind(self.kernel, "DeleteProcThreadAttributeList", None, [P])
+        bind(
+            self.kernel,
+            "CreateProcessW",
+            W.BOOL,
+            [W.LPCWSTR, W.LPWSTR, P, P, W.BOOL, W.DWORD, P, W.LPCWSTR, P, P],
+        )
+        bind(
+            self.kernel,
+            "CreatePipe",
+            W.BOOL,
+            [C.POINTER(W.HANDLE), C.POINTER(W.HANDLE), P, W.DWORD],
+        )
+        bind(self.kernel, "SetHandleInformation", W.BOOL, [W.HANDLE, W.DWORD, W.DWORD])
+        bind(
+            self.kernel,
+            "CreateFileW",
+            W.HANDLE,
+            [W.LPCWSTR, W.DWORD, W.DWORD, P, W.DWORD, W.DWORD, W.HANDLE],
+        )
+        bind(self.kernel, "PeekNamedPipe", W.BOOL, [W.HANDLE, P, W.DWORD, P, C.POINTER(W.DWORD), P])
+        bind(self.kernel, "ReadFile", W.BOOL, [W.HANDLE, P, W.DWORD, C.POINTER(W.DWORD), P])
+        bind(self.kernel, "ResumeThread", W.DWORD, [W.HANDLE])
+        bind(self.kernel, "WaitForSingleObject", W.DWORD, [W.HANDLE, W.DWORD])
+        bind(self.kernel, "GetExitCodeProcess", W.BOOL, [W.HANDLE, C.POINTER(W.DWORD)])
+        bind(self.kernel, "TerminateProcess", W.BOOL, [W.HANDLE, W.UINT])
+        bind(self.kernel, "GetProcessMitigationPolicy", W.BOOL, [W.HANDLE, C.c_int, P, C.c_size_t])
+
+    @staticmethod
+    def check(result, operation):
+        if not result:
+            raise SandboxUnavailable(f"{operation}: {C.WinError(C.get_last_error())}")
+
+    def sid_string(self, sid):
+        string = W.LPWSTR()
+        self.check(self.ConvertSidToStringSidW(sid, C.byref(string)), "SID")
+        try:
+            return string.value
+        finally:
+            self.LocalFree(C.cast(string, C.c_void_p))
+
+    def token_evidence(self, process, expected_sid, expected_capabilities=()):
+        token = W.HANDLE()
+        self.check(self.OpenProcessToken(process, 10, C.byref(token)), "OpenProcessToken")
+        try:
+            values = {}
+            for label, kind in (("appcontainer", 29),):
+                value, needed = W.DWORD(), W.DWORD()
+                self.check(
+                    self.GetTokenInformation(
+                        token, kind, C.byref(value), C.sizeof(value), C.byref(needed)
+                    ),
+                    label,
+                )
+                values[label] = value.value == 1
+            # TokenIsLessPrivilegedAppContainer is not queryable through
+            # GetTokenInformation on this Windows build (ERROR_INVALID_PARAMETER).
+            # Verify the documented LPAC access semantics, with a positive control.
+            values["lpac"] = not self.access_allowed(token, "S-1-15-2-1") and self.access_allowed(
+                token, expected_sid
+            )
+            needed = W.DWORD()
+            self.GetTokenInformation(token, 31, None, 0, C.byref(needed))
+            info = C.create_string_buffer(needed.value)
+            self.check(
+                self.GetTokenInformation(token, 31, info, len(info), C.byref(needed)), "package SID"
+            )
+            sid = C.c_void_p.from_buffer(info)
+            values["package_matches"] = self.sid_string(sid) == expected_sid
+            self.GetTokenInformation(token, 30, None, 0, C.byref(needed))
+            capabilities = C.create_string_buffer(needed.value)
+            self.check(
+                self.GetTokenInformation(
+                    token, 30, capabilities, len(capabilities), C.byref(needed)
+                ),
+                "capabilities",
+            )
+            cap_count = W.DWORD.from_buffer(capabilities).value
+            actual_caps = set()
+            for index in range(cap_count):
+                item = SidAttributes.from_buffer(
+                    capabilities, C.alignment(SidAttributes) + index * C.sizeof(SidAttributes)
+                )
+                actual_caps.add(self.sid_string(item.Sid))
+            values["capabilities_match"] = actual_caps == set(expected_capabilities)
+            mitigation = W.DWORD()
+            self.check(
+                self.GetProcessMitigationPolicy(
+                    process, 4, C.byref(mitigation), C.sizeof(mitigation)
+                ),
+                "Win32k policy",
+            )
+            values["win32k_disabled"] = bool(mitigation.value & 1)
+            if not all(values.values()):
+                raise SandboxUnavailable("O processo não recebeu todas as restrições obrigatórias.")
+            return values
+        finally:
+            self.CloseHandle(token)
+
+    def access_allowed(self, token, sid=None, path=None):
+        impersonation = W.HANDLE()
+        descriptor = C.c_void_p()
+        self.check(self.DuplicateToken(token, 2, C.byref(impersonation)), "Duplicate query token")
+        try:
+            if path is None:
+                sddl = f"O:SYG:SYD:(A;;0x1;;;WD)(A;;0x1;;;{sid})"
+                self.check(
+                    self.ConvertStringSecurityDescriptorToSecurityDescriptorW(
+                        sddl, 1, C.byref(descriptor), None
+                    ),
+                    "Probe descriptor",
+                )
+                desired, mapping = 1, (W.DWORD * 4)(1, 1, 1, 1)
+            else:
+                size = W.DWORD()
+                self.GetFileSecurityW(str(path), 7, None, 0, C.byref(size))
+                buffer = C.create_string_buffer(size.value)
+                self.check(
+                    self.GetFileSecurityW(str(path), 7, buffer, len(buffer), C.byref(size)),
+                    "Image security descriptor",
+                )
+                descriptor = C.cast(buffer, C.c_void_p)
+                desired, mapping = 0x1200A9, (W.DWORD * 4)(0x120089, 0x120116, 0x1200A0, 0x1F01FF)
+            privileges = C.create_string_buffer(1024)
+            length, granted, allowed = W.DWORD(len(privileges)), W.DWORD(), W.BOOL()
+            self.check(
+                self.AccessCheck(
+                    descriptor,
+                    impersonation,
+                    desired,
+                    mapping,
+                    privileges,
+                    C.byref(length),
+                    C.byref(granted),
+                    C.byref(allowed),
+                ),
+                "LPAC AccessCheck",
+            )
+            return bool(allowed.value and granted.value & 1)
+        finally:
+            if descriptor and path is None:
+                self.LocalFree(descriptor)
+            self.CloseHandle(impersonation)
+
+
+class LPACProfile:
+    def __init__(self):
+        self.api = WindowsAPI()
+        self.name = "Nyx.Sandbox." + uuid4().hex
+        self.sid = C.c_void_p()
+        result = self.api.CreateAppContainerProfile(
+            self.name,
+            "Nyx isolated execution",
+            "Ephemeral local code sandbox",
+            None,
+            0,
+            C.byref(self.sid),
+        )
+        if result != 0:
+            raise SandboxUnavailable(
+                f"CreateAppContainerProfile falhou: HRESULT 0x{result & 0xffffffff:08x}"
+            )
+        self.sid_text = self.api.sid_string(self.sid)
+
+    def close(self):
+        if self.sid:
+            result = self.api.DeleteAppContainerProfile(self.name)
+            self.api.FreeSid(self.sid)
+            self.sid = None
+            if result != 0:
+                raise SandboxUnavailable(
+                    f"Não foi possível limpar o perfil {self.name}: 0x{result & 0xffffffff:08x}"
+                )
+
+    def grant(self, staging_root, target, *, writable=False):
+        # Inspect unresolved paths first: resolve() would erase a junction and
+        # could make a target appear safe after already following it.
+        root, target = Path(staging_root).absolute(), Path(target).absolute()
+        if not target.is_relative_to(root):
+            raise ValueError("ACL fora da pasta temporária de execução.")
+        for path in (root, target, *target.parents):
+            if path.lstat().st_file_attributes & 0x400:
+                raise ValueError("Links/reparse points não recebem permissões do sandbox.")
+        for directory, directories, files in os.walk(target, followlinks=False):
+            for name in (*directories, *files):
+                item = Path(directory) / name
+                info = item.lstat()
+                if info.st_file_attributes & 0x400 or (item.is_file() and info.st_nlink > 1):
+                    raise ValueError("Links/reparse points não recebem permissões do sandbox.")
+        root, target = root.resolve(strict=True), target.resolve(strict=True)
+        if not target.is_relative_to(root):
+            raise ValueError("ACL fora da pasta temporária de execução.")
+        executable = str(Path(os.environ["SystemRoot"]) / "System32" / "icacls.exe")
+        rights = "M" if writable else "RX"
+        commands = [
+            [executable, str(target), "/grant", f"*{self.sid_text}:(OI)(CI)({rights})", "/T", "/Q"]
+        ]
+        if writable:
+            commands.append(
+                [executable, str(target), "/setintegritylevel", "(OI)(CI)L", "/T", "/Q"]
+            )
+        for command in commands:
+            result = subprocess.run(
+                command, capture_output=True, timeout=30, creationflags=subprocess.CREATE_NO_WINDOW
+            )
+            if result.returncode:
+                raise SandboxUnavailable("Não foi possível aplicar ACL ao diretório temporário.")
+
+
+@contextmanager
+def profile():
+    instance = LPACProfile()
+    try:
+        yield instance
+    finally:
+        instance.close()
+
+
+def stop_job(job, exit_code, timeout=5):
+    """Wait on actual process handles, not the job's early accounting counters.
+
+    TerminateJobObject removes PIDs from the job list before their process handles
+    are necessarily signaled. Prevent further spawning, capture each verified
+    member, terminate the job, then wait for those handles to become signaled.
+    """
+    import win32api
+    import win32event
+    import win32job
+
+    deadline = time.monotonic() + timeout
+    handles = []
+    try:
+        limits = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
+        limits["BasicLimitInformation"]["ActiveProcessLimit"] = 1
+        limits["BasicLimitInformation"]["LimitFlags"] |= 8
+        win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation, limits)
+        for pid in win32job.QueryInformationJobObject(job, win32job.JobObjectBasicProcessIdList):
+            try:
+                handle = win32api.OpenProcess(0x100000 | 0x1000, False, pid)
+            except OSError as error:
+                if error.winerror == 87:
+                    continue
+                raise
+            if win32job.IsProcessInJob(handle, job):
+                handles.append(handle)
+            else:
+                handle.Close()
+        win32job.TerminateJobObject(job, exit_code)
+        for handle in handles:
+            remaining = max(0, int((deadline - time.monotonic()) * 1000))
+            if win32event.WaitForSingleObject(handle, remaining) != 0:
+                raise SandboxUnavailable("Processo do sandbox não confirmou encerramento.")
+    finally:
+        # Includes exceptional paths; kill-on-close is also configured.
+        win32job.TerminateJobObject(job, exit_code)
+        for handle in handles:
+            handle.Close()
+
+
+def run_lpac(
+    container,
+    executable,
+    arguments,
+    cwd,
+    *,
+    timeout=20,
+    memory_mib=256,
+    cancelled=lambda: False,
+    output_limit=65536,
+    diagnostic_registry_read=False,
+):
+    """Launch suspended, verify token/job, then resume. No fallback is allowed."""
+    if not 1 <= timeout <= 300 or not 64 <= memory_mib <= 512:
+        raise ValueError("Limites inválidos de tempo/memória.")
+    import win32job
+
+    api = container.api
+    process = ProcessInfo()
+    handles = []
+    attributes = None
+    attributes_initialized = False
+    capability_sid = C.c_void_p()
+    job = win32job.CreateJobObject(None, container.name + ".Job")
+    data = bytearray()
+    started = time.monotonic()
+    state = "exited"
+    try:
+        limits = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
+        limits["BasicLimitInformation"]["LimitFlags"] = 0x2000 | 0x200 | 0x100 | 0x8 | 0x4
+        limits["BasicLimitInformation"]["ActiveProcessLimit"] = 4
+        limits["BasicLimitInformation"]["PerJobUserTimeLimit"] = int(timeout * 10_000_000)
+        limits["ProcessMemoryLimit"] = limits["JobMemoryLimit"] = memory_mib * 1048576
+        win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation, limits)
+        win32job.SetInformationJobObject(
+            job, win32job.JobObjectBasicUIRestrictions, {"UIRestrictionsClass": 0xFF}
+        )
+        sa = SecurityAttributes(C.sizeof(SecurityAttributes), None, True)
+        read, write = W.HANDLE(), W.HANDLE()
+        api.check(api.CreatePipe(C.byref(read), C.byref(write), C.byref(sa), 0), "CreatePipe")
+        handles.extend([read.value, write.value])
+        api.check(api.SetHandleInformation(read, 1, 0), "Protect read handle")
+        nul = api.CreateFileW("NUL", 0x80000000, 3, C.byref(sa), 3, 0, None)
+        if nul == C.c_void_p(-1).value:
+            raise SandboxUnavailable("Não foi possível criar stdin vazio.")
+        handles.append(nul)
+        count = C.c_size_t()
+        api.InitializeProcThreadAttributeList(None, 4, 0, C.byref(count))
+        attributes = C.create_string_buffer(count.value)
+        api.check(
+            api.InitializeProcThreadAttributeList(attributes, 4, 0, C.byref(count)),
+            "Initialize attributes",
+        )
+        attributes_initialized = True
+        capabilities = SecurityCapabilities(container.sid, None, 0, 0)
+        expected_caps = []
+        if diagnostic_registry_read:
+            # Microsoft's named registryRead capability. Diagnostic only; does
+            # not grant network capabilities or change filesystem ACLs.
+            expected_caps = [
+                "S-1-15-3-1024-1065365936-1281604716-3511738428-1654721687-432734479-3232135806-4053264122-3456934681"
+            ]
+            api.check(
+                api.ConvertStringSidToSidW(expected_caps[0], C.byref(capability_sid)),
+                "Registry capability SID",
+            )
+            cap_array = (SidAttributes * 1)(SidAttributes(capability_sid, 4))
+            capabilities.Capabilities = C.cast(cap_array, C.c_void_p)
+            capabilities.CapabilityCount = 1
+        lpac = W.DWORD(1)
+        mitigation = C.c_ulonglong(1 << 28)  # disable Win32k system calls
+        inherited = (W.HANDLE * 2)(write.value, nul)
+        for attribute, value in (
+            (0x20009, capabilities),
+            (0x2000F, lpac),
+            (0x20007, mitigation),
+            (0x20002, inherited),
+        ):
+            api.check(
+                api.UpdateProcThreadAttribute(
+                    attributes, 0, attribute, C.byref(value), C.sizeof(value), None, None
+                ),
+                "Update attributes",
+            )
+        startup = StartupInfoEx()
+        startup.StartupInfo.cb = C.sizeof(startup)
+        startup.StartupInfo.dwFlags = 0x100  # explicit stdio handles only
+        startup.StartupInfo.hStdInput = nul
+        startup.StartupInfo.hStdOutput = startup.StartupInfo.hStdError = write.value
+        startup.lpAttributeList = C.cast(attributes, C.c_void_p)
+        environment = {
+            "SystemRoot": os.environ["SystemRoot"],
+            "WINDIR": os.environ["SystemRoot"],
+            "LOCALAPPDATA": os.environ["LOCALAPPDATA"],
+            "TEMP": str(cwd),
+            "TMP": str(cwd),
+            "USERPROFILE": str(cwd),
+            "PATH": str(Path(executable).parent),
+        }
+        block = C.create_unicode_buffer(
+            "\0".join(f"{k}={v}" for k, v in sorted(environment.items())) + "\0\0"
+        )
+        command = C.create_unicode_buffer(subprocess.list2cmdline([str(executable), *arguments]))
+        flags = 0x80000 | 0x400 | 0x08000000 | 4
+        api.check(
+            api.CreateProcessW(
+                str(executable),
+                command,
+                None,
+                None,
+                True,
+                flags,
+                block,
+                str(cwd),
+                C.byref(startup),
+                C.byref(process),
+            ),
+            "Create LPAC process",
+        )
+        api.CloseHandle(write.value)
+        handles.remove(write.value)
+        win32job.AssignProcessToJobObject(job, int(process.hProcess))
+        evidence = api.token_evidence(process.hProcess, container.sid_text, expected_caps)
+        token = W.HANDLE()
+        api.check(api.OpenProcessToken(process.hProcess, 10, C.byref(token)), "Image token")
+        try:
+            evidence["image_acl_read_execute"] = api.access_allowed(token, path=executable)
+            evidence["python_dll_acl_read_execute"] = api.access_allowed(
+                token, path=Path(executable).with_name("python311.dll")
+            )
+            evidence["system_kernel_acl_read_execute"] = api.access_allowed(
+                token, path=Path(os.environ["SystemRoot"]) / "System32" / "kernel32.dll"
+            )
+            for name in (
+                "ntdll.dll",
+                "kernelbase.dll",
+                "ucrtbase.dll",
+                "advapi32.dll",
+                "bcrypt.dll",
+                "version.dll",
+                "ws2_32.dll",
+                "sechost.dll",
+            ):
+                evidence[name] = api.access_allowed(
+                    token, path=Path(os.environ["SystemRoot"]) / "System32" / name
+                )
+            evidence["vcruntime140.dll"] = api.access_allowed(
+                token, path=Path(executable).with_name("vcruntime140.dll")
+            )
+            evidence["workspace_rx"] = api.access_allowed(token, path=cwd)
+        finally:
+            api.CloseHandle(token)
+        if cancelled():
+            state = "cancelled"
+        else:
+            if api.ResumeThread(process.hThread) == 0xFFFFFFFF:
+                raise SandboxUnavailable("Não foi possível iniciar a thread isolada.")
+            while True:
+                if cancelled():
+                    state = "cancelled"
+                    break
+                if time.monotonic() - started >= timeout:
+                    state = "timed_out"
+                    break
+                available = W.DWORD()
+                if (
+                    api.PeekNamedPipe(read, None, 0, None, C.byref(available), None)
+                    and available.value
+                ):
+                    buffer = C.create_string_buffer(min(available.value, 16384))
+                    received = W.DWORD()
+                    api.check(
+                        api.ReadFile(read, buffer, len(buffer), C.byref(received), None),
+                        "Read sandbox output",
+                    )
+                    data.extend(buffer.raw[: received.value])
+                    if len(data) > output_limit:
+                        state = "output_limit"
+                        break
+                    continue
+                if api.WaitForSingleObject(process.hProcess, 25) == 0:
+                    break
+        stop_job(job, 124)
+        api.WaitForSingleObject(process.hProcess, 5000)
+        # A short-lived child can exit during WaitForSingleObject, after the
+        # preceding PeekNamedPipe. Drain the remaining output after termination.
+        while len(data) <= output_limit:
+            available = W.DWORD()
+            if (
+                not api.PeekNamedPipe(read, None, 0, None, C.byref(available), None)
+                or not available.value
+            ):
+                break
+            buffer = C.create_string_buffer(min(available.value, 16384))
+            received = W.DWORD()
+            api.check(
+                api.ReadFile(read, buffer, len(buffer), C.byref(received), None),
+                "Drain sandbox output",
+            )
+            data.extend(buffer.raw[: received.value])
+        if len(data) > output_limit and state == "exited":
+            state = "output_limit"
+        code = W.DWORD()
+        api.check(api.GetExitCodeProcess(process.hProcess, C.byref(code)), "Exit code")
+        usage = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
+        return {
+            "state": state,
+            "returncode": code.value,
+            "output": data[:output_limit].decode("utf-8", errors="replace"),
+            "seconds": round(time.monotonic() - started, 3),
+            "peak_job_memory": usage["PeakJobMemoryUsed"],
+            "isolation": evidence,
+            "pid": process.dwProcessId,
+        }
+    finally:
+        try:
+            stop_job(job, 125)
+        finally:
+            if process.hProcess:
+                api.TerminateProcess(
+                    process.hProcess, 125
+                )  # also covers failure before job assignment
+                api.WaitForSingleObject(process.hProcess, 5000)
+            job.Close()
+            for handle in (process.hProcess, process.hThread, *handles):
+                if handle:
+                    api.CloseHandle(handle)
+            if attributes_initialized:
+                api.DeleteProcThreadAttributeList(attributes)
+            if capability_sid:
+                api.LocalFree(capability_sid)

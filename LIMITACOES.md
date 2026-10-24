@@ -1,16 +1,20 @@
 # LIMITACOES.md — limitações reais, sem contorno silencioso
 
-## Estado atual — Evolution 2.0 (23/10/2026)
+## Estado atual — Evolution 2.0 (24/10/2026)
 
 O ambiente atual é Windows com RTX 3060. As seções L1–L4 abaixo são histórico
 do desenvolvimento inicial, não descrevem a máquina atual.
 
-- Não há executor isolado real configurado. CodeAct e execução de testes por
+- Há um protótipo LPAC real, com dez testes específicos aprovados, ainda sem
+  integração ou qualificação para produção. Faltam quota de disco, limpeza após
+  queda, staging/exportação e validação adversarial ampliada. Python requer
+  `registryRead` no ensaio; `_ctypes` não importou. Ver
+  `docs/WINDOWS_SANDBOX_PROTOTYPE.md`. CodeAct e execução de testes por
   code_task estão bloqueados; propostas textuais continuam disponíveis. A
   aprovação de uma ação não transforma subprocesso comum em sandbox.
 - Testes automatizados de rollback usam executor roteirizado. O teste adversarial
-  atual comprova que o executor padrão não inicia código; não prova isolamento
-  de um backend que ainda não existe.
+  do executor padrão comprova que ele não inicia código. Ensaios LPAC separados
+  comprovam somente os recursos proibidos explicitamente testados.
 - Diagnóstico inicial Qwen3.5 4B falhou por admissão de memória após uma leitura;
   após a fase B passou com duas leituras reais e soma conferida. Evidência:
   build/evolution-baseline/task-after-b.json. Não é comparação de velocidade.

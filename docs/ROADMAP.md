@@ -74,7 +74,9 @@ Esta seção prevalece sobre a matriz histórica de 21/10 acima.
   bloqueio de chamadas tardias e pressão de recursos explícita; ensaio com Qwen
   real passou. Faltam plano geral com dependências de escrita, pós-condições do
   objetivo e reconciliação guiada. Não considerar a fase inteira concluída.
-- F: skills/MCP/Creation Studio e execução isolada real.
+- F: protótipo LPAC Windows executa Python e passou dez testes reais específicos;
+  não integrado, ainda faltam quota de disco, recuperação de quedas e staging de
+  candidatos. Skills/MCP/Creation Studio e fluxo completo de criação pendentes.
 - G: laboratório supervisionado e avaliações independentes.
 - H: voz, painéis, animações e integração.
 - I: regressão, benchmarks, sessão prolongada, empacotamento.

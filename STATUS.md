@@ -1,6 +1,23 @@
 # Nyx — estado verificado
 
-Última atualização: 2026-10-23
+Última atualização: 2026-10-24
+
+## Evolution 2.0 — protótipo de execução isolada no Windows
+
+- LPAC com token verificado antes da execução, Win32k bloqueado, Job Object,
+  limites de memória/saída/tempo, ambiente reduzido e ACLs em cópia temporária.
+- Dez testes reais específicos passaram: cálculo/gravação permitida, recusa de
+  arquivo externo, runtime, registro privado, rede e processo do pai; timeout,
+  cancelamento, recursos, descendente encerrado e rejeição de hardlink.
+- Diagnóstico identificou necessidade de `registryRead` para iniciar o Python;
+  sem essa capability o loader retorna `0xC0000022`. Nenhuma capability de rede
+  ou COM foi concedida. Corrigidas perda da saída final e espera dos descendentes.
+- Não integrado às ferramentas: faltam quota de disco, recuperação após queda,
+  staging/exportação de candidatos e validação adversarial ampliada. `_ctypes`
+  não importou nessa configuração. CodeAct/CodeTask continuam sem executar
+  código gerado. Detalhes e comandos: `docs/WINDOWS_SANDBOX_PROTOTYPE.md`.
+- Regressão conjunta com navegador/Windows/LPAC reais: **568 passaram, 1 pulado,
+  48,42 s**. Ruff aprovado. Relatório: `build/sandbox-probes/regression.xml`.
 
 ## Evolution 2.0 — dependências e encerramento de microagentes
 

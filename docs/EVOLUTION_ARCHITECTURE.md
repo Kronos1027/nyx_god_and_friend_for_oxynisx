@@ -1,5 +1,17 @@
 # Nyx adaptativa: arquitetura e evidências
 
+## Evolution 2.0: protótipo LPAC isolado do runtime
+
+`windows_sandbox` cria perfil efêmero, configura Job e ACLs apenas no staging,
+verifica token LPAC e mitigação Win32k antes de retomar o processo. Limites de
+memória/CPU/processos e cancelamento têm verificações reais iniciais, com espera
+dos handles dos descendentes. O launcher não herda ambiente completo ou handles
+arbitrários. A capability `registryRead` permanece opção explícita de diagnóstico.
+Não existe fallback sem isolamento nem registro desse backend como ferramenta.
+O contrato final de staging, quota de disco e recuperação precisa ser concluído
+antes de conectar CodeTask, skills ou MCP. Evidências e lacunas estão em
+`WINDOWS_SANDBOX_PROTOTYPE.md`.
+
 ## Evolution 2.0: equipes com dependências
 
 `task_graph.normalize_tasks` valida até quatro nós identificados, suas referências
