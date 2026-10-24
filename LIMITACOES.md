@@ -15,7 +15,10 @@ do desenvolvimento inicial, não descrevem a máquina atual.
   aprovação de uma ação não transforma subprocesso comum em sandbox.
 - Cópia limitada e exportação de projetos existem e foram usadas num ensaio real
   de múltiplos arquivos no LPAC. A correção do ensaio foi roteirizada, não gerada
-  pelo LLM. O gerenciador/fluxo de UI ainda não os utiliza. Snapshots suportam
+  pelo LLM. O catálogo do Estúdio usa snapshots para importar/versionar/exportar,
+  mas não executa projetos. O botão legado de execução no host foi bloqueado.
+  Banco de projetos protegido por ACL não está criptografado nem incluído no
+  BackupVault; exportação ZIP contém somente uma versão. Snapshots suportam
   Windows local, recusam links e dependências/nomes sensíveis conhecidos, mas não
   detectam todo segredo e não preservam diretórios vazios. Falha ao materializar
   preserva a nova árvore parcial; recuperação dessas pastas ainda falta.

@@ -2,6 +2,25 @@
 
 Última atualização: 2026-10-24
 
+## Evolution 2.0 — catálogo de projetos no Estúdio
+
+- Aba Projetos conectada: importar pasta, guardar código, visualizar arquivos,
+  criar versões, restaurar como nova versão, exportar ZIP e excluir do catálogo.
+  Histórico SQLite limitado e verificado por hashes; originais são preservados.
+- Operações de arquivo/banco ocorrem em worker. Teste Qt confirma eventos da
+  interface durante I/O pendente e fechamento seguro enquanto o worker termina.
+  Prévia visual conferida em `build/previews/studio-projects.png`.
+- Corrigido caminho legado crítico: o botão Executar Script usava Python com
+  permissões do usuário. Execução removida também do método interno e botão
+  indisponível até integração do isolamento. Teste prova ausência do efeito.
+- Regressão com navegador/Windows/LPAC: **616 passaram, 1 pulado em 50,18 s**,
+  `build/sandbox-probes/studio-regression.xml`. Após corrigir seleção de versão
+  corrompida, **16 testes focados passaram**; Ruff aprovado. Falha de integridade
+  limpa a prévia e impede exportar por engano uma versão anteriormente carregada.
+- Catálogo local protegido por ACL, sem criptografia própria; ainda não incluído
+  no BackupVault. ZIP exporta uma versão, não o histórico. Não há execução pelo
+  painel nem geração multifile pelo LLM nesta entrega. Ver `docs/PROJECT_STUDIO.md`.
+
 ## Evolution 2.0 — cópia e exportação de projetos
 
 - Snapshots imutáveis com manifesto SHA-256, limites de arquivos/bytes/profundidade,
@@ -14,8 +33,8 @@
   snapshots e 15 do LPAC. Regressão com navegador/Windows/LPAC reais:
   **606 passaram, 1 pulado em 51,39 s**; Ruff aprovado.
   Relatório: `build/sandbox-probes/project-regression.xml`.
-- Não conectado ao CodeTask/Creation Studio ainda; quota de execução, gerência de
-  projetos/versões e recuperação de staging pendem. `docs/PROJECT_SNAPSHOTS.md`.
+- Snapshots agora conectados ao catálogo do Estúdio; execução pelo CodeTask,
+  quota de execução e recuperação de staging pendem. `docs/PROJECT_SNAPSHOTS.md`.
 
 ## Evolution 2.0 — protótipo de execução isolada no Windows
 

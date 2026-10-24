@@ -1,7 +1,8 @@
 # Projetos: cópia limitada e exportação no Windows
 
-Estado em 24/10/2026: componente funcional, ainda não conectado à interface de
-criação ou ao executor padrão do CodeTask. Não constitui quota de disco para um
+Estado em 24/10/2026: componente funcional, conectado ao catálogo de versões e
+à interface do Estúdio (`PROJECT_STUDIO.md`), ainda sem execução pelo CodeTask.
+Não constitui quota de disco para um
 processo em execução. O backend de arquivos suporta somente Windows local.
 
 `ProjectSnapshot.capture` lê arquivos sem importar ou executar código do projeto.
@@ -73,9 +74,9 @@ Relatório local: `build/sandbox-probes/project-regression.xml`. Entre os testes
 adicionais está a ausência de vazamento de handles após vinte falhas provocadas
 na conversão do handle nativo para descritor Python.
 
-Ainda faltam gerência persistente de projetos/versões, recuperação de pastas
-parciais, quota de escrita durante execução, integração com permissões/recursos,
-apresentação de prévias e avaliação do fluxo com o modelo escolhido.
+Gerência persistente, versões e prévias textuais foram adicionadas depois desse
+ensaio. Ainda faltam recuperação de pastas parciais, quota de escrita durante
+execução, integração com permissões/recursos e avaliação do fluxo com o modelo escolhido.
 
 Fontes primárias: [OBJECT_ATTRIBUTES e OBJ_DONT_REPARSE](https://learn.microsoft.com/en-us/windows/win32/api/ntdef/ns-ntdef-_object_attributes),
 [criação nativa de arquivos](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwcreatefile),

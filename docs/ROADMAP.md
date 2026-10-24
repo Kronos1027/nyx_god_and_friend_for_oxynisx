@@ -78,8 +78,10 @@ Esta seção prevalece sobre a matriz histórica de 21/10 acima.
   não integrado. Perfis têm diário e recuperação após queda, com associação
   atômica ao Job. Ainda faltam quota de disco e conexão ao fluxo de criação.
   Cópia limitada/exportação com proteção nativa contra reparses já passou em ensaio
-  real multifile; faltam gerência persistente, recuperação de staging e integração.
-  Skills/MCP/Creation Studio e fluxo completo de criação pendentes.
+  real multifile. Catálogo persistente e UI de versões/prévia/exportação conectados;
+  faltam recuperação de staging e integração da execução isolada. Execução legada
+  no host removida. Backup criptografado do catálogo, Skills/MCP e fluxo completo
+  de geração, testes e correção pelo modelo continuam pendentes.
 - G: laboratório supervisionado e avaliações independentes.
 - H: voz, painéis, animações e integração.
 - I: regressão, benchmarks, sessão prolongada, empacotamento.

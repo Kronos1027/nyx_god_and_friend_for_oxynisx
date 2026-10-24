@@ -36,6 +36,7 @@ data/nyx_context.db*
 data/nyx_tasks.db*
 data/nyx_tasks.lock
 data/sandbox/
+data/studio/
 data/browser_profiles/
 data/backups/
 data/backup-recovery.key

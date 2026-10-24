@@ -178,6 +178,14 @@ comprovadas. O governador não é um limitador global de GPU.
 
 ## Princípio
 
+O Estúdio agora possui um catálogo de projetos separado (`ProjectStore`), com
+versões imutáveis de `ProjectSnapshot`, manifesto SHA-256 e limites de espaço.
+`ProjectPanel` executa I/O em QThread e só atualiza widgets na thread da interface;
+restaurar cria nova versão. Exportação recebe os bytes já verificados, sem executar
+ou renderizar HTML. A execução Python legada com privilégios do usuário foi removida.
+O catálogo ainda não participa do BackupVault e o painel não inicia LPAC. Detalhes,
+limites e evidências em `PROJECT_STUDIO.md`.
+
 A capacidade vem do modelo local, ferramentas observáveis, memória recuperável e avaliação de resultados. Adicionar memória e agentes não equivale a treinar pesos nem demonstra AGI. Não há evidência de paridade com Astra ou de controle perfeito de programas e jogos.
 
 ## Circuitos com frequências diferentes

@@ -19,7 +19,7 @@ def qapp():
 def test_workspace_window_creation(qapp):
     win = WorkspaceWindow()
     assert win is not None
-    assert win.tabs.count() == 4
+    assert win.tabs.count() == 5
     assert win.tabs.tabText(0) == "💻 Código"
     assert win.tabs.tabText(1) == "📊 Planilha"
     assert win.tabs.tabText(2) == "📜 Relatório"

@@ -1,7 +1,7 @@
 """Nyx — ui/workspace_window.py (O Grande Sábio - Sub-Janela de Trabalho e Criação)
 
 Interface visual multifuncional inspirada no 'Grande Sábio' de Tensura:
-- Exibe programas, scripts e códigos gerados com numeração e execução rápida.
+- Exibe programas, scripts e códigos gerados sem execução no host.
 - Exibe planilhas e tabelas dinâmicas interativas com exportação CSV.
 - Exibe relatórios analíticos formatados em Markdown.
 - Monitora telemetria em tempo real (GPU RTX 3060, CPU, VRAM).
@@ -41,14 +41,14 @@ class WorkspaceWindow(QWidget):
 
     @classmethod
     def get_instance(cls, parent: QWidget | None = None) -> WorkspaceWindow:
-        if cls._instance is None or not cls._instance.isVisible():
+        if cls._instance is None:
             cls._instance = cls(parent)
         return cls._instance
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, project_directory=None) -> None:
         super().__init__(parent, Qt.WindowType.Window)
         self.setWindowTitle("Nyx — Estúdio")
-        self.resize(750, 520)
+        self.resize(1060, 680)
         from ui.desktop_theme import desktop_stylesheet
         self.setObjectName("WorkspaceSurface")
         self.setStyleSheet(parent.styleSheet() if parent and parent.styleSheet() else desktop_stylesheet())
@@ -77,6 +77,12 @@ class WorkspaceWindow(QWidget):
         self._init_table_tab()
         self._init_document_tab()
         self._init_telemetry_tab()
+        from app_paths import user_data_dir
+        from ui.project_panel import ProjectPanel
+        self.projects_panel = ProjectPanel(project_directory or user_data_dir() / "data" / "studio", self)
+        self.tabs.addTab(self.projects_panel, "Projetos")
+        self.tabs.currentChanged.connect(self._project_tab_changed)
+        self._code_title, self._code_language = "Código", "python"
 
     # ----------------------------------------------------------------------
     # Aba 1: Código / Script
@@ -101,10 +107,15 @@ class WorkspaceWindow(QWidget):
         btn_save.setObjectName("btnSecondary")
         btn_save.clicked.connect(self._save_code_to_file)
         actions_layout.addWidget(btn_save)
+        btn_project = QPushButton("Guardar como projeto", tab)
+        btn_project.clicked.connect(self._save_code_project)
+        actions_layout.addWidget(btn_project)
 
         actions_layout.addStretch()
 
         self.btn_run = QPushButton("▶️ Executar Script", tab)
+        self.btn_run.setEnabled(False)
+        self.btn_run.setToolTip("Execução indisponível: o executor isolado ainda não está integrado.")
         self.btn_run.clicked.connect(self._run_code)
         actions_layout.addWidget(self.btn_run)
 
@@ -177,6 +188,7 @@ class WorkspaceWindow(QWidget):
     # Métodos Públicos de Atualização
     # ----------------------------------------------------------------------
     def display_code(self, code: str, title: str = "Script", language: str = "python") -> None:
+        self._code_title, self._code_language = title, language
         self.txt_code.setPlainText(code)
         self.lbl_status.setText(f"Código ({language}): {title}")
         self.tabs.setCurrentIndex(0)
@@ -251,17 +263,28 @@ class WorkspaceWindow(QWidget):
             self.lbl_status.setText(f"Salvo em: {Path(path).name}")
 
     def _run_code(self) -> None:
+        # A UI click does not turn a subprocess into a security sandbox.
+        self.lbl_status.setText("Execução bloqueada: o executor isolado ainda não está integrado.")
+
+    def _project_tab_changed(self, index):
+        if index == 4 and self.projects_panel.projects.count() == 0 and self.projects_panel.job is None:
+            self.projects_panel.refresh()
+
+    def _save_code_project(self):
         text = self.txt_code.toPlainText()
-        if not text:
+        if not text or self.projects_panel.job is not None:
             return
-        import subprocess
-        try:
-            # Executa código Python em subprocess isolado
-            p = subprocess.run([".venv\\Scripts\\python.exe", "-c", text], capture_output=True, text=True, timeout=10)
-            out = p.stdout or p.stderr or "(Executado sem saída)"
-            self.display_document(f"### Saída da Execução\n```\n{out}\n```", title="Execução de Script")
-        except Exception as exc:
-            self.display_document(f"### Erro ao Executar\n```\n{exc}\n```", title="Erro")
+        filenames = {"python": "main.py", "javascript": "main.js", "html": "index.html", "css": "style.css"}
+        self.projects_panel.save_code(self._code_title, text, filenames.get(self._code_language, "code.txt"))
+        self.tabs.setCurrentIndex(4)
+
+    def closeEvent(self, event):
+        if self.projects_panel.job is not None:
+            self.projects_panel.cancelled.set()
+            self.projects_panel.status.setText("Aguarde o término da operação para fechar. Cópia cancelada quando possível.")
+            event.ignore()
+            return
+        super().closeEvent(event)
 
     def _export_table_csv(self) -> None:
         path, _ = QFileDialog.getSaveFileName(self, "Salvar Planilha", "planilha.csv", "Arquivos CSV (*.csv)")
