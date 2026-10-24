@@ -13,6 +13,12 @@ do desenvolvimento inicial, não descrevem a máquina atual.
   `docs/WINDOWS_SANDBOX_PROTOTYPE.md`. CodeAct e execução de testes por
   code_task estão bloqueados; propostas textuais continuam disponíveis. A
   aprovação de uma ação não transforma subprocesso comum em sandbox.
+- Cópia limitada e exportação de projetos existem e foram usadas num ensaio real
+  de múltiplos arquivos no LPAC. A correção do ensaio foi roteirizada, não gerada
+  pelo LLM. O gerenciador/fluxo de UI ainda não os utiliza. Snapshots suportam
+  Windows local, recusam links e dependências/nomes sensíveis conhecidos, mas não
+  detectam todo segredo e não preservam diretórios vazios. Falha ao materializar
+  preserva a nova árvore parcial; recuperação dessas pastas ainda falta.
 - Testes automatizados de rollback usam executor roteirizado. O teste adversarial
   do executor padrão comprova que ele não inicia código. Ensaios LPAC separados
   comprovam somente os recursos proibidos explicitamente testados.

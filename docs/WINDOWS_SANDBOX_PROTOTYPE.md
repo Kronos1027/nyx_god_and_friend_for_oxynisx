@@ -103,8 +103,9 @@ Isso prova os casos ensaiados, não a inacessibilidade de todo objeto do sistema
 - Quota/limite de escrita em disco, incluindo a área privada do AppContainer.
 - Recuperação de staging/exportação após queda. Perfis LPAC já têm diário e
   recuperação real validada; pastas de projetos ainda não são geridas por ele.
-- Staging de projetos não confiáveis, proteção contra troca de links durante
-  cópia/exportação, limites de arquivos e tratamento seguro dos resultados.
+- Integrar a cópia/exportação limitada de `ProjectSnapshot` ao gerenciador de
+  projetos. Proteção de reparses e ensaio multifile já foram validados;
+  detalhes em `PROJECT_SNAPSHOTS.md`. Recuperação das pastas ainda falta.
 - Validação de processos concorrentes, escape de Job, limites de CPU/processos,
   handles, IPC, Win32k em execução e ataques a caminhos/reparse points.
 - Política final de capabilities e comparação contra a fronteira de confiança

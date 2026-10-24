@@ -1,5 +1,15 @@
 # Nyx adaptativa: arquitetura e evidências
 
+## Evolution 2.0: snapshots de projetos
+
+`ProjectSnapshot` captura bytes sob limites, produz manifesto SHA-256 e materializa
+somente destinos novos. `windows_files` usa abertura nativa com `OBJ_DONT_REPARSE`
+e enumeração por handle. A proteção não depende só de resolver caminhos ou checar
+atributos antes da operação; o teste converte uma pasta aberta em junction e verifica
+que nenhum acesso subsequente segue o alvo. Exportação ZIP usa o inventário imutável.
+O ensaio multifile já executa testes dentro do LPAC, mas correção por LLM e gerência
+de projetos no runtime ainda pendem. Ver `PROJECT_SNAPSHOTS.md`.
+
 ## Evolution 2.0: protótipo LPAC isolado do runtime
 
 `windows_sandbox` cria perfil efêmero, configura Job e ACLs apenas no staging,

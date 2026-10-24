@@ -2,6 +2,21 @@
 
 Última atualização: 2026-10-24
 
+## Evolution 2.0 — cópia e exportação de projetos
+
+- Snapshots imutáveis com manifesto SHA-256, limites de arquivos/bytes/profundidade,
+  filtros explícitos e cancelamento cooperativo. Não executa código ao copiar.
+- Abertura nativa recusa reparses durante toda a resolução do caminho; enumeração
+  usa o handle original. Ataque de conversão em junction durante a operação foi
+  reproduzido e bloqueado. Exportação ZIP e materialização recusam destinos existentes.
+- Ensaio real com dois arquivos: falha no LPAC, correção conhecida fornecida pela
+  fixture, teste aprovado no LPAC e ZIP conferido. A suíte reúne 29 testes de
+  snapshots e 15 do LPAC. Regressão com navegador/Windows/LPAC reais:
+  **606 passaram, 1 pulado em 51,39 s**; Ruff aprovado.
+  Relatório: `build/sandbox-probes/project-regression.xml`.
+- Não conectado ao CodeTask/Creation Studio ainda; quota de execução, gerência de
+  projetos/versões e recuperação de staging pendem. `docs/PROJECT_SNAPSHOTS.md`.
+
 ## Evolution 2.0 — protótipo de execução isolada no Windows
 
 - Recuperação adicional: Job atribuído atomicamente na criação do processo e

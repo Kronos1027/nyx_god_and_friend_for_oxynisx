@@ -76,7 +76,9 @@ Esta seção prevalece sobre a matriz histórica de 21/10 acima.
   objetivo e reconciliação guiada. Não considerar a fase inteira concluída.
 - F: protótipo LPAC Windows executa Python e passou dez testes reais específicos;
   não integrado. Perfis têm diário e recuperação após queda, com associação
-  atômica ao Job. Ainda faltam quota de disco e staging/exportação de candidatos.
+  atômica ao Job. Ainda faltam quota de disco e conexão ao fluxo de criação.
+  Cópia limitada/exportação com proteção nativa contra reparses já passou em ensaio
+  real multifile; faltam gerência persistente, recuperação de staging e integração.
   Skills/MCP/Creation Studio e fluxo completo de criação pendentes.
 - G: laboratório supervisionado e avaliações independentes.
 - H: voz, painéis, animações e integração.

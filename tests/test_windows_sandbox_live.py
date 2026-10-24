@@ -334,3 +334,47 @@ print(json.dumps(results))
 """)
     assert result_json(result) == [13, 13]
     assert database.read_bytes() == before
+
+
+def test_multifile_project_copy_test_fix_and_export_inside_lpac(sandbox, tmp_path):
+    import zipfile
+    from core.project_snapshot import ProjectSnapshot
+
+    run, _, _, workspace = sandbox
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "ops.py").write_text("def add(a, b):\n    return a-b\n")
+    (source / "test_ops.py").write_text(
+        "import unittest\nfrom ops import add\nclass SumTest(unittest.TestCase):\n"
+        "    def test_sum(self):\n        self.assertEqual(add(28, 68), 96)\n"
+    )
+
+    def evaluate(directory):
+        return run(f"""
+import sys, unittest
+sys.path.insert(0, {str(directory)!r})
+suite = unittest.defaultTestLoader.discover({str(directory)!r}, pattern='test_*.py')
+result = unittest.TextTestRunner(verbosity=2).run(suite)
+sys.exit(0 if result.wasSuccessful() else 1)
+""")
+
+    initial = ProjectSnapshot.capture(source)
+    first = initial.write_new_directory(workspace / "project-failing")
+    failed = evaluate(first)
+    assert failed["state"] == "exited" and failed["returncode"] == 1, failed
+    assert "AssertionError" in failed["output"]
+    # This fixture deliberately supplies the correction; it is not an LLM test.
+    (source / "ops.py").write_text("def add(a, b):\n    return a+b\n")
+    corrected = ProjectSnapshot.capture(source)
+    second = corrected.write_new_directory(workspace / "project-corrected")
+    passed = evaluate(second)
+    assert passed["state"] == "exited" and passed["returncode"] == 0, passed
+    assert "Ran 1 test" in passed["output"] and "OK" in passed["output"]
+    result = ProjectSnapshot.capture(second)  # child/job have already terminated
+    archive = tmp_path / "result.zip"
+    result.export_zip(archive)
+    with zipfile.ZipFile(archive) as exported:
+        assert set(exported.namelist()) == {"ops.py", "test_ops.py"}
+        assert exported.read("ops.py") == (source / "ops.py").read_bytes()
+    assert initial.manifest()["sha256"] != result.manifest()["sha256"]
+    assert corrected.manifest()["sha256"] == result.manifest()["sha256"]
