@@ -9,6 +9,9 @@ bloqueada. Este documento não qualifica o backend para produção.
 `src/core/windows_sandbox.py` cria um perfil AppContainer novo por contexto,
 inicia o processo suspenso, configura um Job Object e verifica o token antes
 de liberar sua primeira thread. Não existe fallback para subprocesso comum.
+O Job é associado atomicamente por `PROC_THREAD_ATTRIBUTE_JOB_LIST` na criação;
+não há mais intervalo entre criar o processo e atribuí-lo ao Job. Uma queda do
+supervisor nesse ponto também aciona kill-on-close.
 
 As verificações cobrem AppContainer, SID exclusivo esperado, conjunto exato de
 capabilities, mitigação Win32k e semântica LPAC: um descritor que concede acesso
@@ -42,6 +45,31 @@ Os dez testes reais em `tests/test_windows_sandbox_live.py` verificam:
 - Um descendente não continua executando quando o chamador retorna.
 - Um hardlink externo dentro do staging impede a aplicação das ACLs.
 
+### Recuperação após queda do supervisor
+
+`SandboxJournal` grava uma reserva SQLite síncrona antes de chamar a API de
+criação de perfil. O inventário fica em diretório acessível apenas ao usuário
+e SYSTEM, fora dos diretórios concedidos ao candidato. Uma trava de arquivo
+mantida pelo supervisor impede que outro processo limpe perfis ainda ativos.
+O registro contém somente nomes do namespace `Nyx.Sandbox.<uuid>` e a localização
+de armazenamento obtida do Windows. Não interpreta comandos de saída do sandbox.
+
+Ao reabrir, valida o inventário inteiro antes de qualquer limpeza. Usa a API do
+Windows somente para os perfis reservados, confere o diretório conhecido e só
+remove o registro após sucesso e ausência do armazenamento anterior. Falhas
+preservam a reserva para nova tentativa. A rotina não remove workspaces ou outros
+diretórios recursivamente. O estado padrão fica em `data/sandbox/profiles`, ignorado
+pelo Git; testes usam diários próprios temporários.
+
+Quatro ensaios reais adicionais passaram: queda imediatamente após CreateProcess
+antes da primeira instrução; queda durante execução com descendente; tentativa
+do candidato de ler/corromper o diário; limpeza de perfil contendo junction para
+um diretório externo de teste, cujo conteúdo foi preservado. Quatro testes do
+diário cobrem exclusividade, falha/retry, inventário adulterado e caminhos indevidos.
+Total focado: **18 passaram**; `build/sandbox-probes/recovery.xml`.
+Regressão posterior com navegador/Windows/LPAC reais: **576 passaram, 1 pulado
+em 45,64 s**; Ruff aprovado; `build/sandbox-probes/recovery-regression.xml`.
+
 Execute no Windows, pelo ambiente do projeto:
 
 ```powershell
@@ -73,7 +101,8 @@ Isso prova os casos ensaiados, não a inacessibilidade de todo objeto do sistema
 ## Trabalho obrigatório antes da integração
 
 - Quota/limite de escrita em disco, incluindo a área privada do AppContainer.
-- Recuperação e limpeza após queda do supervisor e inventário de perfis órfãos.
+- Recuperação de staging/exportação após queda. Perfis LPAC já têm diário e
+  recuperação real validada; pastas de projetos ainda não são geridas por ele.
 - Staging de projetos não confiáveis, proteção contra troca de links durante
   cópia/exportação, limites de arquivos e tratamento seguro dos resultados.
 - Validação de processos concorrentes, escape de Job, limites de CPU/processos,

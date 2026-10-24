@@ -5,9 +5,10 @@
 O ambiente atual é Windows com RTX 3060. As seções L1–L4 abaixo são histórico
 do desenvolvimento inicial, não descrevem a máquina atual.
 
-- Há um protótipo LPAC real, com dez testes específicos aprovados, ainda sem
-  integração ou qualificação para produção. Faltam quota de disco, limpeza após
-  queda, staging/exportação e validação adversarial ampliada. Python requer
+- Há um protótipo LPAC real, com ensaios de isolamento e recuperação aprovados, ainda sem
+  integração ou qualificação para produção. Recuperação dos perfis após queda
+  do supervisor foi validada com encerramento real dos processos. Faltam quota
+  de disco, gestão/recuperação de staging, exportação e validação adversarial ampliada. Python requer
   `registryRead` no ensaio; `_ctypes` não importou. Ver
   `docs/WINDOWS_SANDBOX_PROTOTYPE.md`. CodeAct e execução de testes por
   code_task estão bloqueados; propostas textuais continuam disponíveis. A

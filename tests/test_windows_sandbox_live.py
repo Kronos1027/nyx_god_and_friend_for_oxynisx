@@ -49,7 +49,7 @@ def sandbox(tmp_path_factory):
                 "turtledemo",
             ),
         )
-    with profile() as container:
+    with profile(base / "journal") as container:
         container.grant(staging, staging)
         container.grant(staging, workspace, writable=True)
 
@@ -246,6 +246,91 @@ def test_acl_grants_reject_nested_hardlink_before_mutation(tmp_path):
     original = tmp_path / "private.txt"
     original.write_text("outside")
     os.link(original, staging / "linked.txt")
-    with profile() as container:
+    with profile(tmp_path / "journal") as container:
         with pytest.raises(ValueError, match="Links/reparse"):
             LPACProfile.grant(container, staging, staging)
+
+
+@pytest.mark.parametrize("mode", ["created", "running"])
+def test_supervisor_crash_kills_job_and_next_open_recovers_profile(sandbox, tmp_path, mode):
+    import _winapi
+    import subprocess
+    from core.sandbox_journal import SandboxJournal
+
+    _, _, runtime, _ = sandbox
+    workspace = tmp_path / "work"
+    workspace.mkdir()
+    state, proof = tmp_path / "journal", tmp_path / "proof.json"
+    helper = Path(__file__).resolve().parents[1] / "tools" / "sandbox_crash_fixture.py"
+    crashed = subprocess.run(
+        [sys.executable, str(helper), mode, str(runtime), str(workspace), str(state), str(proof)],
+        capture_output=True,
+        timeout=20,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )
+    assert crashed.returncode == 7, crashed.stderr.decode(errors="replace")
+    evidence = json.loads(proof.read_text(encoding="utf-8"))
+    pids = [evidence["pid"]]
+    if mode == "running":
+        ready = json.loads((workspace / "ready.json").read_text())
+        assert ready["pid"] == evidence["pid"]
+        pids.append(ready["child"])
+    else:
+        assert not (workspace / "ready.json").exists()
+    for pid in pids:
+        try:
+            handle = _winapi.OpenProcess(0x100000 | 0x1000, False, pid)
+        except OSError as error:
+            assert error.winerror == 87
+        else:
+            try:
+                assert (
+                    _winapi.WaitForSingleObject(handle, 2000) == 0
+                ), "Job survived supervisor crash"
+            finally:
+                _winapi.CloseHandle(handle)
+    old_storage = Path(evidence["storage"])
+    assert old_storage.exists(), "Profile should remain for crash recovery"
+    with SandboxJournal(state) as journal:
+        assert journal.pending() == [evidence["profile"]]
+    with profile(state) as recovered:
+        assert not old_storage.parent.exists()
+        assert recovered.journal.pending() == [recovered.name]
+    with SandboxJournal(state) as journal:
+        assert journal.pending() == []
+
+
+def test_os_profile_cleanup_does_not_follow_directory_junction(tmp_path):
+    import _winapi
+
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    sentinel = outside / "preserve.txt"
+    sentinel.write_text("owned fixture, preserve")
+    with profile(tmp_path / "journal") as container:
+        private = container.api.profile_directory(container.name)
+        junction = private / "outside-junction"
+        _winapi.CreateJunction(str(outside), str(junction))
+        assert (junction / "preserve.txt").exists()
+    assert sentinel.read_text() == "owned fixture, preserve"
+    assert not private.parent.exists()
+
+
+def test_candidate_cannot_read_or_corrupt_supervisor_journal(sandbox):
+    run, base, _, _ = sandbox
+    database = base / "journal" / "profiles.sqlite3"
+    before = database.read_bytes()
+    result = run(f"""
+import json
+results = []
+for mode in ('r', 'w'):
+    try:
+        with open({str(database)!r}, mode) as stream:
+            stream.read() if mode == 'r' else stream.write('corruption')
+        results.append('allowed')
+    except OSError as error:
+        results.append(error.errno)
+print(json.dumps(results))
+""")
+    assert result_json(result) == [13, 13]
+    assert database.read_bytes() == before

@@ -4,6 +4,16 @@
 
 ## Evolution 2.0 — protótipo de execução isolada no Windows
 
+- Recuperação adicional: Job atribuído atomicamente na criação do processo e
+  diário SQLite protegido registra propriedade dos perfis antes da criação.
+  Lock do SO impede limpeza concorrente; falhas preservam registros para retry.
+  Quedas reais antes da primeira instrução e durante execução com descendente
+  encerraram os processos e permitiram recuperar o perfil na abertura seguinte.
+  Diário inacessível ao candidato e limpeza sem seguir junction também passaram.
+  **18 testes focados passaram**, incluindo quatro testes do diário.
+  Regressão posterior com navegador/Windows/LPAC reais: **576 passaram, 1 pulado
+  em 45,64 s**; Ruff aprovado. `build/sandbox-probes/recovery-regression.xml`.
+
 - LPAC com token verificado antes da execução, Win32k bloqueado, Job Object,
   limites de memória/saída/tempo, ambiente reduzido e ACLs em cópia temporária.
 - Dez testes reais específicos passaram: cálculo/gravação permitida, recusa de
@@ -12,7 +22,7 @@
 - Diagnóstico identificou necessidade de `registryRead` para iniciar o Python;
   sem essa capability o loader retorna `0xC0000022`. Nenhuma capability de rede
   ou COM foi concedida. Corrigidas perda da saída final e espera dos descendentes.
-- Não integrado às ferramentas: faltam quota de disco, recuperação após queda,
+- Não integrado às ferramentas: faltam quota de disco, recuperação de staging,
   staging/exportação de candidatos e validação adversarial ampliada. `_ctypes`
   não importou nessa configuração. CodeAct/CodeTask continuam sem executar
   código gerado. Detalhes e comandos: `docs/WINDOWS_SANDBOX_PROTOTYPE.md`.

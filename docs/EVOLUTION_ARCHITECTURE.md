@@ -7,8 +7,12 @@ verifica token LPAC e mitigação Win32k antes de retomar o processo. Limites de
 memória/CPU/processos e cancelamento têm verificações reais iniciais, com espera
 dos handles dos descendentes. O launcher não herda ambiente completo ou handles
 arbitrários. A capability `registryRead` permanece opção explícita de diagnóstico.
+O Job é associado pela lista de atributos na própria CreateProcess, eliminando
+a janela de crash anterior à associação. Um `SandboxJournal` protegido registra
+perfis antes de criá-los; recuperação exige a trava exclusiva do supervisor e
+limpa somente reservas válidas. Registro só é removido após limpeza confirmada.
 Não existe fallback sem isolamento nem registro desse backend como ferramenta.
-O contrato final de staging, quota de disco e recuperação precisa ser concluído
+O contrato final de staging, quota de disco e recuperação de projetos precisa ser concluído
 antes de conectar CodeTask, skills ou MCP. Evidências e lacunas estão em
 `WINDOWS_SANDBOX_PROTOTYPE.md`.
 

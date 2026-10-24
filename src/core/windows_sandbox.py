@@ -11,7 +11,6 @@ import os
 from pathlib import Path
 import subprocess
 import time
-from uuid import uuid4
 
 
 class SandboxUnavailable(RuntimeError):
@@ -96,6 +95,15 @@ class WindowsAPI:
             [W.LPCWSTR, W.LPCWSTR, W.LPCWSTR, P, W.DWORD, C.POINTER(P)],
         )
         bind(self.userenv, "DeleteAppContainerProfile", C.c_long, [W.LPCWSTR])
+        bind(
+            self.userenv,
+            "DeriveAppContainerSidFromAppContainerName",
+            C.c_long,
+            [W.LPCWSTR, C.POINTER(P)],
+        )
+        bind(self.userenv, "GetAppContainerFolderPath", C.c_long, [W.LPCWSTR, C.POINTER(W.LPWSTR)])
+        self.ole32 = C.WinDLL("ole32")
+        bind(self.ole32, "CoTaskMemFree", None, [P])
         bind(self.security, "FreeSid", P, [P])
         bind(self.security, "ConvertSidToStringSidW", W.BOOL, [P, C.POINTER(W.LPWSTR)])
         bind(self.security, "ConvertStringSidToSidW", W.BOOL, [W.LPCWSTR, C.POINTER(P)])
@@ -179,6 +187,26 @@ class WindowsAPI:
             return string.value
         finally:
             self.LocalFree(C.cast(string, C.c_void_p))
+
+    def profile_directory(self, name):
+        sid = C.c_void_p()
+        result = self.DeriveAppContainerSidFromAppContainerName(name, C.byref(sid))
+        if result != 0:
+            raise SandboxUnavailable("Não foi possível derivar o SID do perfil isolado.")
+        path = W.LPWSTR()
+        try:
+            result = self.GetAppContainerFolderPath(self.sid_string(sid), C.byref(path))
+            if result & 0xFFFFFFFF == 0x80070002:
+                return None
+            if result != 0:
+                raise SandboxUnavailable(
+                    f"Não foi possível localizar o diretório do perfil isolado: 0x{result & 0xffffffff:08x}"
+                )
+            return Path(path.value)
+        finally:
+            self.FreeSid(sid)
+            if path:
+                self.CoTaskMemFree(C.cast(path, C.c_void_p))
 
     def token_evidence(self, process, expected_sid, expected_capabilities=()):
         token = W.HANDLE()
@@ -285,9 +313,10 @@ class WindowsAPI:
 
 
 class LPACProfile:
-    def __init__(self):
+    def __init__(self, journal):
         self.api = WindowsAPI()
-        self.name = "Nyx.Sandbox." + uuid4().hex
+        self.journal = journal
+        self.name = journal.reserve()
         self.sid = C.c_void_p()
         result = self.api.CreateAppContainerProfile(
             self.name,
@@ -298,20 +327,29 @@ class LPACProfile:
             C.byref(self.sid),
         )
         if result != 0:
+            if result & 0xFFFFFFFF == 0x800700B7:  # pre-existing profile is not ours
+                journal.forget(self.name)
             raise SandboxUnavailable(
                 f"CreateAppContainerProfile falhou: HRESULT 0x{result & 0xffffffff:08x}"
             )
-        self.sid_text = self.api.sid_string(self.sid)
+        try:
+            self.sid_text = self.api.sid_string(self.sid)
+            directory = self.api.profile_directory(self.name)
+            if directory is None:
+                raise SandboxUnavailable("O perfil criado não tem diretório identificável.")
+            self.journal.storage(self.name, directory)
+        except Exception:
+            self.close()
+            raise
 
     def close(self):
         if self.sid:
-            result = self.api.DeleteAppContainerProfile(self.name)
-            self.api.FreeSid(self.sid)
-            self.sid = None
-            if result != 0:
-                raise SandboxUnavailable(
-                    f"Não foi possível limpar o perfil {self.name}: 0x{result & 0xffffffff:08x}"
-                )
+            try:
+                delete_owned_profile(self.api, self.name, self.journal.storage(self.name))
+                self.journal.forget(self.name)
+            finally:
+                self.api.FreeSid(self.sid)
+                self.sid = None
 
     def grant(self, staging_root, target, *, writable=False):
         # Inspect unresolved paths first: resolve() would erase a junction and
@@ -349,12 +387,42 @@ class LPACProfile:
 
 
 @contextmanager
-def profile():
-    instance = LPACProfile()
-    try:
-        yield instance
-    finally:
-        instance.close()
+def profile(state_dir=None):
+    from core.sandbox_journal import SandboxJournal
+
+    if state_dir is None:
+        state_dir = Path(__file__).resolve().parents[2] / "data" / "sandbox" / "profiles"
+    with SandboxJournal(state_dir) as journal:
+        api = WindowsAPI()
+        journal.recover(lambda name: delete_owned_profile(api, name, journal.storage(name)))
+        instance = LPACProfile(journal)
+        try:
+            yield instance
+        finally:
+            instance.close()
+
+
+def delete_owned_profile(api, name, recorded_storage=None):
+    from core.sandbox_journal import NAME
+
+    if not NAME.fullmatch(name):
+        raise ValueError("Nome fora do espaço de perfis da Nyx.")
+    directory = api.profile_directory(name)
+    if recorded_storage is not None:
+        recorded = Path(recorded_storage)
+        expected = Path(os.environ["LOCALAPPDATA"]) / "Packages" / name / "AC"
+        if recorded != expected or (directory is not None and directory != recorded):
+            raise SandboxUnavailable("Diretório do perfil diverge do inventário; limpeza recusada.")
+        directory = recorded
+    result = api.DeleteAppContainerProfile(name)
+    if result != 0:
+        raise SandboxUnavailable(
+            f"Não foi possível limpar o perfil {name}: 0x{result & 0xffffffff:08x}"
+        )
+    if directory is not None and directory.parent.exists():
+        raise SandboxUnavailable(
+            "O Windows não removeu todo o armazenamento do perfil; limpeza pendente."
+        )
 
 
 def stop_job(job, exit_code, timeout=5):
@@ -445,10 +513,10 @@ def run_lpac(
             raise SandboxUnavailable("Não foi possível criar stdin vazio.")
         handles.append(nul)
         count = C.c_size_t()
-        api.InitializeProcThreadAttributeList(None, 4, 0, C.byref(count))
+        api.InitializeProcThreadAttributeList(None, 5, 0, C.byref(count))
         attributes = C.create_string_buffer(count.value)
         api.check(
-            api.InitializeProcThreadAttributeList(attributes, 4, 0, C.byref(count)),
+            api.InitializeProcThreadAttributeList(attributes, 5, 0, C.byref(count)),
             "Initialize attributes",
         )
         attributes_initialized = True
@@ -470,11 +538,13 @@ def run_lpac(
         lpac = W.DWORD(1)
         mitigation = C.c_ulonglong(1 << 28)  # disable Win32k system calls
         inherited = (W.HANDLE * 2)(write.value, nul)
+        assigned_jobs = (W.HANDLE * 1)(int(job))
         for attribute, value in (
             (0x20009, capabilities),
             (0x2000F, lpac),
             (0x20007, mitigation),
             (0x20002, inherited),
+            (0x2000D, assigned_jobs),  # atomic job assignment during process creation
         ):
             api.check(
                 api.UpdateProcThreadAttribute(
@@ -519,7 +589,8 @@ def run_lpac(
         )
         api.CloseHandle(write.value)
         handles.remove(write.value)
-        win32job.AssignProcessToJobObject(job, int(process.hProcess))
+        if not win32job.IsProcessInJob(int(process.hProcess), job):
+            raise SandboxUnavailable("O processo não nasceu no Job obrigatório.")
         evidence = api.token_evidence(process.hProcess, container.sid_text, expected_caps)
         token = W.HANDLE()
         api.check(api.OpenProcessToken(process.hProcess, 10, C.byref(token)), "Image token")
