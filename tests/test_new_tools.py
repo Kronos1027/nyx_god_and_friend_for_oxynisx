@@ -161,7 +161,7 @@ def test_full_registry_integration():
     # Verifica todas as 9 ferramentas registradas
     expected_tools = {
         "shell", "read_file", "write_file", "find_files", "delete_file",
-        "macro_run", "ui_action", "clipboard", "project_status"
+        "macro_run", "ui_action", "clipboard", "project_status", "skills"
     }
     assert expected_tools.issubset(set(registry.names()))
 

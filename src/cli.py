@@ -203,6 +203,8 @@ def build_registry(cfg: NyxConfig) -> ToolRegistry:
         ToolSpec(name="evolution", description="Pesquisa persistente e simulação de habilidades propostas", sensitive=False),
         make_evolution_tool_func(registry.evolution_lab, registry),
     )
+    from tools.skill_tool import register_skill_tool
+    register_skill_tool(registry, Path("skills"))
     return registry
 
 

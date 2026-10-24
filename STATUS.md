@@ -2,6 +2,24 @@
 
 Última atualização: 2026-10-24
 
+## Evolution 2.0 — consulta de habilidades no runtime
+
+- Ferramenta `skills` registrada no desktop/CLI, schema e gramática: listagem,
+  pesquisa e leitura de versões com digest e identificação de ferramentas
+  indisponíveis. Consulta não executa etapas nem concede permissões.
+- TaskRunner preserva a consulta completa limitada, como dados externos, sem
+  promovê-la a instrução de sistema. Ações subsequentes continuam passando pelo
+  orçamento, confirmação, cancelamento e verificação existentes.
+- **Ensaio real Qwen3.5 4B aprovado em 32,14 s:** descoberta → leitura → uma
+  confirmação exata → escrita de nota temporária → releitura → código correto.
+  Aprovação fornecida pela fixture somente para arquivo/conteúdo próprios;
+  não é uma autorização automática do runtime. Relatório:
+  `build/evolution-baseline/skill-attempts/576032b036494dc1865baf79fd16a801.json`.
+- **679 testes aprovados, 1 pulado em 49,57 s**, incluindo Windows/navegador/LPAC;
+  Ruff aprovado. `build/sandbox-probes/skill-catalog-regression.xml`.
+- Ainda pendem SKILL.md, painel, origem autenticada, ativação/permissões por
+  habilidade, estatísticas completas e scripts isolados. `docs/SKILL_HISTORY.md`.
+
 ## Evolution 2.0 — preservação do histórico de habilidades
 
 - Corrigida sobrescrita de versões após rollback. Novas versões usam números

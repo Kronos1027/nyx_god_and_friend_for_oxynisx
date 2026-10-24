@@ -54,6 +54,7 @@ data/cloud-backup/
 Thumbs.db
 
 # Build
+/skills/
 dist/
 build/
 *.spec

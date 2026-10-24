@@ -76,7 +76,7 @@ VALID_EMOTIONS = ("idle", "talk", "think", "surprised", "listening", "error", "s
 
 VALID_ACTION_TYPES = (
     "shell", "read_file", "write_file", "find_files", "ui_action",
-    "clipboard", "macro_run", "project_status", "workspace", "web", "browser", "code_task", "schedule", "agent_team", "evolution", "none",
+    "clipboard", "macro_run", "project_status", "workspace", "web", "browser", "code_task", "schedule", "agent_team", "evolution", "skills", "none",
 )
 
 REQUIRED_KEYS = (

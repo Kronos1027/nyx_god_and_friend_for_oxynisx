@@ -85,8 +85,10 @@ Esta seção prevalece sobre a matriz histórica de 21/10 acima.
   no host removida. Backup criptografado do catálogo, Skills/MCP e fluxo completo
   de geração, testes e correção pelo modelo continuam pendentes.
   Histórico do SkillManager corrigido: versões preservadas após rollback,
-  ativação atômica, antecessor explícito e lock entre processos. Integração ao
-  runtime e padrão SKILL.md ainda não implementados (`SKILL_HISTORY.md`).
+  ativação atômica, antecessor explícito e lock entre processos. Catálogo
+  list/search/get conectado ao runtime; ações posteriores mantêm confirmações
+  normais. Padrão SKILL.md, permissões/ativação específicas, UI e execução de
+  scripts continuam pendentes (`SKILL_HISTORY.md`).
 - G: laboratório supervisionado e avaliações independentes.
 - H: despacho do Estúdio corrigido para a thread Qt, confirmação de exibição,
   cancelamento e encerramento sem destruir workers ativos. Telemetria do Estúdio
