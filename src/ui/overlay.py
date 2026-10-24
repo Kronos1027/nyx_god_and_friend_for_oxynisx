@@ -708,10 +708,6 @@ class OverlayWindow(QWidget):
             return True
 
         # Resposta normal
-        act_type = resp.action.type if (resp and resp.action) else ""
-        if act_type == "workspace":
-            self._open_workspace_if_needed()
-
         self.say(
             resp.speech_output,
             emotion=resp.emotion or "talk",
@@ -734,8 +730,6 @@ class OverlayWindow(QWidget):
 
     def _on_task_progress(self, progress: dict) -> None:
         self.task_progress.emit(progress)
-        if progress["phase"] == "observed" and progress["tool"] == "workspace":
-            self._open_workspace_if_needed()
         if progress["phase"] == "executing":
             self.bubble.set_message(f"Etapa {progress['step']}: {progress['tool']}")
             self.bubble.show()
@@ -768,9 +762,6 @@ class OverlayWindow(QWidget):
 
     def _show_confirmation_result(self, result: object, suggestion: str | None) -> None:
         self.action_observed.emit(result)
-        act_type = result.response.action.type if (result and result.response.action) else ""
-        if act_type == "workspace":
-            self._open_workspace_if_needed()
         self.say(
             result.response.speech_output,
             emotion=result.response.emotion or "talk",
@@ -794,18 +785,6 @@ class OverlayWindow(QWidget):
             notes = " ".join(item["message"] for item in due)
             suffix = f" Há mais {len(due) - 1} lembrete(s)." if len(due) > 1 else ""
             self.say(f"Lembrete: {notes}{suffix}", emotion="surprised")
-
-    def _open_workspace_if_needed(self) -> None:
-        """Abre e traz para o primeiro plano a sub-janela O Grande Sábio."""
-        try:
-            from ui.workspace_window import WorkspaceWindow
-            ws = WorkspaceWindow.get_instance()
-            ws.setStyleSheet(self.styleSheet())
-            ws.show()
-            ws.raise_()
-            ws.activateWindow()
-        except Exception as exc:
-            log.warning(f"Não foi possível abrir sub-janela Workspace: {exc}")
 
     def _toggle_workspace(self) -> None:
         """Alterna visibilidade da sub-janela O Grande Sábio."""

@@ -3,6 +3,7 @@
 import pytest
 from PyQt6.QtWidgets import QApplication
 import sys
+import time
 
 from tools.workspace_tool import WorkspaceTool
 from ui.workspace_window import WorkspaceWindow
@@ -75,6 +76,13 @@ def test_workspace_tool_execution(qapp):
     res4 = tool.run({"view": "telemetry"})
     assert res4.ok is True
     assert "exibida com sucesso" in res4.output.lower()
+    win = WorkspaceWindow.get_instance()
+    deadline = time.monotonic() + 10
+    while win.telemetry_job is not None and time.monotonic() < deadline:
+        qapp.processEvents()
+        time.sleep(0.01)
+    assert win.telemetry_job is None
+    win.close()
 
     # 5. Erro tipo inválido
     res_err = tool.run({"view": "invalid_type", "content": "nada"})

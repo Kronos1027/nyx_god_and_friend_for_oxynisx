@@ -83,7 +83,9 @@ Esta seção prevalece sobre a matriz histórica de 21/10 acima.
   no host removida. Backup criptografado do catálogo, Skills/MCP e fluxo completo
   de geração, testes e correção pelo modelo continuam pendentes.
 - G: laboratório supervisionado e avaliações independentes.
-- H: voz, painéis, animações e integração.
+- H: despacho do Estúdio corrigido para a thread Qt, confirmação de exibição,
+  cancelamento e encerramento sem destruir workers ativos. Telemetria do Estúdio
+  assíncrona. Voz, demais painéis, animações e integração geral ainda pendentes.
 - I: regressão, benchmarks, sessão prolongada, empacotamento.
 - J: relatório por requisito, limitações e preparação de integração (sem promover main).
 

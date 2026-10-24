@@ -2,6 +2,23 @@
 
 Última atualização: 2026-10-24
 
+## Evolution 2.0 — exibição e encerramento do Estúdio
+
+- Ferramenta workspace agora despacha para a thread Qt e aguarda confirmação
+  de exibição; ausência de interface e falha de renderização retornam erro.
+  Fila limitada a um pedido, entrada limitada, cancelamento central e timeout
+  impedem abertura tardia. Resultado incerto interrompe a tarefa para inspeção.
+- Telemetria do Estúdio passa a worker; consulta pendente é explicitada. Saída
+  da aplicação espera os workers do Estúdio, mantendo eventos Qt ativos. Fixture
+  em processo separado comprova encerramento e recusa de novas exibições.
+- CSV entre aspas e linhas com larguras diferentes preservam células; conteúdo
+  inválido é recusado antes de construir widgets. Overlay não reabre janelas
+  após falha ou cancelamento da ferramenta.
+- **634 testes aprovados, 1 pulado em 46,90 s**, navegador/Windows/LPAC habilitados.
+  Ruff aprovado. Relatório: `build/sandbox-probes/workspace-dispatch-regression.xml`.
+  Um aviso de depreciação do pynvml instalado permanece. Detalhes e alcance dos
+  testes reais/fixtures: `docs/PROJECT_STUDIO.md`. Sem novo ensaio com LLM nesta entrega.
+
 ## Evolution 2.0 — catálogo de projetos no Estúdio
 
 - Aba Projetos conectada: importar pasta, guardar código, visualizar arquivos,

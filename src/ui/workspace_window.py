@@ -83,6 +83,9 @@ class WorkspaceWindow(QWidget):
         self.tabs.addTab(self.projects_panel, "Projetos")
         self.tabs.currentChanged.connect(self._project_tab_changed)
         self._code_title, self._code_language = "Código", "python"
+        self.telemetry_job = None
+        from ui.studio_lifecycle import StudioLifecycle
+        StudioLifecycle.register(self)
 
     # ----------------------------------------------------------------------
     # Aba 1: Código / Script
@@ -173,12 +176,14 @@ class WorkspaceWindow(QWidget):
         layout.setSpacing(20)
 
         self.lbl_hw_info = QLabel("Carregando telemetria de hardware...", tab)
+        self.lbl_hw_info.setTextFormat(Qt.TextFormat.PlainText)
         self.lbl_hw_info.setObjectName("Muted")
         layout.addWidget(self.lbl_hw_info)
 
         btn_refresh = QPushButton("🔄 Atualizar Diagnóstico", tab)
         btn_refresh.setObjectName("btnSecondary")
         btn_refresh.clicked.connect(self.refresh_telemetry)
+        self.btn_refresh_telemetry = btn_refresh
         layout.addWidget(btn_refresh)
         layout.addStretch()
 
@@ -210,7 +215,7 @@ class WorkspaceWindow(QWidget):
                     val = str(item.get(key, ""))
                     self.table.setItem(row_idx, col_idx, QTableWidgetItem(val))
         elif isinstance(data[0], (list, tuple)):
-            num_cols = len(data[0])
+            num_cols = max(len(row) for row in data)
             self.table.setColumnCount(num_cols)
             if headers:
                 self.table.setHorizontalHeaderLabels(headers)
@@ -232,14 +237,26 @@ class WorkspaceWindow(QWidget):
         self.raise_()
 
     def refresh_telemetry(self) -> None:
+        if self.telemetry_job is not None:
+            return
         from tools.project_watch_tool import ProjectWatchTool
-        pw = ProjectWatchTool()
-        res = pw.run({})
-        if res.ok:
+        from ui.project_panel import ProjectJob
+        self.lbl_hw_info.setText("Consultando telemetria…")
+        self.btn_refresh_telemetry.setEnabled(False)
+        self.telemetry_job = ProjectJob(lambda: ProjectWatchTool().run({}), self)
+        self.telemetry_job.finished.connect(self._telemetry_finished)
+        self.telemetry_job.start()
+
+    def _telemetry_finished(self):
+        worker, self.telemetry_job = self.telemetry_job, None
+        res = worker.value
+        self.btn_refresh_telemetry.setEnabled(True)
+        if worker.error is None and res and res.ok:
             self.lbl_hw_info.setText(res.output)
             self.lbl_status.setText("Telemetria atualizada em tempo real.")
         else:
             self.lbl_hw_info.setText("Falha ao obter telemetria.")
+        worker.deleteLater()
 
     # ----------------------------------------------------------------------
     # Ações Internas
@@ -279,6 +296,10 @@ class WorkspaceWindow(QWidget):
         self.tabs.setCurrentIndex(4)
 
     def closeEvent(self, event):
+        if self.telemetry_job is not None:
+            self.lbl_status.setText("Aguarde o término da consulta de telemetria para fechar.")
+            event.ignore()
+            return
         if self.projects_panel.job is not None:
             self.projects_panel.cancelled.set()
             self.projects_panel.status.setText("Aguarde o término da operação para fechar. Cópia cancelada quando possível.")

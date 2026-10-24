@@ -140,7 +140,7 @@ def build_registry(cfg: NyxConfig) -> ToolRegistry:
         make_project_watch_tool_func(pw),
     )
 
-    ws = WorkspaceTool()
+    ws = WorkspaceTool(control=registry.control)
     registry.register(
         ToolSpec(
             name="workspace",

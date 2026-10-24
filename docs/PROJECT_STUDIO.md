@@ -60,3 +60,49 @@ Prévia revisada: `build/previews/studio-projects.png`.
 Ainda pendem registros de execução e resultados no catálogo, integração do LPAC
 com permissões/governador, quota durante execução, recuperação do staging,
 geração/correção multifile pelo modelo e adaptadores de mídia opcionais.
+
+## Ferramenta conectada à interface
+
+`WorkspaceTool` passa código, relatório, tabela ou pedido de telemetria a um
+despachante criado na thread principal durante a montagem do runtime desktop.
+Widgets são atualizados por slot Qt nessa thread. O chamador só recebe sucesso
+depois da exibição confirmada. Sem QApplication/conexão gráfica, retorna falha;
+o CLI não anuncia uma janela inexistente. Referência: [threads e objetos Qt](https://doc.qt.io/qt-6/threads-qobject.html).
+
+Há no máximo um pedido em voo por aplicação, compartilhado entre instâncias da
+ferramenta. A espera padrão é de cinco segundos (máximo configurável de dez).
+Se expirar antes do slot começar, o pedido fica descartado e não abre uma janela
+posteriormente. A fila permanece ocupada até esse evento ser consumido, evitando
+acúmulo durante travamento da UI. Cancelamento global/local usa o controlador do
+registro; a sonda captura o cancelamento local mesmo atravessando threads.
+
+Se a renderização já começou e a confirmação não chegou, retorna
+`outcome_unknown`, que faz o TaskRunner interromper a tarefa para inspeção.
+Não mata a thread da interface. Callbacks do overlay não reabrem a janela
+independentemente do resultado da ferramenta.
+
+Entradas são limitadas a 256.000 caracteres, título de 200 e linguagem de 40.
+Tabelas aceitam até 1.000 linhas, 50 colunas, 10.000 células, 4.000 caracteres por
+célula e 256.000 no total. CSV usa parser com suporte a campos entre aspas;
+linhas mais largas não perdem células. Estruturas inválidas são recusadas antes
+de tocar na interface.
+
+Telemetria usa worker separado, um por janela. Sucesso da ferramenta confirma a
+janela; o resultado de hardware permanece explicitamente pendente até a consulta
+terminar. Fechar durante consulta preserva o worker. Ao sair da aplicação,
+`StudioLifecycle` adia o evento Quit, solicita cancelamento da captura e mantém
+o loop Qt ativo até os workers próprios terminarem. Novas exibições são recusadas
+durante esse encerramento. Não impõe cancelamento forçado a I/O do sistema.
+
+Testes Qt com thread real conferem exibição, timeout antes/depois do início,
+cancelamento, limite da fila, erros de renderização, CSV e parâmetros inválidos.
+Processos de fixture separados comprovam falha honesta sem interface e saída
+durante worker ativo, com timer responsivo e descarte de novas exibições. Os
+testes de I/O lento usam bloqueios controlados; não representam benchmark de
+disco nem sessão prolongada. A consulta de hardware original também integra a
+regressão; a fixture lenta não é apresentada como medição real.
+
+Regressão desta integração: **634 aprovados, 1 pulado em 46,90 s**, com
+navegador/Windows/LPAC reais habilitados; Ruff aprovado. Relatório:
+`build/sandbox-probes/workspace-dispatch-regression.xml`. Não inclui novo teste
+com LLM nem login no Spotify, que continua adiado por escolha do usuário.

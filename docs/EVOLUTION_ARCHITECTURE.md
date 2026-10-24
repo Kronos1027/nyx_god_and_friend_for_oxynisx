@@ -186,6 +186,12 @@ ou renderizar HTML. A execução Python legada com privilégios do usuário foi 
 O catálogo ainda não participa do BackupVault e o painel não inicia LPAC. Detalhes,
 limites e evidências em `PROJECT_STUDIO.md`.
 
+O runtime conecta `WorkspaceTool` a um despachante Qt de capacidade um; ele retorna
+sucesso somente depois da exibição na thread principal. Expiração/cancelamento
+antes da execução descarta o evento; resultado incerto durante a execução usa o
+mesmo `outcome_unknown` do TaskRunner. Telemetria do Estúdio roda fora da GUI.
+Saída da aplicação preserva o loop Qt até terminar os workers próprios do Estúdio.
+
 A capacidade vem do modelo local, ferramentas observáveis, memória recuperável e avaliação de resultados. Adicionar memória e agentes não equivale a treinar pesos nem demonstra AGI. Não há evidência de paridade com Astra ou de controle perfeito de programas e jogos.
 
 ## Circuitos com frequências diferentes
