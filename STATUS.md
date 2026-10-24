@@ -2,6 +2,20 @@
 
 Última atualização: 2026-10-24
 
+## Evolution 2.0 — limites adicionais do executor isolado
+
+- LPAC agora exige limite rígido de CPU no Job e confirma a configuração antes
+  de iniciar o processo. Padrão 25%, ajustável de 1% a 50%. Limites de saída,
+  memória, tempo e número de processos são validados antes de criar recursos.
+- Ensaio real com limite de 1% em 16 CPUs lógicas: loop consumiu 0,1875 s de CPU
+  em 1,547 s de relógio. Limite de dois processos permitiu um filho e recusou
+  cinco adicionais; tentativa explícita de sair do Job retornou acesso negado.
+- **656 testes aprovados, 1 pulado em 50,65 s**, Windows/navegador/LPAC habilitados;
+  Ruff aprovado. `build/sandbox-probes/resource-limits-regression.xml`.
+  Persistem quota de disco, recuperação de staging, validação adversarial ampliada
+  e integração ao Estúdio. Isso não conclui o executor nem demonstra ganho geral
+  de desempenho. Detalhes em `docs/WINDOWS_SANDBOX_PROTOTYPE.md`.
+
 ## Evolution 2.0 — exibição e encerramento do Estúdio
 
 - Ferramenta workspace agora despacha para a thread Qt e aguarda confirmação

@@ -77,6 +77,8 @@ Esta seção prevalece sobre a matriz histórica de 21/10 acima.
 - F: protótipo LPAC Windows executa Python e passou dez testes reais específicos;
   não integrado. Perfis têm diário e recuperação após queda, com associação
   atômica ao Job. Ainda faltam quota de disco e conexão ao fluxo de criação.
+  Limite rígido de CPU consultado no Job, limites de entrada, concorrência de
+  processos e recusa de breakaway passaram em ensaios reais adicionais.
   Cópia limitada/exportação com proteção nativa contra reparses já passou em ensaio
   real multifile. Catálogo persistente e UI de versões/prévia/exportação conectados;
   faltam recuperação de staging e integração da execução isolada. Execução legada

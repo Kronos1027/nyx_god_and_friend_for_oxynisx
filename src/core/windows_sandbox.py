@@ -8,6 +8,7 @@ from contextlib import contextmanager
 import ctypes as C
 from ctypes import wintypes as W
 import os
+import math
 from pathlib import Path
 import subprocess
 import time
@@ -15,6 +16,24 @@ import time
 
 class SandboxUnavailable(RuntimeError):
     pass
+
+
+class CpuRateInfo(C.Structure):
+    _fields_ = [("ControlFlags", W.DWORD), ("CpuRate", W.DWORD)]
+
+
+def validate_limits(timeout, memory_mib, output_limit, cpu_percent, process_limit):
+    if (type(timeout) not in (int, float) or not math.isfinite(timeout)
+            or not 1 <= timeout <= 300):
+        raise ValueError("Limite inválido de tempo.")
+    for name, value, minimum, maximum in (
+        ("memória", memory_mib, 64, 512),
+        ("saída", output_limit, 1, 1024 * 1024),
+        ("CPU", cpu_percent, 1, 50),
+        ("processos", process_limit, 1, 4),
+    ):
+        if type(value) is not int or not minimum <= value <= maximum:
+            raise ValueError(f"Limite inválido de {name}.")
 
 
 class SecurityAttributes(C.Structure):
@@ -174,6 +193,18 @@ class WindowsAPI:
         bind(self.kernel, "GetExitCodeProcess", W.BOOL, [W.HANDLE, C.POINTER(W.DWORD)])
         bind(self.kernel, "TerminateProcess", W.BOOL, [W.HANDLE, W.UINT])
         bind(self.kernel, "GetProcessMitigationPolicy", W.BOOL, [W.HANDLE, C.c_int, P, C.c_size_t])
+        bind(self.kernel, "SetInformationJobObject", W.BOOL, [W.HANDLE, C.c_int, P, W.DWORD])
+        bind(self.kernel, "QueryInformationJobObject", W.BOOL, [W.HANDLE, C.c_int, P, W.DWORD, P])
+
+    def limit_cpu(self, job, percent):
+        requested = CpuRateInfo(0x1 | 0x4, percent * 100)  # ENABLE | HARD_CAP
+        self.check(self.SetInformationJobObject(int(job), 15, C.byref(requested), C.sizeof(requested)),
+                   "Set job CPU hard cap")
+        actual = CpuRateInfo()
+        self.check(self.QueryInformationJobObject(int(job), 15, C.byref(actual), C.sizeof(actual), None),
+                   "Verify job CPU hard cap")
+        if actual.ControlFlags != requested.ControlFlags or actual.CpuRate != requested.CpuRate:
+            raise SandboxUnavailable("O Job não confirmou o limite obrigatório de CPU.")
 
     @staticmethod
     def check(result, operation):
@@ -476,11 +507,12 @@ def run_lpac(
     memory_mib=256,
     cancelled=lambda: False,
     output_limit=65536,
+    cpu_percent=25,
+    process_limit=4,
     diagnostic_registry_read=False,
 ):
     """Launch suspended, verify token/job, then resume. No fallback is allowed."""
-    if not 1 <= timeout <= 300 or not 64 <= memory_mib <= 512:
-        raise ValueError("Limites inválidos de tempo/memória.")
+    validate_limits(timeout, memory_mib, output_limit, cpu_percent, process_limit)
     import win32job
 
     api = container.api
@@ -496,10 +528,11 @@ def run_lpac(
     try:
         limits = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
         limits["BasicLimitInformation"]["LimitFlags"] = 0x2000 | 0x200 | 0x100 | 0x8 | 0x4
-        limits["BasicLimitInformation"]["ActiveProcessLimit"] = 4
+        limits["BasicLimitInformation"]["ActiveProcessLimit"] = process_limit
         limits["BasicLimitInformation"]["PerJobUserTimeLimit"] = int(timeout * 10_000_000)
         limits["ProcessMemoryLimit"] = limits["JobMemoryLimit"] = memory_mib * 1048576
         win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation, limits)
+        api.limit_cpu(job, cpu_percent)
         win32job.SetInformationJobObject(
             job, win32job.JobObjectBasicUIRestrictions, {"UIRestrictionsClass": 0xFF}
         )
@@ -674,12 +707,17 @@ def run_lpac(
         code = W.DWORD()
         api.check(api.GetExitCodeProcess(process.hProcess, C.byref(code)), "Exit code")
         usage = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
+        accounting = win32job.QueryInformationJobObject(job, win32job.JobObjectBasicAccountingInformation)
         return {
             "state": state,
             "returncode": code.value,
             "output": data[:output_limit].decode("utf-8", errors="replace"),
             "seconds": round(time.monotonic() - started, 3),
             "peak_job_memory": usage["PeakJobMemoryUsed"],
+            "job_user_seconds": accounting["TotalUserTime"] / 10_000_000,
+            "job_kernel_seconds": accounting["TotalKernelTime"] / 10_000_000,
+            "limits": {"timeout": timeout, "memory_mib": memory_mib, "output_bytes": output_limit,
+                       "cpu_percent": cpu_percent, "processes": process_limit},
             "isolation": evidence,
             "pid": process.dwProcessId,
         }

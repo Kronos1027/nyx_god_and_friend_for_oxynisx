@@ -217,6 +217,59 @@ def test_output_and_memory_are_bounded(sandbox):
     assert memory["peak_job_memory"] <= 64 * 1048576
 
 
+def test_cpu_hard_cap_reduces_real_busy_loop(sandbox, record_property):
+    run, *_ = sandbox
+    cpus = os.cpu_count() or 1
+    if cpus > 32:
+        pytest.skip("Single busy-loop measurement requires <=32 logical CPUs")
+    result = run("""
+import time, json
+started = time.monotonic()
+cpu = time.process_time()
+iterations = 0
+while time.monotonic() - started < 1.5:
+    iterations += 1
+print(json.dumps({'cpu': time.process_time()-cpu, 'wall': time.monotonic()-started,
+                  'iterations': iterations}))
+""", cpu_percent=1, timeout=10)
+    measured = result_json(result)
+    assert measured["iterations"] > 0
+    assert measured["cpu"] < measured["wall"] * cpus * 0.01 * 1.8 + 0.05, measured
+    assert result["limits"]["cpu_percent"] == 1
+    assert result["job_user_seconds"] + result["job_kernel_seconds"] > 0
+    record_property("cpu_cap_measurement", json.dumps({"logical_cpus": cpus, **measured}))
+
+
+def test_concurrent_process_limit_and_breakaway_denied(sandbox):
+    run, *_ = sandbox
+    result = run("""
+import subprocess, sys, json
+children, errors = [], []
+for index in range(6):
+    try:
+        child = subprocess.Popen([sys.executable, '-I', '-S', '-c', 'import time; time.sleep(3)'])
+        children.append(child.pid)
+    except OSError as error:
+        errors.append(error.winerror)
+print(json.dumps({'children': children, 'errors': errors}), flush=True)
+""", process_limit=2)
+    measured = result_json(result)
+    assert len(measured["children"]) == 1, measured
+    assert len(measured["errors"]) == 5, measured
+    assert result["limits"]["processes"] == 2
+    escaped = run("""
+import subprocess, sys, json
+try:
+    child = subprocess.Popen([sys.executable, '-I', '-S', '-c', 'pass'], creationflags=0x01000000)
+    child.wait(timeout=2)
+    result = {'escaped': True}
+except OSError as error:
+    result = {'escaped': False, 'error': error.winerror}
+print(json.dumps(result))
+""")
+    assert result_json(escaped) == {"escaped": False, "error": 5}
+
+
 def test_child_process_does_not_survive_root_exit(sandbox):
     import _winapi
 

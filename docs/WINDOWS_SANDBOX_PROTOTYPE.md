@@ -100,14 +100,44 @@ Isso prova os casos ensaiados, não a inacessibilidade de todo objeto do sistema
 
 ## Trabalho obrigatório antes da integração
 
+### Limites adicionais verificados em 24/10/2026
+
+O launcher aplica `JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | HARD_CAP` antes de criar
+o processo e consulta o Job para confirmar os valores. Falha de configuração ou
+divergência bloqueia a execução. O padrão é 25%, configurável entre 1% e 50%.
+Esse percentual representa a parcela de CPU do Job e seus descendentes; em
+hierarquia de Jobs com controle de CPU, é relativo ao limite do pai. Não é
+limite global dos aplicativos do usuário nem do Ollama. Referência:
+[controle de CPU do Job](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_cpu_rate_control_information).
+
+Tempo aceita valores finitos de 1–300 segundos. Memória exige inteiro de
+64–512 MiB, saída de 1 byte a 1 MiB e processos simultâneos de 1–4, contando
+o processo principal. Booleanos, NaN, infinito e tipos inadequados são recusados
+antes de qualquer acesso ao container. O resultado informa limites solicitados,
+tempo acumulado de CPU em modo usuário/kernel e pico de memória do Job.
+
+Ensaio real em 16 CPUs lógicas, limite de 1%: loop ativo consumiu **0,1875 s de
+CPU em 1,547 s de relógio**, realizando 1.947.583 iterações. Isso verifica o
+controle no ensaio, não ganho de desempenho da Nyx. Com limite de dois processos,
+um filho foi criado e cinco tentativas adicionais recusadas. Tentativa de criar
+processo com `CREATE_BREAKAWAY_FROM_JOB` retornou acesso negado. Código dos
+ensaios foi executado dentro do LPAC. Relatório:
+`build/sandbox-probes/cpu-process-limits.xml`.
+
+Regressão conjunta com navegador/Windows/LPAC: **656 aprovados, 1 pulado em
+50,65 s**; Ruff aprovado. Relatório `build/sandbox-probes/resource-limits-regression.xml`.
+
+### Pendências
+
 - Quota/limite de escrita em disco, incluindo a área privada do AppContainer.
 - Recuperação de staging/exportação após queda. Perfis LPAC já têm diário e
   recuperação real validada; pastas de projetos ainda não são geridas por ele.
 - Integrar a cópia/exportação limitada de `ProjectSnapshot` ao gerenciador de
   projetos. Proteção de reparses e ensaio multifile já foram validados;
   detalhes em `PROJECT_SNAPSHOTS.md`. Recuperação das pastas ainda falta.
-- Validação de processos concorrentes, escape de Job, limites de CPU/processos,
-  handles, IPC, Win32k em execução e ataques a caminhos/reparse points.
+- Validação ampliada de handles, IPC, Win32k em execução e ataques a caminhos.
+  CPU, concorrência limitada de processos e tentativa explícita de breakaway já
+  têm ensaios reais; isso não comprova resistência a toda forma de escape.
 - Política final de capabilities e comparação contra a fronteira de confiança
   exigida para cada tipo de plugin ou tarefa.
 - Compatibilidade de extensões: `_ctypes` falhou ao importar nesta configuração;
