@@ -2,6 +2,24 @@
 
 Última atualização: 2026-10-25
 
+## Evolution 2.0 — inventário persistente de pacotes inativos
+
+- Pacotes SKILL.md agora podem ser importados para catálogo SQLite protegido,
+  com revisões imutáveis, origem declarada e hashes. Nova importação preserva
+  versões anteriores. Todas as revisões permanecem inativas, sem autorização
+  de execução; listagem lê metadados e inspeção confere os bytes armazenados.
+- Comando `tools/manage_skill_packages.py`: import, list, versions, inspect e
+  export. Ensaios em processos separados preservaram a pasta de origem e
+  conferiram exportação; testes cobrem concorrência, quota e conteúdo adulterado.
+- Primeiro ensaio completo: **1 falha, 706 aprovados, 1 pulado**. Falha identificada
+  na fixture de Windows, que expunha JSON vazio durante regravação do estado.
+  Publicação atômica corrigida no commit `07bfa2a`; 24 testes focados passaram.
+  Relatório inicial preservado: `build/sandbox-probes/package-store-regression.xml`.
+- Regressão final: **707 aprovados, 1 pulado em 55,12 s**, com Windows/navegador/LPAC;
+  Ruff aprovado. `build/sandbox-probes/package-store-regression-after.xml`.
+- UI, avaliação/ativação, permissões por pacote, conexão ao planejador e backup
+  criptografado deste inventário ainda pendentes. Ver `docs/SKILL_PACKAGES.md`.
+
 ## Evolution 2.0 — inspeção de pacotes SKILL.md
 
 - Parser de frontmatter YAML limitado, validação de nomes/metadados, captura de

@@ -193,6 +193,12 @@ scripts/recursos somente como bytes em `ProjectSnapshot`. Exportação inclui ra
 nomeada; leitura textual não executa recursos. Esse componente ainda não habilita
 pacotes no catálogo do runtime. Ver `SKILL_PACKAGES.md`.
 
+`SkillPackageStore` reutiliza os artefatos imutáveis do ProjectStore em diretório
+próprio e grava origem/metadados na mesma transação da revisão. Listagem não lê
+blobs; carga verifica hashes e estrutura. Toda revisão permanece inativa, sem
+capacidade de execução ou ativação exposta. A versão de importação é local e
+independente da versão declarada pelo autor. Ainda sem integração ao BackupVault.
+
 O Estúdio agora possui um catálogo de projetos separado (`ProjectStore`), com
 versões imutáveis de `ProjectSnapshot`, manifesto SHA-256 e limites de espaço.
 `ProjectPanel` executa I/O em QThread e só atualiza widgets na thread da interface;

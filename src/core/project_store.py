@@ -95,15 +95,15 @@ class ProjectStore:
             raise ValueError("Snapshot inválido.")
         manifest = snapshot.manifest()
         if len(snapshot.files) > 512 or manifest["bytes"] > self.VERSION_BYTES:
-            raise ValueError("Versão excede 512 arquivos ou 16 MiB.")
+            raise ValueError(f"Versão excede 512 arquivos ou {self.VERSION_BYTES} bytes.")
         count, number = db.execute(
             "SELECT COUNT(*),COALESCE(MAX(number),0)+1 FROM versions WHERE project=?", (identifier,)
         ).fetchone()
         if count >= self.MAX_VERSIONS:
-            raise ValueError("Projeto atingiu 50 versões; exporte e revise o histórico.")
+            raise ValueError(f"Catálogo atingiu {self.MAX_VERSIONS} versões; exporte e revise o histórico.")
         used = db.execute("SELECT COALESCE(SUM(bytes),0) FROM versions").fetchone()[0]
         if used + manifest["bytes"] > self.MAX_BYTES:
-            raise ValueError("Catálogo atingiu o orçamento de 128 MiB.")
+            raise ValueError(f"Catálogo atingiu o orçamento de {self.MAX_BYTES} bytes.")
         encoded = json.dumps(manifest, ensure_ascii=False)
         if len(encoded.encode("utf-8")) > 1024 * 1024:
             raise ValueError("Manifesto excede 1 MiB.")

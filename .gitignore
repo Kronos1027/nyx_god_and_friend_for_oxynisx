@@ -55,6 +55,7 @@ Thumbs.db
 
 # Build
 /skills/
+data/skill_packages/
 dist/
 build/
 *.spec
