@@ -1,6 +1,21 @@
 # Nyx — estado verificado
 
-Última atualização: 2026-10-24
+Última atualização: 2026-10-25
+
+## Evolution 2.0 — inspeção de pacotes SKILL.md
+
+- Parser de frontmatter YAML limitado, validação de nomes/metadados, captura de
+  arquivos em snapshot e exportação ZIP com raiz nomeada. Scripts são bytes;
+  allowed-tools não concede permissões. PyYAML 6.0.3 já instalado foi explicitado
+  nas dependências; nenhum pacote externo foi baixado/ativado.
+- Comando `tools/inspect_skill_package.py` inspeciona pasta escolhida, informa
+  hashes/exclusões e permite exportar para ZIP novo. Captura e exportação reais
+  no Windows preservaram arquivos e não executaram o script de fixture.
+- **700 testes aprovados, 1 pulado em 64,72 s** com navegador/Windows/LPAC;
+  após ajustes de Unicode e pasta atual, **22 testes focados aprovados** e Ruff
+  limpo. `build/sandbox-probes/skill-package-regression.xml`.
+- Ainda sem armazenamento/ativação desses pacotes no catálogo do runtime.
+  Validação estrutural não é validação funcional. Ver `docs/SKILL_PACKAGES.md`.
 
 ## Evolution 2.0 — consulta de habilidades no runtime
 

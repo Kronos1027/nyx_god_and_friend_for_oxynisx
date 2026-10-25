@@ -89,6 +89,8 @@ Esta seção prevalece sobre a matriz histórica de 21/10 acima.
   list/search/get conectado ao runtime; ações posteriores mantêm confirmações
   normais. Padrão SKILL.md, permissões/ativação específicas, UI e execução de
   scripts continuam pendentes (`SKILL_HISTORY.md`).
+  Parser/captura/exportação de pacotes SKILL.md disponíveis por API e comando de
+  inspeção. Integração ao catálogo e ativação ainda pendentes (`SKILL_PACKAGES.md`).
 - G: laboratório supervisionado e avaliações independentes.
 - H: despacho do Estúdio corrigido para a thread Qt, confirmação de exibição,
   cancelamento e encerramento sem destruir workers ativos. Telemetria do Estúdio

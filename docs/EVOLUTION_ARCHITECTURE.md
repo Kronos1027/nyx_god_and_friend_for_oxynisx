@@ -188,6 +188,11 @@ ações propostas a partir das consultas passam pelo fluxo normal de ferramentas
 Pacotes SKILL.md, ativação por habilidade e execução isolada de scripts estão
 pendentes. Ver `SKILL_HISTORY.md`.
 
+`SkillPackage` valida SKILL.md com loader YAML seguro e limitado, preservando
+scripts/recursos somente como bytes em `ProjectSnapshot`. Exportação inclui raiz
+nomeada; leitura textual não executa recursos. Esse componente ainda não habilita
+pacotes no catálogo do runtime. Ver `SKILL_PACKAGES.md`.
+
 O Estúdio agora possui um catálogo de projetos separado (`ProjectStore`), com
 versões imutáveis de `ProjectSnapshot`, manifesto SHA-256 e limites de espaço.
 `ProjectPanel` executa I/O em QThread e só atualiza widgets na thread da interface;
