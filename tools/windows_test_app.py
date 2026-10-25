@@ -1,6 +1,7 @@
 """Owned native fixture for opt-in Windows acceptance tests; no personal data."""
 import argparse
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -35,12 +36,21 @@ def main():
     for _ in range(2):
         layout.addWidget(QPushButton("Duplicate fixture"))
     state = {"clicks": 0}
-    def persist():
+    def persist(retry=0):
         state["hwnd"] = int(window.winId())
         state["platform"] = app.platformName()
         state["visible"] = window.isVisible()
         state["geometry"] = [window.x(), window.y(), window.width(), window.height()]
-        args.state.write_text(json.dumps(state, ensure_ascii=False), encoding="utf-8")
+        pending = args.state.with_suffix(".pending")
+        pending.write_text(json.dumps(state, ensure_ascii=False), encoding="utf-8")
+        try:
+            os.replace(pending, args.state)
+        except PermissionError:
+            # A Windows reader may briefly hold the old file without delete-sharing.
+            # Keep its complete state visible and retry without blocking Qt.
+            if retry >= 20:
+                raise
+            QTimer.singleShot(10, lambda: persist(retry + 1))
     def clicked():
         state.update(text=edit.text(), clicks=state["clicks"] + 1)
         result.setText("Result: " + edit.text())
