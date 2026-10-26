@@ -1,5 +1,10 @@
 # Nyx — rota para uma quase-AGI (estado e prioridades)
 
+MCP, atualização de 25/10/2026: política corrigida com negação por padrão,
+configuração imutável e confirmação obrigatória. Inicialização legada de processos
+no host bloqueada. Transporte isolado, SDK, UI e aceitação T9 ainda pendentes;
+ver `docs/MCP_STATUS.md`.
+
 > A matriz inicial abaixo é histórica. Para o estado de 23/10/2026, consulte
 > **Evolution 2.0 — acompanhamento** ao final e `STATUS.md`. Em particular,
 > execução de código não confiável permanece bloqueada sem sandbox real.

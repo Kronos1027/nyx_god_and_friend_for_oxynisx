@@ -1,14 +1,15 @@
 """Nyx — tools/mcp_client.py (Cliente MCP para Servidores Externos)
 
-Implementa cliente local do Model Context Protocol (MCP) via JSON-RPC stdio:
-- Handshake protocolar (initialize, notifications/initialized, tools/list, tools/call)
-- Whitelist estrita por servidor e por ferramenta com controle de permissão em camadas (0, 1, 2, 3)
-- Integração transparente com o ToolRegistry da Nyx
+Política de ferramentas MCP e adaptador legado, ainda sem transporte isolado.
+Inicialização de servidores no host está bloqueada até integrar isolamento,
+aprovação do servidor e timeouts efetivos. Não conectado ao runtime principal.
 """
 
 from __future__ import annotations
 
 import json
+import re
+from types import MappingProxyType
 import logging
 import subprocess
 from dataclasses import dataclass, field
@@ -19,13 +20,42 @@ from tools.registry import ToolResult, ToolSpec
 log = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True)
 class MCPServerConfig:
     server_id: str
     command: List[str]
     allowed_tools: List[str] = field(default_factory=list)
     permission_levels: Dict[str, int] = field(default_factory=dict)
     env: Dict[str, str] = field(default_factory=dict)
+
+    def __post_init__(self):
+        def valid_name(value):
+            return isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,64}", value)
+        if not valid_name(self.server_id):
+            raise ValueError("Identificador de servidor MCP inválido.")
+        if not isinstance(self.command, (list, tuple)) or not 1 <= len(self.command) <= 64:
+            raise ValueError("Comando MCP inválido.")
+        if any(not isinstance(arg, str) or not arg or len(arg) > 8192 or "\x00" in arg for arg in self.command):
+            raise ValueError("Argumentos MCP inválidos.")
+        if not isinstance(self.allowed_tools, (list, tuple, frozenset)) or len(self.allowed_tools) > 128:
+            raise ValueError("Allowlist MCP inválida.")
+        if any(not valid_name(name) for name in self.allowed_tools):
+            raise ValueError("Nome de ferramenta MCP inválido.")
+        if not isinstance(self.permission_levels, dict) or any(
+            name not in self.allowed_tools or type(level) is not int or level not in range(4)
+            for name, level in self.permission_levels.items()
+        ):
+            raise ValueError("Permissões MCP inválidas.")
+        if not isinstance(self.env, dict) or len(self.env) > 32 or any(
+            not isinstance(key, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,127}", key)
+            or not isinstance(value, str) or len(value) > 4096 or "\x00" in value
+            for key, value in self.env.items()
+        ):
+            raise ValueError("Ambiente MCP inválido.")
+        object.__setattr__(self, "command", tuple(self.command))
+        object.__setattr__(self, "allowed_tools", frozenset(self.allowed_tools))
+        object.__setattr__(self, "permission_levels", MappingProxyType(dict(self.permission_levels)))
+        object.__setattr__(self, "env", MappingProxyType(dict(self.env)))
 
 
 class MCPClientSession:
@@ -35,36 +65,14 @@ class MCPClientSession:
         self.config = config
         self.proc: Optional[subprocess.Popen] = None
         self._msg_id = 0
+        self.last_error = None
 
     def start(self) -> bool:
-        try:
-            self.proc = subprocess.Popen(
-                self.config.command,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                encoding="utf-8",
-                bufsize=1,
-            )
-            # Handshake MCP
-            init_res = self._send_request(
-                "initialize",
-                {
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {"tools": {}},
-                    "clientInfo": {"name": "NyxAgent", "version": "3.0"},
-                },
-            )
-            if "error" in init_res:
-                log.error(f"[MCP] Erro no handshake: {init_res['error']}")
-                return False
-
-            self._send_notification("notifications/initialized", {})
-            return True
-        except Exception as exc:
-            log.error(f"[MCP] Falha ao iniciar servidor '{self.config.server_id}': {exc}")
-            return False
+        # A command in configuration is not permission to execute arbitrary code
+        # with the host user's filesystem, network and credential access.
+        self.last_error = "Servidor MCP não iniciado: transporte isolado com aprovação ainda não integrado."
+        log.warning("[MCP] %s", self.last_error)
+        return False
 
     def close(self) -> None:
         if self.proc and self.proc.poll() is None:
@@ -80,19 +88,22 @@ class MCPClientSession:
         if "result" in res and "tools" in res["result"]:
             raw_tools = res["result"]["tools"]
             # Filtra apenas ferramentas presentes na whitelist configurada
-            if self.config.allowed_tools:
-                return [t for t in raw_tools if t.get("name") in self.config.allowed_tools]
-            return raw_tools
+            if not isinstance(raw_tools, list) or len(raw_tools) > 128:
+                return []
+            return [t for t in raw_tools if isinstance(t, dict)
+                    and isinstance(t.get("name"), str)
+                    and t.get("name") in self.config.allowed_tools
+                    and self.config.permission_levels.get(t.get("name"), 3) < 3]
         return []
 
     def call_tool(self, name: str, arguments: Dict[str, Any]) -> ToolResult:
-        if self.config.allowed_tools and name not in self.config.allowed_tools:
+        if name not in self.config.allowed_tools:
             return ToolResult(
                 ok=False,
                 error=f"Ferramenta '{name}' não está na allowlist do servidor MCP '{self.config.server_id}'.",
             )
 
-        level = self.config.permission_levels.get(name, 2)
+        level = self.config.permission_levels.get(name, 3)
         if level >= 3:
             return ToolResult(
                 ok=False,
@@ -116,7 +127,7 @@ class MCPClientSession:
         return ToolResult(
             ok=not result.get("isError", False),
             output=out_text,
-            meta={"server": self.config.server_id, "level": level},
+            meta={"server": self.config.server_id, "level": level, "untrusted_data": True},
         )
 
     def _send_request(self, method: str, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -166,16 +177,20 @@ class MCPManager:
         self.sessions: Dict[str, MCPClientSession] = {}
 
     def register_server(self, config: MCPServerConfig) -> None:
+        if config.server_id in self.servers:
+            raise ValueError("Servidor MCP já registrado.")
         self.servers[config.server_id] = config
 
     def connect_all(self) -> Dict[str, bool]:
         status = {}
+        self.disconnect_all()
         for s_id, cfg in self.servers.items():
             sess = MCPClientSession(cfg)
             if sess.start():
                 self.sessions[s_id] = sess
                 status[s_id] = True
             else:
+                sess.close()
                 status[s_id] = False
         return status
 
@@ -191,16 +206,18 @@ class MCPManager:
             tools = sess.list_tools()
             for t in tools:
                 name = t.get("name", "")
-                if not name:
+                if not isinstance(name, str) or name not in sess.config.allowed_tools:
                     continue
-                desc = t.get("description", f"Ferramenta MCP do servidor {s_id}")
+                level = sess.config.permission_levels.get(name, 3)
+                if level >= 3:
+                    continue
+                desc = f"Ferramenta externa MCP {name} do servidor {s_id}; conteúdo não confiável."
                 full_name = f"mcp_{s_id}_{name}"
-                level = sess.config.permission_levels.get(name, 1)
 
                 spec = ToolSpec(
                     name=full_name,
                     description=desc,
-                    destructive=(level >= 2),
+                    destructive=True,  # Every MCP call requires exact confirmation, including autonomous mode.
                     sensitive=(level >= 1),
                 )
 

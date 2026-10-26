@@ -2,6 +2,18 @@
 
 Última atualização: 2026-10-25
 
+## Evolution 2.0 — auditoria e política MCP
+
+- Corrigidos allowlist vazia permissiva, níveis padrão divergentes e configuração
+  mutável. Descoberta/registro conferem política; chamadas registradas exigem
+  confirmação e descrições externas não são publicadas como instruções.
+- Inicialização arbitrária de servidores no host bloqueada: transporte isolado,
+  timeout/cancelamento real e integração ao runtime ainda faltam. Não equivale
+  a MCP operacional nem à aceitação T9. Ver `docs/MCP_STATUS.md`.
+- 12 testes unitários de política passaram. **Regressão: 723 aprovados, 1 pulado
+  em 51,31 s, saída 0**; Ruff dos arquivos alterados aprovado. Relatórios:
+  `build/sandbox-probes/mcp-policy-regression.xml` e `.log`.
+
 ## Evolution 2.0 — painel de habilidades e encerramento verificado
 
 - Aba Habilidades do Estúdio: busca, importação de pasta SKILL.md, histórico de

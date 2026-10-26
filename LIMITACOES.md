@@ -5,6 +5,11 @@
 O ambiente atual é Windows com RTX 3060. As seções L1–L4 abaixo são histórico
 do desenvolvimento inicial, não descrevem a máquina atual.
 
+- MCP não está conectado ao runtime. O início legado de servidores no host foi
+  bloqueado após auditoria; allowlist e permissões agora negam por padrão. Ainda
+  faltam transporte isolado, timeout/cancelamento real e aceitação T9. Ver
+  `docs/MCP_STATUS.md`; não há integração MCP operacional nesta etapa.
+
 - A aba Habilidades importa, versiona, inspeciona e exporta pacotes SKILL.md,
   mas ainda não avalia nem ativa suas instruções/scripts no runtime. Origem é
   declarada, não autenticada; hash detecta alteração, não garante confiabilidade.
