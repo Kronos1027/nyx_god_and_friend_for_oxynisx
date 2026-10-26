@@ -6,6 +6,7 @@
 # Ambientes virtuais
 venv/
 .venv/
+.local-deps/
 env/
 
 # Cache Python
