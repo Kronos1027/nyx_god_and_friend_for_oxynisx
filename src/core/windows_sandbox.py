@@ -463,6 +463,7 @@ def stop_job(job, exit_code, timeout=5):
     are necessarily signaled. Prevent further spawning, capture each verified
     member, terminate the job, then wait for those handles to become signaled.
     """
+    import pywintypes
     import win32api
     import win32event
     import win32job
@@ -477,7 +478,7 @@ def stop_job(job, exit_code, timeout=5):
         for pid in win32job.QueryInformationJobObject(job, win32job.JobObjectBasicProcessIdList):
             try:
                 handle = win32api.OpenProcess(0x100000 | 0x1000, False, pid)
-            except OSError as error:
+            except (OSError, pywintypes.error) as error:
                 if error.winerror == 87:
                     continue
                 raise
