@@ -11,11 +11,13 @@ import shutil
 import socket
 import sys
 import time
+import threading
 from uuid import uuid4
 
 import pytest
 
 from core.windows_sandbox import profile, run_lpac
+from core.sandbox_channel import SandboxChannel
 
 pytestmark = pytest.mark.skipif(
     os.name != "nt" or os.environ.get("NYX_TEST_SANDBOX") != "1",
@@ -71,6 +73,88 @@ def result_json(result):
     assert result["returncode"] == 0, result
     assert all(result["isolation"].values()), result
     return json.loads(result["output"])
+
+
+def test_interactive_stdin_roundtrips_remain_inside_lpac(sandbox):
+    run, *_ = sandbox
+    channel = SandboxChannel()
+    results, errors = [], []
+
+    def supervise():
+        try:
+            results.append(run("import sys; print('ready',flush=True); "
+                               "exec(\"for line in sys.stdin:\\n print(line.strip().upper(),flush=True)\\n if line.strip() == 'fim': break\")",
+                               channel=channel, timeout=8))
+        except Exception as error:
+            errors.append(error)
+
+    worker = threading.Thread(target=supervise)
+    worker.start()
+    try:
+        received = bytearray()
+        for expected, message in ((b"ready\n", b"ola\n"), (b"OLA\n", b"fim\n"), (b"FIM\n", None)):
+            deadline = time.monotonic() + 5
+            while expected not in received.replace(b"\r", b"") and time.monotonic() < deadline:
+                import queue
+                try:
+                    received.extend(channel.receive(0.1))
+                except queue.Empty:
+                    if errors:
+                        raise errors[0] from None
+            assert expected in received.replace(b"\r", b""), (received, errors)
+            if message:
+                channel.send(message)
+    finally:
+        worker.join(12)
+    assert not worker.is_alive() and not errors
+    assert results[0]["returncode"] == 0 and results[0]["state"] == "exited"
+    assert all(results[0]["isolation"].values())
+    assert channel.closed.is_set()
+
+
+def test_nonreading_child_cannot_block_input_cancellation(sandbox):
+    run, *_ = sandbox
+    channel = SandboxChannel()
+    for _ in range(32):
+        channel.send(b"x" * 16384)
+    started = time.monotonic()
+    result = run("import time; time.sleep(30)", channel=channel,
+                 cancelled=lambda: time.monotonic() - started > 0.7, timeout=5)
+    assert result["state"] == "cancelled" and channel.closed.is_set()
+    assert time.monotonic() - started < 4
+
+
+def test_interactive_stderr_is_separate_and_bounded(sandbox):
+    run, *_ = sandbox
+    channel = SandboxChannel()
+    result = run("import sys; print('protocol'); print('diagnostic', file=sys.stderr)", channel=channel)
+    assert result["returncode"] == 0
+    assert result["output"].strip() == "protocol" and result["stderr"].strip() == "diagnostic"
+    assert channel.receive(0).strip() == b"protocol"
+    limited = run("import os; os.write(2, b'x' * 100000)", channel=SandboxChannel(), output_limit=8192)
+    assert limited["state"] == "output_limit"
+    assert len(limited["stderr"]) <= 8192
+
+
+def test_unconsumed_channel_output_stops_child(sandbox):
+    run, *_ = sandbox
+    channel = SandboxChannel()
+    result = run("import os; os.write(1, b'x' * 2000000)", channel=channel, output_limit=1048576)
+    assert result["state"] == "channel_backpressure"
+    assert channel.closed.is_set()
+
+
+def test_interactive_handles_are_released(sandbox):
+    import psutil
+    run, *_ = sandbox
+    process = psutil.Process()
+    baseline = process.num_handles()
+    for _ in range(5):
+        channel = SandboxChannel()
+        channel.send(b"hello\n")
+        result = run("print(input(), flush=True)", channel=channel)
+        assert result["returncode"] == 0 and result["output"].strip() == "hello"
+    assert process.num_handles() <= baseline + 4
 
 
 def test_python_can_compute_and_write_only_own_workspace(sandbox):

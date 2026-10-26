@@ -511,6 +511,7 @@ def run_lpac(
     cpu_percent=25,
     process_limit=4,
     diagnostic_registry_read=False,
+    channel=None,
 ):
     """Launch suspended, verify token/job, then resume. No fallback is allowed."""
     validate_limits(timeout, memory_mib, output_limit, cpu_percent, process_limit)
@@ -524,9 +525,19 @@ def run_lpac(
     capability_sid = C.c_void_p()
     job = win32job.CreateJobObject(None, container.name + ".Job")
     data = bytearray()
+    stderr_data = bytearray()
     started = time.monotonic()
     state = "exited"
+    input_pipe = None
+    channel_claimed = False
     try:
+        if channel is not None:
+            from core.sandbox_channel import OverlappedInput, SandboxChannel
+            if type(channel) is not SandboxChannel:
+                raise ValueError("Canal de sandbox inválido.")
+            channel.claim()
+            channel_claimed = True
+            input_pipe = OverlappedInput()
         limits = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
         limits["BasicLimitInformation"]["LimitFlags"] = 0x2000 | 0x200 | 0x100 | 0x8 | 0x4
         limits["BasicLimitInformation"]["ActiveProcessLimit"] = process_limit
@@ -542,10 +553,19 @@ def run_lpac(
         api.check(api.CreatePipe(C.byref(read), C.byref(write), C.byref(sa), 0), "CreatePipe")
         handles.extend([read.value, write.value])
         api.check(api.SetHandleInformation(read, 1, 0), "Protect read handle")
-        nul = api.CreateFileW("NUL", 0x80000000, 3, C.byref(sa), 3, 0, None)
-        if nul == C.c_void_p(-1).value:
-            raise SandboxUnavailable("Não foi possível criar stdin vazio.")
-        handles.append(nul)
+        stderr_read = stderr_write = None
+        if channel is not None:
+            stderr_read, stderr_write = W.HANDLE(), W.HANDLE()
+            api.check(api.CreatePipe(C.byref(stderr_read), C.byref(stderr_write), C.byref(sa), 0), "Create stderr pipe")
+            handles.extend([stderr_read.value, stderr_write.value])
+            api.check(api.SetHandleInformation(stderr_read, 1, 0), "Protect stderr read handle")
+        if input_pipe is not None:
+            nul = int(input_pipe.reader)
+        else:
+            nul = api.CreateFileW("NUL", 0x80000000, 3, C.byref(sa), 3, 0, None)
+            if nul == C.c_void_p(-1).value:
+                raise SandboxUnavailable("Não foi possível criar stdin vazio.")
+            handles.append(nul)
         count = C.c_size_t()
         api.InitializeProcThreadAttributeList(None, 5, 0, C.byref(count))
         attributes = C.create_string_buffer(count.value)
@@ -571,7 +591,10 @@ def run_lpac(
             capabilities.CapabilityCount = 1
         lpac = W.DWORD(1)
         mitigation = C.c_ulonglong(1 << 28)  # disable Win32k system calls
-        inherited = (W.HANDLE * 2)(write.value, nul)
+        inherited_values = [write.value, nul]
+        if stderr_write is not None:
+            inherited_values.append(stderr_write.value)
+        inherited = (W.HANDLE * len(inherited_values))(*inherited_values)
         assigned_jobs = (W.HANDLE * 1)(int(job))
         for attribute, value in (
             (0x20009, capabilities),
@@ -591,6 +614,8 @@ def run_lpac(
         startup.StartupInfo.dwFlags = 0x100  # explicit stdio handles only
         startup.StartupInfo.hStdInput = nul
         startup.StartupInfo.hStdOutput = startup.StartupInfo.hStdError = write.value
+        if stderr_write is not None:
+            startup.StartupInfo.hStdError = stderr_write.value
         startup.lpAttributeList = C.cast(attributes, C.c_void_p)
         environment = {
             "SystemRoot": os.environ["SystemRoot"],
@@ -623,6 +648,11 @@ def run_lpac(
         )
         api.CloseHandle(write.value)
         handles.remove(write.value)
+        if stderr_write is not None:
+            api.CloseHandle(stderr_write.value)
+            handles.remove(stderr_write.value)
+        if input_pipe is not None:
+            input_pipe.release_parent_reader()
         if not win32job.IsProcessInJob(int(process.hProcess), job):
             raise SandboxUnavailable("O processo não nasceu no Job obrigatório.")
         evidence = api.token_evidence(process.hProcess, container.sid_text, expected_caps)
@@ -667,21 +697,28 @@ def run_lpac(
                 if time.monotonic() - started >= timeout:
                     state = "timed_out"
                     break
-                available = W.DWORD()
-                if (
-                    api.PeekNamedPipe(read, None, 0, None, C.byref(available), None)
-                    and available.value
-                ):
-                    buffer = C.create_string_buffer(min(available.value, 16384))
-                    received = W.DWORD()
-                    api.check(
-                        api.ReadFile(read, buffer, len(buffer), C.byref(received), None),
-                        "Read sandbox output",
-                    )
-                    data.extend(buffer.raw[: received.value])
-                    if len(data) > output_limit:
-                        state = "output_limit"
-                        break
+                if input_pipe is not None:
+                    input_pipe.pump(channel)
+                read_any = False
+                for pipe, target in ((read, data), (stderr_read, stderr_data)):
+                    if pipe is None:
+                        continue
+                    available = W.DWORD()
+                    if api.PeekNamedPipe(pipe, None, 0, None, C.byref(available), None) and available.value:
+                        buffer = C.create_string_buffer(min(available.value, 16384))
+                        received = W.DWORD()
+                        api.check(api.ReadFile(pipe, buffer, len(buffer), C.byref(received), None), "Read sandbox output")
+                        target.extend(buffer.raw[:received.value])
+                        read_any = True
+                        if len(data) + len(stderr_data) > output_limit:
+                            state = "output_limit"
+                            break
+                        if channel is not None and target is data and not channel.deliver(buffer.raw[:received.value]):
+                            state = "channel_backpressure"
+                            break
+                if state in ("output_limit", "channel_backpressure"):
+                    break
+                if read_any:
                     continue
                 if api.WaitForSingleObject(process.hProcess, 25) == 0:
                     break
@@ -689,21 +726,22 @@ def run_lpac(
         api.WaitForSingleObject(process.hProcess, 5000)
         # A short-lived child can exit during WaitForSingleObject, after the
         # preceding PeekNamedPipe. Drain the remaining output after termination.
-        while len(data) <= output_limit:
-            available = W.DWORD()
-            if (
-                not api.PeekNamedPipe(read, None, 0, None, C.byref(available), None)
-                or not available.value
-            ):
-                break
-            buffer = C.create_string_buffer(min(available.value, 16384))
-            received = W.DWORD()
-            api.check(
-                api.ReadFile(read, buffer, len(buffer), C.byref(received), None),
-                "Drain sandbox output",
-            )
-            data.extend(buffer.raw[: received.value])
-        if len(data) > output_limit and state == "exited":
+        for pipe, target in ((read, data), (stderr_read, stderr_data)):
+            if pipe is None:
+                continue
+            while len(data) + len(stderr_data) <= output_limit:
+                available = W.DWORD()
+                if not api.PeekNamedPipe(pipe, None, 0, None, C.byref(available), None) or not available.value:
+                    break
+                buffer = C.create_string_buffer(min(available.value, 16384))
+                received = W.DWORD()
+                api.check(api.ReadFile(pipe, buffer, len(buffer), C.byref(received), None), "Drain sandbox output")
+                target.extend(buffer.raw[:received.value])
+                if channel is not None and target is data and len(data) + len(stderr_data) <= output_limit:
+                    if not channel.deliver(buffer.raw[:received.value]):
+                        state = "channel_backpressure"
+                        break
+        if len(data) + len(stderr_data) > output_limit and state == "exited":
             state = "output_limit"
         code = W.DWORD()
         api.check(api.GetExitCodeProcess(process.hProcess, C.byref(code)), "Exit code")
@@ -713,6 +751,7 @@ def run_lpac(
             "state": state,
             "returncode": code.value,
             "output": data[:output_limit].decode("utf-8", errors="replace"),
+            "stderr": stderr_data[:max(0, output_limit - len(data))].decode("utf-8", errors="replace"),
             "seconds": round(time.monotonic() - started, 3),
             "peak_job_memory": usage["PeakJobMemoryUsed"],
             "job_user_seconds": accounting["TotalUserTime"] / 10_000_000,
@@ -739,3 +778,9 @@ def run_lpac(
                 api.DeleteProcThreadAttributeList(attributes)
             if capability_sid:
                 api.LocalFree(capability_sid)
+            try:
+                if input_pipe is not None:
+                    input_pipe.close()
+            finally:
+                if channel_claimed:
+                    channel.finish()

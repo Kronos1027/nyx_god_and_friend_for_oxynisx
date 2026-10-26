@@ -33,7 +33,9 @@ Ainda necessários: transporte interativo isolado com stdin/stdout limitados,
 deadline/cancelamento, correlação de IDs, notificações e encerramento da árvore;
 servidor próprio real de ensaio; inventário/aprovação na UI; restrições de rede e
 localhost; credenciais seguras; integração com planejador e configuração persistente.
-O LPAC atual usa stdin NUL: não basta substituir Popen para conectá-lo ao MCP.
+O protótipo LPAC ganhou entrada interativa limitada e stdout/stderr separados;
+ver `SANDBOX_CHANNEL.md`. Ainda falta conectá-lo ao protocolo/cliente MCP. O
+modo sem canal continua usando stdin NUL; não basta substituir Popen.
 
 O SDK Python MCP não está instalado. Avaliar sua adoção junto do transporte:
 seu subprocesso padrão não substitui sandbox. O adaptador legado permanece sem

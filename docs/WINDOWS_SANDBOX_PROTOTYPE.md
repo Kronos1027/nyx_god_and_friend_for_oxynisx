@@ -152,6 +152,11 @@ demonstram uma política de negar todo acesso fora do workspace sem exceções.
 
 ## Fontes primárias consultadas
 
+O protótipo também dispõe de canal interativo limitado, com stdin overlapped e
+stdout/stderr separados. Ensaios reais verificam troca de mensagens, cancelamento
+de escritor pendente, backpressure e liberação de handles; `SANDBOX_CHANNEL.md`.
+Esse canal ainda não está conectado ao cliente MCP ou ao runtime principal.
+
 - [AppContainer e LPAC](https://learn.microsoft.com/en-us/windows/win32/secauthz/implementing-an-appcontainer)
 - [Launcher de referência da Microsoft](https://github.com/microsoft/SandboxSecurityTools/tree/main/LaunchAppContainer)
 - [Job Objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects)

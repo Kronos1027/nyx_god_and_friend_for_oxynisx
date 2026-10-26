@@ -1,5 +1,13 @@
 # Nyx adaptativa: arquitetura e evidências
 
+## Evolution 2.0: transporte interativo isolado
+
+O supervisor LPAC aceita SandboxChannel de uso único, com filas limitadas,
+stdin overlapped e stdout/stderr separados. Token/capabilities/Job são verificados
+antes de iniciar o candidato; cancelamento, limites e limpeza continuam no
+supervisor. Não existe execução alternativa no host. Ensaios Windows e regressão
+estão em `SANDBOX_CHANNEL.md`; o cliente MCP ainda precisa integrar esse canal.
+
 ## Evolution 2.0: snapshots de projetos
 
 `ProjectSnapshot` captura bytes sob limites, produz manifesto SHA-256 e materializa

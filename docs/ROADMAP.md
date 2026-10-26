@@ -5,6 +5,10 @@ configuração imutável e confirmação obrigatória. Inicialização legada de
 no host bloqueada. Transporte isolado, SDK, UI e aceitação T9 ainda pendentes;
 ver `docs/MCP_STATUS.md`.
 
+O protótipo LPAC já oferece um canal interativo limitado para essa integração:
+trocas reais de stdin/stdout, stderr separado, cancelamento e backpressure
+foram exercitados. O protocolo MCP ainda não utiliza esse canal.
+
 > A matriz inicial abaixo é histórica. Para o estado de 23/10/2026, consulte
 > **Evolution 2.0 — acompanhamento** ao final e `STATUS.md`. Em particular,
 > execução de código não confiável permanece bloqueada sem sandbox real.

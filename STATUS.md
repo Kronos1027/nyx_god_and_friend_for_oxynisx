@@ -2,6 +2,20 @@
 
 Última atualização: 2026-10-25
 
+## Evolution 2.0 — canal interativo LPAC
+
+- SandboxChannel permite entrada incremental limitada e recepção de stdout;
+  stderr é separado e conta no limite agregado de saída. Named pipe overlapped
+  mantém o supervisor disponível quando o candidato não lê stdin. Filas e bytes
+  totais são limitados; backpressure encerra o job.
+- Ensaios reais: trocas sequenciais de mensagens dentro do LPAC, cancelamento
+  de candidato sem leitura, stderr separado/limitado, consumidor parado e
+  liberação de handles em execuções repetidas. Pipe fechado também foi testado.
+- **732 testes aprovados, 1 pulado em 51,96 s, saída 0**; Ruff dos arquivos
+  alterados aprovado. `build/sandbox-probes/channel-final.xml` e `.log`.
+- Cliente MCP ainda não usa esse canal; handshake, chamadas, timeouts por
+  requisição e aceitação T9 continuam pendentes. Ver `docs/SANDBOX_CHANNEL.md`.
+
 ## Evolution 2.0 — auditoria e política MCP
 
 - Corrigidos allowlist vazia permissiva, níveis padrão divergentes e configuração
