@@ -26,7 +26,8 @@ def main():
         threading.Event().wait(0.3)
         completed.set()
 
-    window.projects_panel.start(operation, lambda _: None)
+    panel = window.packages_panel if len(sys.argv) > 2 and sys.argv[2] == "packages" else window.projects_panel
+    panel.start(operation, lambda _: None)
     timer = QTimer()
     timer.setInterval(10)
     timer.timeout.connect(lambda: ticks.append(True))
@@ -37,8 +38,8 @@ def main():
     QTimer.singleShot(3000, app.exit)  # fixture guard; normal quit must occur first
     app.exec()
     assert completed.is_set()
-    assert window.projects_panel.job is None
-    assert window.projects_panel.cancelled.is_set()
+    assert panel.job is None
+    assert panel.cancelled.is_set()
     assert len(ticks) >= 2 and rejected == [True]
     print("shutdown waited; GUI responsive; late display rejected")
 

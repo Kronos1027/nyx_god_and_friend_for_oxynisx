@@ -199,6 +199,11 @@ blobs; carga verifica hashes e estrutura. Toda revisão permanece inativa, sem
 capacidade de execução ou ativação exposta. A versão de importação é local e
 independente da versão declarada pelo autor. Ainda sem integração ao BackupVault.
 
+`SkillPackagePanel`, na aba Habilidades do Estúdio, consulta esse inventário com
+worker Qt e prévia textual. O ciclo de vida do Estúdio acompanha ambos os painéis
+de arquivo, evitando destruir workers de pacotes durante fechamento/saída.
+A interface mostra estado inativo; não transforma validação estrutural em aprovação.
+
 O Estúdio agora possui um catálogo de projetos separado (`ProjectStore`), com
 versões imutáveis de `ProjectSnapshot`, manifesto SHA-256 e limites de espaço.
 `ProjectPanel` executa I/O em QThread e só atualiza widgets na thread da interface;

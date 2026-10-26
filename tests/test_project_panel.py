@@ -3,7 +3,7 @@ import time
 import zipfile
 
 import pytest
-from PyQt6.QtWidgets import QApplication, QFileDialog
+from PyQt6.QtWidgets import QFileDialog
 
 from ui.workspace_window import WorkspaceWindow
 
@@ -11,8 +11,8 @@ pytestmark = pytest.mark.skipif(os.name != "nt", reason="Windows file snapshot U
 
 
 @pytest.fixture
-def studio(tmp_path):
-    app = QApplication.instance() or QApplication([])
+def studio(tmp_path, qapp):
+    app = qapp
     window = WorkspaceWindow(project_directory=tmp_path / "catalog")
     yield app, window
     await_job(app, window.projects_panel)

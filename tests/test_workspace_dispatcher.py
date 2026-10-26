@@ -7,7 +7,6 @@ import time
 
 import pytest
 from PyQt6.QtCore import QThread, QTimer
-from PyQt6.QtWidgets import QApplication
 
 from core.operation_control import OperationControl, operation_scope
 from tools.registry import ToolResult
@@ -16,8 +15,8 @@ from ui.workspace_window import WorkspaceWindow
 
 
 @pytest.fixture
-def ui(tmp_path, monkeypatch):
-    app = QApplication.instance() or QApplication([])
+def ui(tmp_path, monkeypatch, qapp):
+    app = qapp
     window = WorkspaceWindow(project_directory=tmp_path / "catalog")
     monkeypatch.setattr(WorkspaceWindow, "_instance", window)
     yield app, window
@@ -153,9 +152,10 @@ def test_headless_process_returns_failure_without_creating_application():
     assert "headless rejected" in completed.stdout
 
 
-def test_application_quit_waits_for_studio_worker_in_real_process(tmp_path):
+@pytest.mark.parametrize("kind", ["projects", "packages"])
+def test_application_quit_waits_for_studio_worker_in_real_process(tmp_path, kind):
     completed = subprocess.run(
-        [sys.executable, "tools/studio_shutdown_fixture.py", str(tmp_path)],
+        [sys.executable, "tools/studio_shutdown_fixture.py", str(tmp_path), kind],
         capture_output=True, text=True, timeout=10,
     )
     assert completed.returncode == 0, completed.stdout + completed.stderr

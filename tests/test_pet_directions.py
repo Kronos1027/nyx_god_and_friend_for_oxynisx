@@ -1,5 +1,4 @@
 import pytest
-from PyQt6.QtWidgets import QApplication
 from ui.sprite_renderer import SpriteRenderer
 
 
@@ -8,8 +7,8 @@ def test_source_direction_semantics(dx, dy, expected):
     assert SpriteRenderer.direction_index(dx, dy) == expected
 
 
-def test_extended_atlas_and_bounded_direction_cache():
-    app = QApplication.instance() or QApplication([])
+def test_extended_atlas_and_bounded_direction_cache(qapp):
+    app = qapp
     renderer = SpriteRenderer(scale=3)
     assert renderer._atlas.size().width() == 1536
     assert renderer._atlas.size().height() == 2288

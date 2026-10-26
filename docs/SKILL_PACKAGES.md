@@ -60,7 +60,7 @@ Regressão: **700 aprovados, 1 pulado em 64,72 s**, com navegador/Windows/LPAC
 habilitados, em `build/sandbox-probes/skill-package-regression.xml`. Após ajustes
 de Unicode e caminho da pasta atual, **22 testes focados aprovados**, Ruff limpo.
 
-Ainda faltam interface, ativação após avaliação independente, permissões específicas,
+Ainda faltam ativação após avaliação independente, permissões específicas,
 execução isolada de scripts e importação ZIP. Nenhum pacote externo foi baixado
 ou instalado durante esta entrega; PyYAML 6.0.3 já estava no ambiente.
 
@@ -106,8 +106,41 @@ em processos separados com arquivos temporários próprios, mantendo fonte intac
 
 O inventário ainda não entra no BackupVault criptografado. ZIP exporta uma revisão,
 não o histórico e suas origens. Pacotes inativos não ficam disponíveis como
-instruções ao planejador por esse armazenamento; a integração de revisão/ativação
+instruções ao planejador por esse armazenamento; a integração de avaliação/ativação
 e permissões será uma etapa própria.
+
+## Aba Habilidades no Estúdio
+
+A aba permite buscar por nome/descrição, importar pasta com SKILL.md, selecionar
+revisão, inspecionar arquivos e exportar a revisão selecionada para ZIP novo.
+Importar novamente o mesmo nome cria outra revisão. Mostra descrição, origem
+declarada, hash, estado inativo e ausência de testes funcionais. Não oferece
+botão de ativação enquanto o fluxo de avaliação/permissão não estiver integrado.
+
+As operações de banco/arquivo rodam em worker, com um trabalho por painel;
+controles ficam indisponíveis durante a operação. A captura respeita cancelamento
+cooperativo. Fechamento e saída da aplicação aguardam os workers de projetos,
+pacotes e telemetria, mantendo o loop Qt ativo durante essa espera.
+
+Prévia é somente texto, limitada a 16.000 caracteres. HTML/Markdown não são
+renderizados e scripts não são importados/executados. Binários mostram tamanho.
+Trocar a seleção limpa a prévia antiga antes da carga; falha de integridade mantém
+exportação bloqueada. Nenhum pacote é disponibilizado ao modelo pela simples
+abertura desta aba. A criação do banco ocorre ao consultar/importar, não durante
+a construção da janela.
+
+Testes Qt exercitam importação de duas versões, consulta da primeira, busca,
+exportação e bloqueio por corrupção. Fixture de I/O controlado confere timer da
+GUI e fechamento seguro; processo separado verifica a saída durante worker de
+pacotes. Prévia revisada em `build/previews/skill-packages.png`. Esses testes não
+substituem avaliação funcional de uma habilidade ou benchmark prolongado.
+
+Regressão com o painel: **713 aprovados, 1 pulado em 53,08 s, saída 0**; Ruff
+aprovado. `build/sandbox-probes/qt-lifecycle-regression.xml` e `.log`. Ensaios
+anteriores revelaram falha nativa na finalização do PyQt/SIP após as asserções.
+A infraestrutura dos testes passou a possuir uma QApplication por sessão,
+destruída antes da finalização do Python. Uma corrida independente no encerramento
+LPAC também foi corrigida; os registros anteriores permanecem disponíveis.
 
 Regressão do inventário: **707 aprovados, 1 pulado em 55,12 s**; Ruff aprovado,
 em `build/sandbox-probes/package-store-regression-after.xml`. A primeira tentativa

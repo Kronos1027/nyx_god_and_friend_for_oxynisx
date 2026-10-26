@@ -1,26 +1,15 @@
 """Testes para o subsistema de Workspace do Grande Sábio (Nyx)"""
 
-import pytest
-from PyQt6.QtWidgets import QApplication
-import sys
 import time
 
 from tools.workspace_tool import WorkspaceTool
 from ui.workspace_window import WorkspaceWindow
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(sys.argv)
-    return app
-
-
 def test_workspace_window_creation(qapp):
     win = WorkspaceWindow()
     assert win is not None
-    assert win.tabs.count() == 5
+    assert win.tabs.count() == 6
     assert win.tabs.tabText(0) == "💻 Código"
     assert win.tabs.tabText(1) == "📊 Planilha"
     assert win.tabs.tabText(2) == "📜 Relatório"

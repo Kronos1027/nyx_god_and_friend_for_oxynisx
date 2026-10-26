@@ -1,20 +1,8 @@
 """Testes da FASE 3: UI Generativa e WindowManager (O Grande Sábio)"""
 
-from PyQt6.QtWidgets import QApplication
-import pytest
-
 from ui.tokens import THEMES, get_theme, generate_stylesheet
 from ui.window_manager import WindowManager
 from tools.ui_tool import UITool
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    """Garante que a QApplication exista para testes de widgets."""
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication([])
-    return app
 
 
 def test_theme_tokens():

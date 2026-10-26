@@ -2,6 +2,32 @@
 
 Última atualização: 2026-10-25
 
+## Evolution 2.0 — painel de habilidades e encerramento verificado
+
+- Aba Habilidades do Estúdio: busca, importação de pasta SKILL.md, histórico de
+  revisões, prévia textual e exportação ZIP. Exibe origem declarada, hash e estado
+  inativo. Scripts não são executados; avaliação/ativação continuam pendentes.
+  Operações de arquivo/banco rodam fora da thread gráfica e a saída aguarda os
+  workers de projetos, pacotes e telemetria. Prévia: `build/previews/skill-packages.png`.
+- As primeiras regressões do painel terminavam com access violation nativa em
+  `PyQt6/sip`, mesmo após as asserções passarem. Os testes agora compartilham uma
+  QApplication com duração de sessão e destruição explícita antes da finalização
+  do Python. 80 testes focados de GUI passaram com saída 0; os ensaios de saída
+  real em processos separados continuam cobrindo os workers de ambos os painéis.
+- Corrigida uma corrida no encerramento LPAC: `OpenProcess` pode lançar
+  `pywintypes.error(87)` se o PID já terminou. O tratamento anterior de OSError
+  não capturava esse tipo. Somente o PID inexistente é tolerado; acesso negado
+  continua sendo erro. 19 testes focados passaram, incluindo LPAC real.
+- **Regressão: 713 aprovados, 1 pulado em 53,08 s, saída do processo 0**,
+  com Windows/navegador/LPAC; Ruff aprovado. Relatórios:
+  `build/sandbox-probes/qt-lifecycle-regression.xml` e `.log`.
+  Os relatórios das falhas anteriores foram preservados. Há um aviso de
+  depreciação do pacote pynvml, sem falha da suíte.
+- Dependências/caches realocados para `.local-deps` no E; C passou de cerca de
+  300 MB para 3,6 GiB livres na medição final da migração. Python/Qt, Chromium,
+  31 testes de interface e compatibilidade dos 72 pacotes foram verificados.
+  Resíduo antigo do Python em uso foi preservado. Ver `docs/LOCAL_DEPENDENCIES.md`.
+
 ## Evolution 2.0 — inventário persistente de pacotes inativos
 
 - Pacotes SKILL.md agora podem ser importados para catálogo SQLite protegido,

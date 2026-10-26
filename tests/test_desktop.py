@@ -3,7 +3,6 @@ import time
 
 import pytest
 from PyQt6.QtCore import QSettings, Qt
-from PyQt6.QtWidgets import QApplication
 
 from audit.logger import AuditLogger
 from core.agent_loop import AgentLoop
@@ -132,8 +131,8 @@ class SilentVoice:
 
 
 @pytest.fixture
-def desktop(tmp_path, monkeypatch):
-    app = QApplication.instance() or QApplication([])
+def desktop(tmp_path, monkeypatch, qapp):
+    app = qapp
     monkeypatch.setattr("audio.tts.TextToSpeech", SilentVoice)
     registry = ToolRegistry()
     registry.reminder_scheduler = ReminderScheduler(tmp_path / "reminders.db")

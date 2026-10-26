@@ -45,7 +45,7 @@ class WorkspaceWindow(QWidget):
             cls._instance = cls(parent)
         return cls._instance
 
-    def __init__(self, parent: QWidget | None = None, *, project_directory=None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, project_directory=None, package_directory=None) -> None:
         super().__init__(parent, Qt.WindowType.Window)
         self.setWindowTitle("Nyx — Estúdio")
         self.resize(1060, 680)
@@ -81,6 +81,10 @@ class WorkspaceWindow(QWidget):
         from ui.project_panel import ProjectPanel
         self.projects_panel = ProjectPanel(project_directory or user_data_dir() / "data" / "studio", self)
         self.tabs.addTab(self.projects_panel, "Projetos")
+        from ui.skill_package_panel import SkillPackagePanel
+        self.packages_panel = SkillPackagePanel(package_directory or user_data_dir() / "data/skill_packages", self)
+        self.tabs.addTab(self.packages_panel, "Habilidades")
+        self.background_panels = (self.projects_panel, self.packages_panel)
         self.tabs.currentChanged.connect(self._project_tab_changed)
         self._code_title, self._code_language = "Código", "python"
         self.telemetry_job = None
@@ -286,6 +290,8 @@ class WorkspaceWindow(QWidget):
     def _project_tab_changed(self, index):
         if index == 4 and self.projects_panel.projects.count() == 0 and self.projects_panel.job is None:
             self.projects_panel.refresh()
+        if index == 5 and self.packages_panel.packages.count() == 0 and self.packages_panel.job is None:
+            self.packages_panel.refresh()
 
     def _save_code_project(self):
         text = self.txt_code.toPlainText()
@@ -300,9 +306,11 @@ class WorkspaceWindow(QWidget):
             self.lbl_status.setText("Aguarde o término da consulta de telemetria para fechar.")
             event.ignore()
             return
-        if self.projects_panel.job is not None:
-            self.projects_panel.cancelled.set()
-            self.projects_panel.status.setText("Aguarde o término da operação para fechar. Cópia cancelada quando possível.")
+        if any(panel.job is not None for panel in self.background_panels):
+            for panel in self.background_panels:
+                panel.cancelled.set()
+                if panel.job is not None:
+                    panel.status.setText("Aguarde o término da operação para fechar. Cópia cancelada quando possível.")
             event.ignore()
             return
         super().closeEvent(event)

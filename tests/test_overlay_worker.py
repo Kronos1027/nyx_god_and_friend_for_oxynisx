@@ -2,13 +2,11 @@ import threading
 import time
 
 from PyQt6.QtCore import QEventLoop, QThreadPool, QTimer
-from PyQt6.QtWidgets import QApplication
 
 from ui.overlay import _ConfirmationWorker, _PromptWorker
 
 
-def test_prompt_worker_runs_off_the_calling_thread():
-    app = QApplication.instance() or QApplication([])  # noqa: F841
+def test_prompt_worker_runs_off_the_calling_thread(qapp):
     class SlowLoop:
         worker_thread_id = None
 
@@ -34,8 +32,7 @@ def test_prompt_worker_runs_off_the_calling_thread():
     assert loop.worker_thread_id != threading.get_ident()
 
 
-def test_approved_action_runs_off_the_calling_thread():
-    app = QApplication.instance() or QApplication([])  # noqa: F841
+def test_approved_action_runs_off_the_calling_thread(qapp):
 
     class SlowLoop:
         worker_thread_id = None

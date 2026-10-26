@@ -28,7 +28,7 @@ class StudioLifecycle(QObject):
 
     def busy_windows(self):
         return [window for window in self.windows
-                if window.projects_panel.job is not None or window.telemetry_job is not None]
+                if any(panel.job is not None for panel in window.background_panels) or window.telemetry_job is not None]
 
     def eventFilter(self, watched, event):
         if watched is self.app and event.type() == QEvent.Type.Quit:
@@ -36,7 +36,8 @@ class StudioLifecycle(QObject):
             busy = self.busy_windows()
             for window in busy:
                 window.setEnabled(False)
-                window.projects_panel.cancelled.set()
+                for panel in window.background_panels:
+                    panel.cancelled.set()
                 window.lbl_status.setText("Encerrando: aguardando operações do Estúdio…")
             if busy:
                 self.timer.start()

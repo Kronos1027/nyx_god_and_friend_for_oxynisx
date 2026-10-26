@@ -1,9 +1,14 @@
 # LIMITACOES.md — limitações reais, sem contorno silencioso
 
-## Estado atual — Evolution 2.0 (24/10/2026)
+## Estado atual — Evolution 2.0 (25/10/2026)
 
 O ambiente atual é Windows com RTX 3060. As seções L1–L4 abaixo são histórico
 do desenvolvimento inicial, não descrevem a máquina atual.
+
+- A aba Habilidades importa, versiona, inspeciona e exporta pacotes SKILL.md,
+  mas ainda não avalia nem ativa suas instruções/scripts no runtime. Origem é
+  declarada, não autenticada; hash detecta alteração, não garante confiabilidade.
+  A consulta de habilidades legadas no runtime permanece uma capacidade separada.
 
 - Há um protótipo LPAC real, com ensaios de isolamento e recuperação aprovados, ainda sem
   integração ou qualificação para produção. Recuperação dos perfis após queda

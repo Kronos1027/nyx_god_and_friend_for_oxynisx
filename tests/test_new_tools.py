@@ -121,9 +121,7 @@ def test_ui_tool_basic():
     assert not res_scr.ok
 
 
-def test_sprite_renderer_all_emotions():
-    from PyQt6.QtWidgets import QApplication
-    app = QApplication.instance() or QApplication([])  # noqa: F841
+def test_sprite_renderer_all_emotions(qapp):
 
     renderer = SpriteRenderer(scale=2)
     emotions = ["idle", "talk", "think", "surprised", "listening", "error", "sleep"]
