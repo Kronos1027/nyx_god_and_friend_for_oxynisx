@@ -10,6 +10,12 @@ estão em `SANDBOX_CHANNEL.md`. SandboxRPC integra framing, IDs, deadline e
 cancelamento ao cliente MCP 2025-11-25; ensaio de servidor real no LPAC está em
 `MCP_STATUS.md`. Gerência/aprovação e ligação ao runtime principal ainda faltam.
 
+MCPLaunchPlan captura bytes imutáveis e a política revisável; MCPApprovalGate
+consome autorizações breves de uso único antes de materializar/executar no LPAC.
+Fonte original não é relida após aprovação; código é somente leitura e trabalho
+fica em pasta separada. UI e identidade do runtime ainda precisam integração;
+ver `MCP_APPROVAL.md`.
+
 ## Evolution 2.0: snapshots de projetos
 
 `ProjectSnapshot` captura bytes sob limites, produz manifesto SHA-256 e materializa

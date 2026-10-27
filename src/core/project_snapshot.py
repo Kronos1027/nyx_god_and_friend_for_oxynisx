@@ -55,6 +55,7 @@ EXCLUDED = frozenset(
         ".hg",
         ".svn",
         ".venv",
+        ".local-deps",
         "venv",
         "node_modules",
         "__pycache__",

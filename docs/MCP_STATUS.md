@@ -4,6 +4,11 @@ Atualização: 27/10/2026. O cliente aceita SandboxRPC fornecido por um supervis
 LPAC, sem iniciar comandos no host. Sem transporte, start falha; connect_all
 ainda não cria sessões isoladas. Não há conexão ao desktop/CLI.
 
+O supervisor agora dispõe de plano de conteúdo imutável e aprovação local de
+uso único, consumida antes do lançamento. O ensaio executa somente os bytes
+aprovados mesmo após mudar a origem; detalhes em `MCP_APPROVAL.md`. Falta ligar
+essa API à UI e vincular a identidade do runtime, além das pendências abaixo.
+
 - Protocolo suportado: **2025-11-25**. Outra revisão ou ausência de tools é
   recusada. Instruções opcionais do servidor não são promovidas ao planejador.
 - JSON-RPC por linha, UTF-8 estrito, IDs correlacionados, rejeição de chaves

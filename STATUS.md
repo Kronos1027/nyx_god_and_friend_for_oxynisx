@@ -2,6 +2,20 @@
 
 Última atualização: 2026-10-27
 
+## Evolution 2.0 — aprovação de conteúdo MCP
+
+- Plano imutável vincula arquivos capturados, entrada, argumentos, ferramentas
+  e limites a uma revisão com digest. Autorizações locais expiram, podem ser
+  revogadas e são consumidas uma vez; divergência exige nova aprovação.
+- Lançador LPAC materializa somente os bytes revisados, com código somente
+  leitura e pasta de trabalho separada. Ensaio real alterou a origem após
+  aprovar, executou a versão revisada e confirmou recusa de mutação/reutilização.
+- **759 aprovados, 1 pulado em 57,81 s, saída 0; Ruff aprovado**.
+  `build/sandbox-probes/mcp-approval-regression.xml` e `.log`.
+- UI, vínculo de identidade do runtime, cadastro/auditoria persistentes e quota
+  de disco ainda faltam; não há lançamento de servidores disponível ao usuário.
+  Ver `docs/MCP_APPROVAL.md`. `.local-deps` agora é excluída dos snapshots.
+
 ## Evolution 2.0 — MCP sobre canal LPAC
 
 - Cliente MCP 2025-11-25 conectado ao SandboxRPC: framing limitado, IDs,

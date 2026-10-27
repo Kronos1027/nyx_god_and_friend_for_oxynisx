@@ -6,6 +6,10 @@ Inicialização legada de processos no host bloqueada; política nega por padrã
 UI, aprovação vinculada ao lançamento, SDK e aceitação T9 completa ainda pendentes;
 ver `docs/MCP_STATUS.md`.
 
+Plano imutável e autorização de uso único já vinculam conteúdo/permissões ao
+lançamento LPAC nos ensaios. UI, identidade do runtime e persistência/auditoria
+da aprovação ainda faltam; `docs/MCP_APPROVAL.md`.
+
 O protótipo LPAC já oferece um canal interativo limitado para essa integração:
 trocas reais de stdin/stdout, stderr separado, cancelamento e backpressure
 foram exercitados. O cliente MCP agora usa esse canal nos ensaios isolados.
