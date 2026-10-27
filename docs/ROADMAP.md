@@ -7,7 +7,8 @@ UI, aprovação vinculada ao lançamento, SDK e aceitação T9 completa ainda pe
 ver `docs/MCP_STATUS.md`.
 
 Plano imutável e autorização de uso único já vinculam conteúdo/permissões ao
-lançamento LPAC nos ensaios. UI, identidade do runtime e persistência/auditoria
+lançamento LPAC nos ensaios. O runtime Python também é capturado e vinculado à
+revisão por hash; UI, autenticação/distribuição do runtime e persistência/auditoria
 da aprovação ainda faltam; `docs/MCP_APPROVAL.md`.
 
 O protótipo LPAC já oferece um canal interativo limitado para essa integração:

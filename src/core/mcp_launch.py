@@ -10,6 +10,7 @@ import time
 from uuid import uuid4
 
 from core.project_snapshot import ProjectSnapshot, SnapshotLimits, relative_name
+from core.python_runtime_artifact import PythonRuntimeArtifact
 from core.sandbox_journal import protect_directory
 from core.windows_sandbox import run_lpac, validate_limits
 from tools.mcp_client import MCPServerConfig
@@ -22,6 +23,7 @@ class MCPLaunchPlan:
     entrypoint: str
     tool_levels: tuple
     origin: str
+    runtime: PythonRuntimeArtifact
     arguments: tuple = ()
     seconds: int = 60
     memory_mib: int = 256
@@ -30,6 +32,8 @@ class MCPLaunchPlan:
     output_bytes: int = 65536
 
     def __post_init__(self):
+        if type(self.runtime) is not PythonRuntimeArtifact:
+            raise ValueError("A revisão precisa incluir os bytes do runtime Python.")
         if type(self.snapshot) is not ProjectSnapshot:
             raise ValueError("Snapshot MCP inválido.")
         if (not 1 <= len(self.snapshot.files) <= 64
@@ -55,20 +59,21 @@ class MCPLaunchPlan:
         validate_limits(self.seconds, self.memory_mib, self.output_bytes, self.cpu_percent, self.processes)
 
     @classmethod
-    def capture(cls, source, *, server_id, entrypoint, tool_levels, **limits):
+    def capture(cls, source, *, server_id, entrypoint, tool_levels, runtime, **limits):
         source = Path(source).absolute()
         snapshot = ProjectSnapshot.capture(source, limits=SnapshotLimits(
             files=64, entries=1024, bytes=4 * 1024 * 1024, file_bytes=256 * 1024, depth=8))
-        return cls(server_id, snapshot, entrypoint, tuple(sorted(tool_levels.items())), str(source), **limits)
+        return cls(server_id, snapshot, entrypoint, tuple(sorted(tool_levels.items())), str(source), runtime, **limits)
 
     def review(self):
-        value = {"schema": 1, "server_id": self.server_id, "origin_declared": self.origin,
+        value = {"schema": 2, "server_id": self.server_id, "origin_declared": self.origin,
                  "snapshot": self.snapshot.manifest(), "entrypoint": self.entrypoint,
+                 "runtime": self.runtime.review(),
                  "arguments": list(self.arguments), "tool_levels": dict(self.tool_levels),
                  "limits": {"seconds": self.seconds, "memory_mib": self.memory_mib,
                             "cpu_percent": self.cpu_percent, "processes": self.processes,
                             "output_bytes": self.output_bytes},
-                 "execution": {"backend": "windows-lpac-prototype", "runtime": "host-supplied-trusted-python",
+                 "execution": {"backend": "windows-lpac-prototype", "runtime": "approved-immutable-python",
                                "network": False, "capabilities": ["registryRead"],
                                "credentials": False, "host_execution": False}}
         encoded = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
@@ -127,11 +132,11 @@ runpy.run_path(str(entry), run_name='__main__')
 """
 
 
-def run_approved_mcp(container, runtime, staging_parent, plan, gate, token, channel):
+def run_approved_mcp(container, staging_parent, plan, gate, token, channel):
     """Trusted supervisor API; never reads candidate source after approval.
 
-    Caller owns a vetted Python runtime, profile and staging parent. Runtime
-    identity provisioning, persistent recovery and UI integration remain pending.
+    Caller owns the profile and staging parent. Runtime and candidate bytes come
+    only from the reviewed snapshots. Persistent recovery/UI remain pending.
     """
     if type(gate) is not MCPApprovalGate:
         raise TypeError("Gate MCP inválido.")
@@ -139,8 +144,9 @@ def run_approved_mcp(container, runtime, staging_parent, plan, gate, token, chan
     root = Path(staging_parent).absolute() / ("mcp-" + uuid4().hex)
     ProjectSnapshot(()).write_new_directory(root)
     protect_directory(root)
-    source, work = root / "server", root / "work"
+    source, work, runtime = root / "server", root / "work", root / "python"
     plan.snapshot.write_new_directory(source)
+    plan.runtime.snapshot.write_new_directory(runtime)
     ProjectSnapshot(()).write_new_directory(work)
     container.grant(root, root)
     container.grant(root, work, writable=True)

@@ -2,6 +2,20 @@
 
 Última atualização: 2026-10-27
 
+## Evolution 2.0 — runtime vinculado à aprovação MCP
+
+- PythonRuntimeArtifact captura bytes imutáveis do runtime preparado. A revisão
+  v2 inclui seus arquivos/hashes/origem; ausência, alteração e redirecionadores
+  de caminhos são recusados. O lançador não aceita mais caminho externo de Python.
+- Servidor e interpretador são materializados dos snapshots aprovados, somente
+  leitura no LPAC. Ensaio real inicializou esse runtime, executou o servidor e
+  conferiu o hash completo do runtime materializado após encerramento.
+- **762 aprovados, 1 pulado em 57,03 s, saída 0; Ruff aprovado**.
+  `build/sandbox-probes/mcp-runtime-regression.xml` e `.log`.
+- Hash comprova integridade, não autenticidade do fornecedor. Preparação e
+  distribuição do runtime, UI, persistência/auditoria e quota seguem pendentes;
+  `docs/MCP_APPROVAL.md`.
+
 ## Evolution 2.0 — aprovação de conteúdo MCP
 
 - Plano imutável vincula arquivos capturados, entrada, argumentos, ferramentas

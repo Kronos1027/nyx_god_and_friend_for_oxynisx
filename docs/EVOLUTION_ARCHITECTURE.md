@@ -13,7 +13,9 @@ cancelamento ao cliente MCP 2025-11-25; ensaio de servidor real no LPAC está em
 MCPLaunchPlan captura bytes imutáveis e a política revisável; MCPApprovalGate
 consome autorizações breves de uso único antes de materializar/executar no LPAC.
 Fonte original não é relida após aprovação; código é somente leitura e trabalho
-fica em pasta separada. UI e identidade do runtime ainda precisam integração;
+fica em pasta separada. PythonRuntimeArtifact inclui também os bytes do runtime
+na aprovação e materialização, sem caminho externo de interpretador no lançador.
+UI, origem autenticada e provisionamento do runtime ainda precisam integração;
 ver `MCP_APPROVAL.md`.
 
 ## Evolution 2.0: snapshots de projetos

@@ -7,7 +7,9 @@ ainda não cria sessões isoladas. Não há conexão ao desktop/CLI.
 O supervisor agora dispõe de plano de conteúdo imutável e aprovação local de
 uso único, consumida antes do lançamento. O ensaio executa somente os bytes
 aprovados mesmo após mudar a origem; detalhes em `MCP_APPROVAL.md`. Falta ligar
-essa API à UI e vincular a identidade do runtime, além das pendências abaixo.
+essa API à UI, além das pendências abaixo. A revisão agora inclui os bytes e
+hashes do runtime Python, materializado junto do servidor; origem permanece
+declarada, não autenticada.
 
 - Protocolo suportado: **2025-11-25**. Outra revisão ou ausência de tools é
   recusada. Instruções opcionais do servidor não são promovidas ao planejador.

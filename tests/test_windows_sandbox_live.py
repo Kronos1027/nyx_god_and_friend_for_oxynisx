@@ -207,8 +207,10 @@ def test_real_mcp_protocol_and_stopping_in_lpac(sandbox, ending):
 
 
 def test_approved_mcp_uses_reviewed_bytes_and_readonly_source(sandbox, tmp_path):
+    from core.project_snapshot import ProjectSnapshot, SnapshotLimits
     from core.mcp_launch import MCPApprovalGate, MCPLaunchPlan, run_approved_mcp
     from core.sandbox_rpc import SandboxRPC
+    from core.python_runtime_artifact import PythonRuntimeArtifact
     from tools.mcp_client import MCPClientSession
     _, _, runtime, _ = sandbox
     source = tmp_path / "candidate"
@@ -227,24 +229,24 @@ else:
     raise RuntimeError('source was writable')
 """
     (source / "main.py").write_text(prelude + fixture, encoding="utf-8")
-    plan = MCPLaunchPlan.capture(source, server_id="approved", entrypoint="main.py", tool_levels={"echo": 0}, seconds=10)
+    runtime_artifact = PythonRuntimeArtifact.capture(runtime)
+    plan = MCPLaunchPlan.capture(source, server_id="approved", entrypoint="main.py", tool_levels={"echo": 0},
+                                 runtime=runtime_artifact, seconds=10)
     gate = MCPApprovalGate()
     token = gate.approve(plan, plan.review()["approval_digest"])
     (source / "helper.py").write_text("raise RuntimeError('unapproved bytes')\n", encoding="utf-8")
     results, failures = [], []
     channel = SandboxChannel()
     with profile(tmp_path / "approval-journal") as container:
-        container.grant(runtime.parent, runtime)
-
         def supervise():
             try:
-                results.append(run_approved_mcp(container, runtime, tmp_path, plan, gate, token, channel))
+                results.append(run_approved_mcp(container, tmp_path, plan, gate, token, channel))
             except Exception as error:
                 failures.append(error)
 
         worker = threading.Thread(target=supervise)
         worker.start()
-        session = MCPClientSession(plan.client_config(), transport=SandboxRPC(channel, timeout=3))
+        session = MCPClientSession(plan.client_config(), transport=SandboxRPC(channel, timeout=15))
         try:
             assert session.start(), (session.last_error, failures)
             response = session.call_tool("echo", {"reviewed": True})
@@ -255,8 +257,11 @@ else:
         assert not worker.is_alive() and not failures, failures
         assert results[0]["approval_digest"] == plan.review()["approval_digest"]
         assert (Path(results[0]["staging"]) / "work/readonly-proof.txt").read_text() == "denied"
+        staged_runtime = ProjectSnapshot.capture(Path(results[0]["staging"]) / "python", limits=SnapshotLimits(
+            files=2048, entries=16384, bytes=128 * 1024 * 1024, file_bytes=32 * 1024 * 1024, seconds=30))
+        assert staged_runtime.manifest()["sha256"] == runtime_artifact.snapshot.manifest()["sha256"]
         with pytest.raises(PermissionError):
-            run_approved_mcp(container, runtime, tmp_path, plan, gate, token, SandboxChannel())
+            run_approved_mcp(container, tmp_path, plan, gate, token, SandboxChannel())
 
 
 def test_python_can_compute_and_write_only_own_workspace(sandbox):
