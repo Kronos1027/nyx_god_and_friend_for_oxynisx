@@ -15,6 +15,11 @@ class SandboxChannel:
         self._sent = 0
         self._claimed = False
         self.closed = threading.Event()
+        self.started = threading.Event()
+        self.stop_requested = threading.Event()
+
+    def cancel(self):
+        self.stop_requested.set()
 
     def claim(self):
         with self._lock:

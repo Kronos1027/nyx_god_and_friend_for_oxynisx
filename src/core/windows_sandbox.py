@@ -685,13 +685,15 @@ def run_lpac(
             evidence["workspace_rx"] = api.access_allowed(token, path=cwd)
         finally:
             api.CloseHandle(token)
-        if cancelled():
+        if cancelled() or (channel is not None and channel.stop_requested.is_set()):
             state = "cancelled"
         else:
             if api.ResumeThread(process.hThread) == 0xFFFFFFFF:
                 raise SandboxUnavailable("Não foi possível iniciar a thread isolada.")
+            if channel is not None:
+                channel.started.set()
             while True:
-                if cancelled():
+                if cancelled() or (channel is not None and channel.stop_requested.is_set()):
                     state = "cancelled"
                     break
                 if time.monotonic() - started >= timeout:

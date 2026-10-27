@@ -1,6 +1,22 @@
 # Nyx — estado verificado
 
-Última atualização: 2026-10-25
+Última atualização: 2026-10-27
+
+## Evolution 2.0 — MCP sobre canal LPAC
+
+- Cliente MCP 2025-11-25 conectado ao SandboxRPC: framing limitado, IDs,
+  handshake, paginação, deadline, cancelamento e recusa de capacidades do host.
+  Não há criação alternativa de subprocessos no host. Gerência/aprovação na
+  UI e integração ao runtime principal continuam pendentes.
+- Servidor próprio executado dentro do LPAC validou descoberta, echo Unicode,
+  allowlist, sampling negado, timeout e cancelamento. Supervisor encerrou nos
+  três cenários. Falhas após envio preservam resultado incerto, sem replay.
+- O primeiro ensaio teve 745 aprovados/1 falha/1 pulado, por contagem de handles
+  no processo compartilhado com outros subsistemas. Medição isolada manteve 208
+  handles por dez execuções, sem tolerância de crescimento. Relatórios preservados.
+- **747 aprovados, 1 pulado em 72,67 s, saída 0; Ruff aprovado**.
+  `build/sandbox-probes/mcp-isolated-final.xml` e `.log`.
+  Detalhes e pendências T9 em `docs/MCP_STATUS.md`.
 
 ## Evolution 2.0 — canal interativo LPAC
 

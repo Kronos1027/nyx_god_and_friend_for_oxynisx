@@ -144,17 +144,66 @@ def test_unconsumed_channel_output_stops_child(sandbox):
     assert channel.closed.is_set()
 
 
-def test_interactive_handles_are_released(sandbox):
-    import psutil
+def test_interactive_handles_are_released(sandbox, tmp_path, record_property):
+    import subprocess
+    _, _, runtime, workspace = sandbox
+    helper = Path(__file__).resolve().parents[1] / "tools/sandbox_handle_fixture.py"
+    result = subprocess.run([sys.executable, str(helper), str(runtime), str(workspace),
+                             str(tmp_path / "handle-journal")], capture_output=True, text=True,
+                            timeout=30, creationflags=0x08000000)
+    assert result.returncode == 0, result.stdout + result.stderr
+    counts = json.loads(result.stdout)["handle_counts"]
+    record_property("isolated_supervisor_handle_counts", counts)
+    assert len(counts) == 11 and max(counts[1:]) <= counts[0]
+
+
+@pytest.mark.parametrize("ending", ["normal", "timeout", "cancel"])
+def test_real_mcp_protocol_and_stopping_in_lpac(sandbox, ending):
+    from core.sandbox_rpc import SandboxRPC
+    from tools.mcp_client import MCPClientSession, MCPServerConfig
     run, *_ = sandbox
-    process = psutil.Process()
-    baseline = process.num_handles()
-    for _ in range(5):
-        channel = SandboxChannel()
-        channel.send(b"hello\n")
-        result = run("print(input(), flush=True)", channel=channel)
-        assert result["returncode"] == 0 and result["output"].strip() == "hello"
-    assert process.num_handles() <= baseline + 4
+    script = (Path(__file__).resolve().parents[1] / "tools/mcp_test_server.py").read_text(encoding="utf-8")
+    channel = SandboxChannel()
+    cancelled = threading.Event()
+    results, failures = [], []
+
+    def supervise():
+        try:
+            results.append(run(script, channel=channel, timeout=10))
+        except Exception as error:
+            failures.append(error)
+
+    worker = threading.Thread(target=supervise)
+    worker.start()
+    rpc = SandboxRPC(channel, timeout=1.5, cancelled=cancelled.is_set)
+    session = MCPClientSession(MCPServerConfig("fixture", ["not-launched"], ["echo", "hang"],
+                                              {"echo": 0, "hang": 2}), transport=rpc)
+    timer = None
+    try:
+        assert session.start(), (session.last_error, failures)
+        assert [item["name"] for item in session.list_tools()] == ["echo", "hang"]
+        assert not session.call_tool("not_allowed", {}).ok
+        if ending == "normal":
+            response = session.call_tool("echo", {"text": "olá"})
+            assert response.ok and response.meta["untrusted_data"]
+            assert json.loads(response.output) == {"echo": {"text": "olá"}, "sampling_denied": True}
+        else:
+            if ending == "cancel":
+                timer = threading.Timer(0.15, cancelled.set)
+                timer.start()
+            before = time.monotonic()
+            response = session.call_tool("hang", {})
+            assert not response.ok and response.meta["outcome_unknown"]
+            assert time.monotonic() - before < 3
+    finally:
+        session.close()
+        if timer is not None:
+            timer.cancel()
+            timer.join()
+        worker.join(8)
+    assert not worker.is_alive() and not failures, failures
+    assert channel.closed.is_set() and results[0]["state"] == "cancelled"
+    assert all(results[0]["isolation"].values())
 
 
 def test_python_can_compute_and_write_only_own_workspace(sandbox):

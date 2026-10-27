@@ -1,14 +1,16 @@
 # LIMITACOES.md — limitações reais, sem contorno silencioso
 
-## Estado atual — Evolution 2.0 (25/10/2026)
+## Estado atual — Evolution 2.0 (27/10/2026)
 
 O ambiente atual é Windows com RTX 3060. As seções L1–L4 abaixo são histórico
 do desenvolvimento inicial, não descrevem a máquina atual.
 
-- MCP não está conectado ao runtime. O início legado de servidores no host foi
-  bloqueado após auditoria; allowlist e permissões agora negam por padrão. Ainda
-  faltam transporte isolado, timeout/cancelamento real e aceitação T9. Ver
-  `docs/MCP_STATUS.md`; não há integração MCP operacional nesta etapa.
+- MCP não está conectado ao runtime/UI. O cliente já conversa com servidor de
+  ensaio dentro do LPAC, com deadline/cancelamento reais e política de negação
+  por padrão. Faltam gerência persistente, aprovação vinculada ao servidor,
+  credenciais e integração ao planejador; T9 permanece parcial. Não há transporte
+  HTTP, suporte universal de versões ou lançamento alternativo no host.
+  Ver `docs/MCP_STATUS.md`.
 
 - A aba Habilidades importa, versiona, inspeciona e exporta pacotes SKILL.md,
   mas ainda não avalia nem ativa suas instruções/scripts no runtime. Origem é

@@ -6,7 +6,9 @@ O supervisor LPAC aceita SandboxChannel de uso único, com filas limitadas,
 stdin overlapped e stdout/stderr separados. Token/capabilities/Job são verificados
 antes de iniciar o candidato; cancelamento, limites e limpeza continuam no
 supervisor. Não existe execução alternativa no host. Ensaios Windows e regressão
-estão em `SANDBOX_CHANNEL.md`; o cliente MCP ainda precisa integrar esse canal.
+estão em `SANDBOX_CHANNEL.md`. SandboxRPC integra framing, IDs, deadline e
+cancelamento ao cliente MCP 2025-11-25; ensaio de servidor real no LPAC está em
+`MCP_STATUS.md`. Gerência/aprovação e ligação ao runtime principal ainda faltam.
 
 ## Evolution 2.0: snapshots de projetos
 

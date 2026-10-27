@@ -1,8 +1,8 @@
 """Nyx — tools/mcp_client.py (Cliente MCP para Servidores Externos)
 
-Política de ferramentas MCP e adaptador legado, ainda sem transporte isolado.
-Inicialização de servidores no host está bloqueada até integrar isolamento,
-aprovação do servidor e timeouts efetivos. Não conectado ao runtime principal.
+Cliente MCP 2025-11-25 sobre canal LPAC fornecido pelo supervisor.
+Não inicia comandos no host. Gerência/aprovação de servidores e integração ao
+runtime principal ainda pendentes; o fluxo é exercitado por fixture isolada.
 """
 
 from __future__ import annotations
@@ -11,9 +11,8 @@ import json
 import re
 from types import MappingProxyType
 import logging
-import subprocess
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from tools.registry import ToolResult, ToolSpec
 
@@ -61,39 +60,78 @@ class MCPServerConfig:
 class MCPClientSession:
     """Sessão de comunicação JSON-RPC com um servidor MCP em subprocess."""
 
-    def __init__(self, config: MCPServerConfig) -> None:
+    def __init__(self, config: MCPServerConfig, *, transport=None) -> None:
+        from core.sandbox_rpc import SandboxRPC
+        if transport is not None and type(transport) is not SandboxRPC:
+            raise TypeError("MCP requer transporte SandboxRPC.")
         self.config = config
-        self.proc: Optional[subprocess.Popen] = None
-        self._msg_id = 0
+        self.transport = transport
+        self.proc = None  # Compatibility only: this class never starts a host process.
+        self.connected = False
         self.last_error = None
 
     def start(self) -> bool:
-        # A command in configuration is not permission to execute arbitrary code
-        # with the host user's filesystem, network and credential access.
-        self.last_error = "Servidor MCP não iniciado: transporte isolado com aprovação ainda não integrado."
-        log.warning("[MCP] %s", self.last_error)
-        return False
+        if self.connected:
+            return True
+        if self.transport is None:
+            self.last_error = "Servidor MCP não iniciado: transporte isolado com aprovação ainda não integrado."
+            return False
+        response = self.transport.request("initialize", {
+            "protocolVersion": "2025-11-25", "capabilities": {},
+            "clientInfo": {"name": "Nyx", "version": "2.0-prototype"},
+        })
+        result = response.get("result")
+        if (not isinstance(result, dict) or result.get("protocolVersion") != "2025-11-25"
+                or not isinstance(result.get("capabilities"), dict)
+                or not isinstance(result["capabilities"].get("tools"), dict)
+                or not isinstance(result.get("serverInfo"), dict)):
+            self.last_error = "Handshake MCP incompatível ou inválido."
+            self.close()
+            return False
+        try:
+            self.transport.notify("notifications/initialized")
+        except (ValueError, RuntimeError) as error:
+            self.last_error = str(error)
+            self.close()
+            return False
+        self.connected = True
+        return True
 
     def close(self) -> None:
-        if self.proc and self.proc.poll() is None:
-            try:
-                self.proc.terminate()
-                self.proc.wait(timeout=2)
-            except Exception:
-                self.proc.kill()
-        self.proc = None
+        self.connected = False
+        if self.transport is not None:
+            self.transport.close()
 
     def list_tools(self) -> List[Dict[str, Any]]:
-        res = self._send_request("tools/list", {})
-        if "result" in res and "tools" in res["result"]:
-            raw_tools = res["result"]["tools"]
-            # Filtra apenas ferramentas presentes na whitelist configurada
-            if not isinstance(raw_tools, list) or len(raw_tools) > 128:
+        tools, seen, cursors = [], set(), set()
+        params = {}
+        for _ in range(8):
+            response = self._send_request("tools/list", params)
+            result = response.get("result")
+            if not isinstance(result, dict) or not isinstance(result.get("tools"), list):
+                self.last_error = "Inventário MCP inválido."
+                self.close()
                 return []
-            return [t for t in raw_tools if isinstance(t, dict)
-                    and isinstance(t.get("name"), str)
-                    and t.get("name") in self.config.allowed_tools
-                    and self.config.permission_levels.get(t.get("name"), 3) < 3]
+            for tool in result["tools"]:
+                if not isinstance(tool, dict) or not isinstance(tool.get("name"), str):
+                    continue
+                name = tool["name"]
+                if name in seen or len(seen) >= 128:
+                    self.last_error = "Inventário MCP duplicado ou excessivo."
+                    self.close()
+                    return []
+                seen.add(name)
+                if name in self.config.allowed_tools and self.config.permission_levels.get(name, 3) < 3:
+                    tools.append(tool)
+            cursor = result.get("nextCursor")
+            if cursor is None:
+                return tools
+            if not isinstance(cursor, str) or not 1 <= len(cursor) <= 1024 or cursor in cursors:
+                break
+            cursors.add(cursor)
+            params = {"cursor": cursor}
+        self.last_error = "Paginação MCP inválida ou excessiva."
+        self.close()
         return []
 
     def call_tool(self, name: str, arguments: Dict[str, Any]) -> ToolResult:
@@ -112,14 +150,21 @@ class MCPClientSession:
 
         res = self._send_request("tools/call", {"name": name, "arguments": arguments})
         if "error" in res:
-            return ToolResult(ok=False, error=str(res["error"]))
+            return ToolResult(ok=False, error=str(res["error"]),
+                              meta={"untrusted_data": True, **res.get("_transport", {"outcome_unknown": True})})
 
         result = res.get("result", {})
+        if not isinstance(result, dict) or type(result.get("isError", False)) is not bool:
+            self.close()
+            return ToolResult(False, error="Resultado MCP inválido.", meta={"outcome_unknown": True})
         content_items = result.get("content", [])
+        if not isinstance(content_items, list) or any(not isinstance(item, dict) for item in content_items):
+            self.close()
+            return ToolResult(False, error="Conteúdo MCP inválido.", meta={"outcome_unknown": True})
         output_parts = []
         for item in content_items:
             if item.get("type") == "text":
-                output_parts.append(item.get("text", ""))
+                output_parts.append(str(item.get("text", "")))
             else:
                 output_parts.append(str(item))
 
@@ -127,46 +172,17 @@ class MCPClientSession:
         return ToolResult(
             ok=not result.get("isError", False),
             output=out_text,
-            meta={"server": self.config.server_id, "level": level, "untrusted_data": True},
+            meta={"server": self.config.server_id, "level": level, "untrusted_data": True,
+                  "outcome_unknown": bool(result.get("isError", False))},
         )
 
     def _send_request(self, method: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        if not self.proc or not self.proc.stdin or not self.proc.stdout:
-            return {"error": "Servidor MCP desconectado."}
-
-        self._msg_id += 1
-        msg = {
-            "jsonrpc": "2.0",
-            "id": self._msg_id,
-            "method": method,
-            "params": params,
-        }
-        try:
-            line = json.dumps(msg) + "\n"
-            self.proc.stdin.write(line)
-            self.proc.stdin.flush()
-
-            resp_line = self.proc.stdout.readline()
-            if not resp_line:
-                return {"error": "Resposta vazia do servidor MCP."}
-            return json.loads(resp_line.strip())
-        except Exception as exc:
-            return {"error": f"Erro de comunicação JSON-RPC: {exc}"}
-
-    def _send_notification(self, method: str, params: Dict[str, Any]) -> None:
-        if not self.proc or not self.proc.stdin:
-            return
-        msg = {
-            "jsonrpc": "2.0",
-            "method": method,
-            "params": params,
-        }
-        try:
-            line = json.dumps(msg) + "\n"
-            self.proc.stdin.write(line)
-            self.proc.stdin.flush()
-        except Exception:
-            pass
+        if not self.connected or self.transport is None:
+            return {"error": "Servidor MCP desconectado.", "_transport": {"outcome_unknown": False}}
+        result = self.transport.request(method, params)
+        if self.transport.channel.stop_requested.is_set():
+            self.connected = False
+        return result
 
 
 class MCPManager:

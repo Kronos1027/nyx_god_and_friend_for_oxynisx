@@ -1,13 +1,14 @@
 # Nyx — rota para uma quase-AGI (estado e prioridades)
 
-MCP, atualização de 25/10/2026: política corrigida com negação por padrão,
-configuração imutável e confirmação obrigatória. Inicialização legada de processos
-no host bloqueada. Transporte isolado, SDK, UI e aceitação T9 ainda pendentes;
+MCP, atualização de 27/10/2026: cliente 2025-11-25 exercitado com servidor próprio
+no LPAC, incluindo handshake, inventário, chamada, timeout e cancelamento.
+Inicialização legada de processos no host bloqueada; política nega por padrão.
+UI, aprovação vinculada ao lançamento, SDK e aceitação T9 completa ainda pendentes;
 ver `docs/MCP_STATUS.md`.
 
 O protótipo LPAC já oferece um canal interativo limitado para essa integração:
 trocas reais de stdin/stdout, stderr separado, cancelamento e backpressure
-foram exercitados. O protocolo MCP ainda não utiliza esse canal.
+foram exercitados. O cliente MCP agora usa esse canal nos ensaios isolados.
 
 > A matriz inicial abaixo é histórica. Para o estado de 23/10/2026, consulte
 > **Evolution 2.0 — acompanhamento** ao final e `STATUS.md`. Em particular,

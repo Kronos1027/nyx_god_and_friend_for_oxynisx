@@ -46,11 +46,11 @@ e LPAC. O caso adicional de pipe fechado está em `tests/test_sandbox_channel.py
 Regressão final: **732 aprovados, 1 pulado em 51,96 s, saída 0**; Ruff dos
 arquivos alterados aprovado. `build/sandbox-probes/channel-final.xml` e `.log`.
 
-Isso é infraestrutura de transporte, não aceitação MCP T9: ainda faltam framing
-JSON-RPC, IDs, handshake, paginação/notificações, deadlines por requisição,
-política de aprovação e integração ao cliente/UI. O bloqueio de inicialização
-do cliente MCP permanece. Quota de disco, recuperação de staging e qualificação
-mais ampla do sandbox também continuam pendentes.
+SandboxRPC agora fornece framing JSON-RPC, IDs, handshake, paginação/notificações
+e deadlines ao cliente MCP nos ensaios isolados; ver `MCP_STATUS.md`. Isso não
+completa T9: aprovação vinculada ao lançamento, gerência/UI e integração ao
+runtime ainda faltam. Inicialização direta no host permanece bloqueada. Quota
+de disco, recuperação de staging e qualificação ampliada também são pendentes.
 
 Fontes: [CreateNamedPipe](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createnamedpipea)
 e [I/O overlapped](https://learn.microsoft.com/en-us/windows/win32/ipc/synchronous-and-overlapped-input-and-output).
