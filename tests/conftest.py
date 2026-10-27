@@ -1,6 +1,17 @@
 """Own one QApplication for the test session and dispose it before Python exits."""
 
 import pytest
+import os
+from pathlib import Path
+
+
+def pytest_configure(config):
+    # Keep runtime copies and generated fixtures on the project's volume. Let
+    # pytest retain/clean its numbered runs normally; respect explicit overrides.
+    if not config.option.basetemp and not os.environ.get("PYTEST_DEBUG_TEMPROOT"):
+        directory = Path(__file__).resolve().parents[1] / "build" / "test-temp"
+        directory.mkdir(parents=True, exist_ok=True)
+        os.environ["PYTEST_DEBUG_TEMPROOT"] = str(directory)
 
 
 @pytest.fixture(scope="session")

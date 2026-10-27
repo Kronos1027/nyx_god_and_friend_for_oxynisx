@@ -46,6 +46,18 @@ Essa realocação não inclui instalações de outros aplicativos, dados pessoai
 temporários gerais do Windows ou os runtimes do Codex. Novas versões do Python
 instaladas fora desse caminho podem precisar de configuração adicional.
 
+Desde 27/10/2026, a suíte pytest da Nyx usa `build/test-temp` no volume do projeto
+para seus temporários por padrão. `tests/conftest.py` configura
+`PYTEST_DEBUG_TEMPROOT` somente dentro do processo de testes; não muda TEMP/TMP
+do usuário. `--basetemp` ou um `PYTEST_DEBUG_TEMPROOT` explícito continuam sendo
+respeitados, e o pytest mantém sua retenção normal dos diretórios numerados.
+Na verificação inicial, 69 testes de LPAC/snapshots/aprovação passaram no E.
+Os três diretórios anteriores em `%LOCALAPPDATA%\Temp\pytest-of-darlan`
+(`pytest-272`, `pytest-273`, `pytest-274`) somavam aproximadamente 208 MiB e
+foram preservados para diagnóstico; não houve limpeza geral do disco.
+Regressão completa no novo caminho: 762 aprovados, 1 pulado em 52,21 s, saída 0;
+`build/sandbox-probes/project-temp-regression.xml` e `.log`.
+
 Na operação de 25/10/2026, parte da cópia antiga do Python permaneceu em
 `%APPDATA%\uv\python\cpython-3.11.15-windows-x86_64-none.nyx-migration-be9f1c1f7e3e471f907bf43390115669`:
 algumas DLLs estavam abertas por outro processo. O novo interpretador e o Qt

@@ -2,6 +2,11 @@
 
 Última atualização: 2026-10-27
 
+- Temporários da suíte agora ficam por padrão em `build/test-temp` no volume
+  do projeto, respeitando overrides explícitos e retenção normal do pytest.
+  **762 aprovados, 1 pulado em 52,21 s, saída 0**, também nesse novo caminho:
+  `build/sandbox-probes/project-temp-regression.xml` e `.log`.
+
 ## Evolution 2.0 — runtime vinculado à aprovação MCP
 
 - PythonRuntimeArtifact captura bytes imutáveis do runtime preparado. A revisão
