@@ -8,7 +8,7 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
-    QHBoxLayout,
+    QGridLayout,
     QPushButton,
     QLabel,
     QComboBox,
@@ -50,7 +50,7 @@ class ProjectPanel(QWidget):
         layout.addWidget(QLabel("Projeto e versão"))
         layout.addWidget(self.projects)
         layout.addWidget(self.versions)
-        actions = QHBoxLayout()
+        actions = QGridLayout()
         self.buttons = []
         for text, callback in (
             ("Importar pasta", self.import_folder),
@@ -63,13 +63,16 @@ class ProjectPanel(QWidget):
             button = QPushButton(text)
             button.clicked.connect(callback)
             self.buttons.append(button)
-            actions.addWidget(button)
+            index = len(self.buttons) - 1
+            actions.addWidget(button, index // 3, index % 3)
         layout.addLayout(actions)
         split = QSplitter(Qt.Orientation.Horizontal)
         self.files = QListWidget()
         self.preview = QPlainTextEdit()
         self.preview.setFont(QFont("Consolas", 10))
         self.preview.setReadOnly(True)
+        self.preview.setPlaceholderText("Selecione um arquivo para ler o conteúdo da versão guardada.")
+        self.files.setAccessibleName("Arquivos da versão selecionada")
         split.addWidget(self.files)
         split.addWidget(self.preview)
         split.setStretchFactor(1, 2)

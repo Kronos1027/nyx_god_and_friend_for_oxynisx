@@ -1,6 +1,27 @@
 # Nyx — estado verificado
 
-Última atualização: 2026-10-27
+Última atualização: 2026-10-28
+
+## Interface — Central e organização do aplicativo
+
+- Central inicial com estado real da sessão, RAM/CPU, resumo de tarefas e
+  acessos a memória, sensores, agenda, projetos e telemetria. Interrupção global
+  visível e retomada manual; Ctrl+1 / Ctrl+2 para Central / conversa.
+- Preferências separadas em cinco áreas, navegação de Aprendizado sem abas
+  escondidas, agenda com estado vazio e cancelamento habilitado por seleção.
+  Estúdio acompanha o tema e organiza as ações de projetos em duas linhas.
+- Pet preservado: comparação AST de CompanionStage idêntica ao HEAD anterior;
+  nenhum diff em overlay, renderizador ou sprites.
+- **767 aprovados, 1 pulado, 3 avisos em 78,04 s, saída 0** com ensaios reais
+  de navegador, Windows e sandbox habilitados. Ruff de src/tests aprovado.
+  Evidências: `build/sandbox-probes/interface-regression.xml` e `.log`.
+- Prévia isolada com dados temporários no projeto, saída 0:
+  `tools/preview_control_center.py`, imagens em `build/previews` e registro
+  em `build/sandbox-probes/interface-previews.log`. Revisados temas claro/escuro,
+  janelas 920–1440 px, fonte ampliada, páginas principais e Estúdio.
+  A prévia usa OfflineLLM; não afirma validação de voz nem login real.
+- Esta etapa não conclui o roteiro de evolução; MCP/execução gerada continuam
+  sujeitos às limitações descritas em `LIMITACOES.md`.
 
 - Temporários da suíte agora ficam por padrão em `build/test-temp` no volume
   do projeto, respeitando overrides explícitos e retenção normal do pytest.

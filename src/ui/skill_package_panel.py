@@ -47,6 +47,8 @@ class SkillPackagePanel(QWidget):
         splitter = QSplitter(Qt.Orientation.Horizontal)
         self.files, self.preview = QListWidget(), QPlainTextEdit()
         self.preview.setReadOnly(True)
+        self.preview.setPlaceholderText("Selecione um recurso para inspecionar o pacote antes de usá-lo.")
+        self.files.setAccessibleName("Recursos da habilidade selecionada")
         splitter.addWidget(self.files)
         splitter.addWidget(self.preview)
         splitter.setStretchFactor(1, 2)

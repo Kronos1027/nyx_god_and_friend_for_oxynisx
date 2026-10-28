@@ -49,6 +49,7 @@ class WorkspaceWindow(QWidget):
         super().__init__(parent, Qt.WindowType.Window)
         self.setWindowTitle("Nyx — Estúdio")
         self.resize(1060, 680)
+        self.setMinimumSize(760, 560)
         from ui.desktop_theme import desktop_stylesheet
         self.setObjectName("WorkspaceSurface")
         self.setStyleSheet(parent.styleSheet() if parent and parent.styleSheet() else desktop_stylesheet())
@@ -64,8 +65,10 @@ class WorkspaceWindow(QWidget):
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
 
-        self.lbl_status = QLabel("Pronto para sintetizar.", self)
+        self.lbl_status = QLabel("Seu espaço de criação local.", self)
         self.lbl_status.setObjectName("Muted")
+        self.lbl_status.setTextFormat(Qt.TextFormat.PlainText)
+        self.lbl_status.setWordWrap(True)
         header_layout.addWidget(self.lbl_status)
         layout.addLayout(header_layout)
 
@@ -165,6 +168,7 @@ class WorkspaceWindow(QWidget):
         layout.setContentsMargins(10, 10, 10, 10)
 
         self.txt_doc = QTextBrowser(tab)
+        self.txt_doc.setObjectName("StudyPreview")
         self.txt_doc.setOpenExternalLinks(True)
         layout.addWidget(self.txt_doc)
 
@@ -181,6 +185,7 @@ class WorkspaceWindow(QWidget):
 
         self.lbl_hw_info = QLabel("Carregando telemetria de hardware...", tab)
         self.lbl_hw_info.setTextFormat(Qt.TextFormat.PlainText)
+        self.lbl_hw_info.setWordWrap(True)
         self.lbl_hw_info.setObjectName("Muted")
         layout.addWidget(self.lbl_hw_info)
 

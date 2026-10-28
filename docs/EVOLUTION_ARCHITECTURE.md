@@ -1,5 +1,27 @@
 # Nyx adaptativa: arquitetura e evidências
 
+## Interface — Central e navegação (28/10/2026)
+
+A janela principal abre na Central, que apresenta estado de inferência, RAM/CPU,
+resumo do histórico de tarefas e as seis atividades mais recentes da sessão.
+Os acessos levam aos controles existentes de tarefas, memória, sensores, agenda,
+projetos e telemetria. Não há chamada ao modelo para montar a Central.
+Ctrl+1 abre a Central; Ctrl+2 abre a conversa. O botão Parar ações usa o controle
+de cancelamento existente e retorna ao modo assistido; retomar ferramentas
+continua sendo uma ação manual. Operações em curso podem demorar a encerrar.
+
+As preferências foram distribuídas em Aparência, Rotina, Sistema, Voz e Modelo
+local, preservando as chaves persistidas. Aprendizado usa um seletor de seção
+sincronizado com as páginas existentes. Em janelas compactas, o painel de atividade
+é recolhido e o modelo permanece consultável na Central. O Estúdio acompanha o
+tema escolhido e distribui as ações de projetos em duas linhas.
+
+O pet não foi redesenhado: CompanionStage, overlay, renderizador e sprites
+permanecem preservados. A verificação visual usa dados descartáveis em E: pelo
+script `tools/preview_control_center.py`, sem carregar conversas pessoais,
+microfone ou modelo. Isso não substitui validação de voz real, login do Spotify
+ou as integrações de sandbox/MCP ainda pendentes.
+
 ## Evolution 2.0: transporte interativo isolado
 
 O supervisor LPAC aceita SandboxChannel de uso único, com filas limitadas,

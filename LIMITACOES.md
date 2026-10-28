@@ -1,9 +1,16 @@
 # LIMITACOES.md — limitações reais, sem contorno silencioso
 
-## Estado atual — Evolution 2.0 (27/10/2026)
+## Estado atual — Evolution 2.0 (28/10/2026)
 
 O ambiente atual é Windows com RTX 3060. As seções L1–L4 abaixo são histórico
 do desenvolvimento inicial, não descrevem a máquina atual.
+
+- A Central organiza as capacidades existentes; não ativa servidores MCP nem
+  executa scripts gerados. Sua prévia visual é feita com modelo de demonstração;
+  esse rótulo não representa troca do modelo configurado no aplicativo real.
+  O resumo de tarefas é consultado ao entrar na Central; a telemetria do sistema
+  e o estado da sessão são atualizados periodicamente enquanto a janela está aberta.
+  A revisão de interfaces é incremental, não encerra o roteiro Evolution 2.0.
 
 - MCP não está conectado ao runtime/UI. O cliente já conversa com servidor de
   ensaio dentro do LPAC, com deadline/cancelamento reais e política de negação

@@ -1,7 +1,7 @@
 """Themes for the native, dockable Nyx desktop workspace."""
 
 PALETTES = {
-    "midnight": {"bg": "#111215", "panel": "#18191d", "card": "#23252b", "text": "#f1f2f7", "muted": "#9da3b5", "line": "#303440"},
+    "midnight": {"bg": "#0f131c", "panel": "#161c28", "card": "#202939", "text": "#f2f4fa", "muted": "#a6b1c5", "line": "#303c50"},
     "aurora": {"bg": "#101724", "panel": "#141f30", "card": "#1c2b42", "text": "#f0f5ff", "muted": "#9cacc4", "line": "#2d405b"},
     "daylight": {"bg": "#f6f7fb", "panel": "#ffffff", "card": "#e9edf5", "text": "#192235", "muted": "#536179", "line": "#d6ddea"},
 }
@@ -23,6 +23,13 @@ def desktop_stylesheet(theme: str = "midnight", accent: str = "violet", font_siz
     QFrame#TopBar {{ background: {p['bg']}; border-bottom: 1px solid {p['line']}; }}
     QLabel#Brand {{ font-size: 24px; font-weight: 700; color: {ink}; }}
     QLabel#PageTitle {{ font-size: 22px; font-weight: 600; }}
+    QLabel#SectionTitle {{ font-size: 17px; font-weight: 600; padding-top: 8px; }}
+    QFrame#OverviewCard {{ background: {p['panel']}; border: 1px solid {p['line']}; border-radius: 16px; }}
+    QLabel#MetricCaption {{ color: {p['muted']}; font-size: 10px; font-weight: 600; letter-spacing: 1px; }}
+    QLabel#MetricValue {{ color: {p['text']}; font-size: 20px; font-weight: 600; }}
+    QLabel#StateBanner {{ background: {p['panel']}; border-left: 3px solid {ink}; border-radius: 8px; padding: 13px 16px; }}
+    QPushButton#OverviewRoute {{ background: {p['panel']}; border: 1px solid {p['line']}; text-align: left; padding: 18px; border-radius: 14px; }}
+    QPushButton#OverviewRoute:hover {{ background: {p['card']}; border-color: {ink}; }}
     QLabel#HeroTitle {{ font-size: 30px; font-weight: 600; }}
     QLabel#Eyebrow {{ color: {ink}; font-size: 11px; letter-spacing: 2px; font-weight: 600; }}
     QLabel#Muted, QLabel#MessageRole {{ color: {p['muted']}; }}
@@ -30,6 +37,7 @@ def desktop_stylesheet(theme: str = "midnight", accent: str = "violet", font_siz
     QLabel#Badge {{ background: {p['card']}; color: {ink}; padding: 6px 12px; border-radius: 12px; font-size: 11px; }}
     QPushButton, QToolButton {{ background: {p['card']}; border: 1px solid transparent; border-radius: 12px; padding: 9px 13px; }}
     QPushButton:hover, QToolButton:hover {{ border: 1px solid {a}; }}
+    QPushButton:focus, QToolButton:focus {{ border: 1px solid {ink}; }}
     QPushButton:disabled {{ color: {p['muted']}; }}
     QPushButton#Primary {{ background: {a}; color: #151a25; font-weight: 700; }}
     QPushButton#Nav {{ text-align: left; background: transparent; padding: 11px 14px; }}

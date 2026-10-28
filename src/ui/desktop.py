@@ -179,6 +179,7 @@ class DesktopWindow(QMainWindow):
         self.palette = CommandPalette(self)
         self._rail = False
         self._companion_auto_hidden = False
+        self._activity_auto_hidden = False
         self.chat_id = ""
         self._busy = False
         self._research_busy = False
@@ -240,6 +241,9 @@ class DesktopWindow(QMainWindow):
         QShortcut(QKeySequence("Ctrl+K"), self, activated=self.open_palette)
         QShortcut(QKeySequence("Ctrl+F"), self, activated=lambda: self.search.setFocus())
         QShortcut(QKeySequence("Ctrl+B"), self, activated=lambda: self._set_rail(not self._rail))
+        QShortcut(QKeySequence("Ctrl+1"), self, activated=lambda: self.set_page(4))
+        QShortcut(QKeySequence("Ctrl+2"), self, activated=lambda: self.set_page(0))
+        self.set_page(4)
 
     @staticmethod
     def _muted(text: str) -> QLabel:
@@ -282,8 +286,9 @@ class DesktopWindow(QMainWindow):
         header.setContentsMargins(24, 15, 24, 15)
         self.page_title = QLabel("Conversa")
         self.page_title.setObjectName("PageTitle")
-        header.addWidget(self.page_title)
-        header.addStretch()
+        self.page_title.setMinimumWidth(0)
+        self.page_title.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        header.addWidget(self.page_title, 1)
         self.model_badge = QLabel(self._model_name())
         self.model_badge.setObjectName("Badge")
         self.model_badge.setToolTip(getattr(getattr(getattr(self.controller, "loop", None), "llm", None), "unavailable_reason", "Modelo executado neste computador."))
@@ -297,6 +302,11 @@ class DesktopWindow(QMainWindow):
         self.focus_button.setToolTip("Recolher painéis para ampliar a conversa")
         self.focus_button.toggled.connect(self._toggle_focus)
         header.addWidget(self.focus_button)
+        self.emergency_button = QPushButton("Parar ações")
+        self.emergency_button.setObjectName("Danger")
+        self.emergency_button.setAccessibleName("Interromper todas as ações da Nyx")
+        self.emergency_button.clicked.connect(self._emergency_stop)
+        header.addWidget(self.emergency_button)
         root.addWidget(bar)
         self.pages = QStackedWidget()
         root.addWidget(self.pages, 1)
@@ -305,6 +315,10 @@ class DesktopWindow(QMainWindow):
         self._build_agenda_page()
         self._build_settings_page()
         self._build_evolution_page()
+        from ui.control_center import ControlCenter
+        self.control_center = ControlCenter()
+        self.control_center.requested.connect(self._open_center_route)
+        self.pages.addWidget(self.control_center)
 
     def _toggle_focus(self, enabled: bool) -> None:
         docks = (self.sidebar, self.companion_dock, self.activity_dock)
@@ -315,6 +329,63 @@ class DesktopWindow(QMainWindow):
         else:
             for dock, visible in zip(docks, getattr(self, "_focus_visibility", [True] * 3), strict=True):
                 dock.setVisible(visible)
+
+    def _emergency_stop(self):
+        loop = self.controller.loop
+        loop.registry.control.stop(emergency=True)
+        self.controller.cancel_task()
+        if loop.mode_name != "assistida":
+            loop.deactivate_autonomous(source="desktop_emergency_button")
+            self.controller.current_mode = "assistida"
+            self.controller._update_mode_button_style()
+        loop.audit.log_event("kill_switch_triggered", source="desktop_emergency_button")
+        self._add_activity("Interrupção geral solicitada; operações em curso podem precisar terminar.")
+        self._refresh_status()
+
+    def _open_center_route(self, route):
+        if route == "chat":
+            self.set_page(0)
+            self.composer.setFocus()
+        elif route == "agenda":
+            self.set_page(1)
+        elif route == "resume":
+            self.controller.resume_tools()
+            self._refresh_status()
+        elif route in {"tasks", "memory", "privacy"}:
+            title = {"tasks": "Tarefas", "memory": "Memória e interesses", "privacy": "Observação e iniciativa"}[route]
+            self.set_page(3)
+            for index in range(self.learning_tabs.count()):
+                if self.learning_tabs.tabText(index) == title:
+                    self.learning_tabs.setCurrentIndex(index)
+                    break
+        elif route in {"studio", "performance"}:
+            from ui.workspace_window import WorkspaceWindow
+            window = WorkspaceWindow.get_instance()
+            window.setStyleSheet(self.styleSheet())
+            if route == "performance":
+                window.tabs.setCurrentIndex(3)
+                window.refresh_telemetry()
+            else:
+                window.tabs.setCurrentIndex(4)
+            window.show()
+            window.raise_()
+            window.activateWindow()
+
+    def _refresh_center_tasks(self):
+        journal = self._task_journal()
+        if journal is None:
+            self.control_center.values["tasks"].setText("Indisponível")
+            self.control_center.notes["tasks"].setText("Histórico não conectado nesta sessão")
+            return
+        try:
+            tasks = journal.list()
+            pending = sum(task["state"] in {"PAUSED", "WAITING_REVIEW", "RESOURCE_PRESSURE", "WAITING_USER", "FAILED"}
+                          for task in tasks)
+            self.control_center.set_tasks(len(tasks), pending)
+        except Exception:
+            log.debug("Task overview unavailable", exc_info=True)
+            self.control_center.values["tasks"].setText("Indisponível")
+            self.control_center.notes["tasks"].setText("Não foi possível consultar o histórico")
 
     def _model_name(self) -> str:
         llm = getattr(getattr(self.controller, "loop", None), "llm", None)
@@ -422,8 +493,8 @@ class DesktopWindow(QMainWindow):
         self.new_button.clicked.connect(self.new_chat)
         layout.addWidget(self.new_button)
         self.nav_buttons = []
-        self._nav_labels = ("Conversa", "Agenda", "Personalizar", "Aprendizado")
-        self._nav_glyphs = ("◌", "◷", "⚙", "✧")
+        self._nav_labels = ("Conversa", "Agenda", "Personalizar", "Aprendizado", "Central")
+        self._nav_glyphs = ("◌", "◷", "⚙", "✧", "▦")
         for index, (glyph, title) in enumerate(zip(self._nav_glyphs, self._nav_labels, strict=False)):
             button = QPushButton(f"{glyph}  {title}")
             button.setObjectName("Nav")
@@ -432,9 +503,11 @@ class DesktopWindow(QMainWindow):
             button.clicked.connect(lambda checked=False, i=index: self.set_page(i))
             layout.addWidget(button)
             self.nav_buttons.append(button)
+        layout.removeWidget(self.nav_buttons[4])
+        layout.insertWidget(3, self.nav_buttons[4])
         layout.addSpacing(12)
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Buscar conversas  Ctrl+K")
+        self.search.setPlaceholderText("Buscar conversas  Ctrl+F")
         self.search.textChanged.connect(self._reload_chats)
         layout.addWidget(self.search)
         self.chat_list = QListWidget()
@@ -490,6 +563,9 @@ class DesktopWindow(QMainWindow):
     def _build_evolution_page(self) -> None:
         page, outer = self._page()
         self.learning_tabs = QTabWidget()
+        self.learning_section = QComboBox()
+        self.learning_section.setAccessibleName("Área de aprendizado e recuperação")
+        outer.addWidget(self.learning_section)
         outer.addWidget(self.learning_tabs)
         layout = self._tab_section(self.learning_tabs, "Estudos")
         layout.addWidget(self._muted("Conhecimento com fontes e propostas de habilidades. Simulações não executam ações nem comprovam resultados."))
@@ -552,6 +628,10 @@ class DesktopWindow(QMainWindow):
         layout.addStretch()
         self._build_social_panels()
         self._build_task_history()
+        self.learning_section.addItems([self.learning_tabs.tabText(i) for i in range(self.learning_tabs.count())])
+        self.learning_section.currentIndexChanged.connect(self.learning_tabs.setCurrentIndex)
+        self.learning_tabs.currentChanged.connect(self.learning_section.setCurrentIndex)
+        self.learning_tabs.tabBar().hide()
         self.pages.addWidget(page)
 
     def _build_task_history(self):
@@ -970,12 +1050,17 @@ class DesktopWindow(QMainWindow):
         add.clicked.connect(self._add_reminder)
         row.addWidget(add)
         layout.addLayout(row)
+        self.agenda_empty = self._muted("Sua agenda está livre. Crie um lembrete acima para começar.")
+        layout.addWidget(self.agenda_empty)
         self.reminders = QListWidget()
         self.reminders.setWordWrap(True)
         layout.addWidget(self.reminders, 1)
-        cancel = QPushButton("Cancelar lembrete selecionado")
-        cancel.clicked.connect(self._cancel_reminder)
-        layout.addWidget(cancel)
+        self.cancel_reminder_button = QPushButton("Cancelar lembrete selecionado")
+        self.cancel_reminder_button.setEnabled(False)
+        self.cancel_reminder_button.clicked.connect(self._cancel_reminder)
+        self.reminders.itemSelectionChanged.connect(
+            lambda: self.cancel_reminder_button.setEnabled(bool(self.reminders.selectedItems())))
+        layout.addWidget(self.cancel_reminder_button)
         self.agenda_feedback = self._muted("")
         layout.addWidget(self.agenda_feedback)
         self.pages.addWidget(page)
@@ -984,7 +1069,7 @@ class DesktopWindow(QMainWindow):
         page, outer = self._page()
         self.settings_tabs = QTabWidget()
         outer.addWidget(self.settings_tabs)
-        layout = self._tab_section(self.settings_tabs, "Aparência e voz")
+        layout = self._tab_section(self.settings_tabs, "Aparência")
         layout.addWidget(self._muted("Faça este espaço funcionar do seu jeito. As preferências e a posição dos painéis são salvas automaticamente."))
         form = QFormLayout()
         form.setSpacing(18)
@@ -1007,7 +1092,12 @@ class DesktopWindow(QMainWindow):
         form.addRow(self.motion_check)
         self.speech_check = QCheckBox("Ler as respostas em voz alta")
         self.speech_check.setChecked(self.settings.value("speech", True, type=bool))
-        form.addRow(self.speech_check)
+        layout.addLayout(form)
+        layout.addStretch()
+        layout = self._tab_section(self.settings_tabs, "Rotina")
+        layout.addWidget(self._muted("Defina quando a Nyx pode iniciar uma conversa e com que frequência."))
+        form = QFormLayout()
+        form.setSpacing(18)
         self.initiative_check = QCheckBox("Nyx pode iniciar uma conversa nos intervalos")
         self.initiative_check.setChecked(self.settings.value("conversation_initiative", True, type=bool))
         self.initiative_check.setToolTip("Somente eventos relevantes, sem convites genéricos. Limites persistem ao reiniciar. Foco silencia os convites.")
@@ -1032,6 +1122,12 @@ class DesktopWindow(QMainWindow):
             spin.valueChanged.connect(lambda value, name=key: self.settings.setValue("initiative_" + name, value))
             self.initiative_limits[key] = spin
             form.addRow(label, spin)
+        layout.addLayout(form)
+        layout.addStretch()
+        layout = self._tab_section(self.settings_tabs, "Sistema")
+        layout.addWidget(self._muted("Reserve memória para seus aplicativos e ajuste o navegador da Nyx."))
+        form = QFormLayout()
+        form.setSpacing(18)
         self.ram_reserve_spin = QSpinBox()
         self.ram_reserve_spin.setRange(1024, 8192)
         self.ram_reserve_spin.setSingleStep(256)
@@ -1061,6 +1157,13 @@ class DesktopWindow(QMainWindow):
         self.browser_visible_check.toggled.connect(self._update_browser_preferences)
         self.browser_persist_check.toggled.connect(self._update_browser_preferences)
         self._update_browser_preferences()
+        layout.addLayout(form)
+        layout.addStretch()
+        layout = self._tab_section(self.settings_tabs, "Voz")
+        layout.addWidget(self._muted("Escolha a voz local, ajuste a reprodução e ouça uma amostra."))
+        form = QFormLayout()
+        form.setSpacing(18)
+        form.addRow(self.speech_check)
         from audio.tts import DEFAULT_SPEED, DEFAULT_VOLUME, KOKORO_VOICE, PT_BR_VOICES
 
         self.voice_combo = QComboBox()
@@ -1217,6 +1320,9 @@ class DesktopWindow(QMainWindow):
         theme = self.theme_combo.currentData()
         accent = self.accent_combo.currentData()
         self.setStyleSheet(desktop_stylesheet(theme, accent, self.font_slider.value()))
+        from ui.workspace_window import WorkspaceWindow
+        if WorkspaceWindow._instance is not None:
+            WorkspaceWindow._instance.setStyleSheet(self.styleSheet())
         self.companion.accent = QColor(ACCENTS[accent])
         self.companion.set_motion(self.motion_check.isChecked())
         self.hero_companion.accent = QColor(ACCENTS[accent])
@@ -1246,6 +1352,10 @@ class DesktopWindow(QMainWindow):
     def open_palette(self) -> None:
         """Ctrl+K: searchable actions followed by recent conversations."""
         commands = [
+            ("Abrir Central da Nyx", "Ctrl+1", lambda: self.set_page(4)),
+            ("Abrir Estúdio", "", lambda: self._open_center_route("studio")),
+            ("Memória e interesses", "", lambda: self._open_center_route("memory")),
+            ("Sensores e privacidade", "", lambda: self._open_center_route("privacy")),
             ("Nova conversa", "Ctrl+N", self.new_chat),
             ("Ir para Conversa", "", lambda: self.set_page(0)),
             ("Ir para Agenda", "", lambda: self.set_page(1)),
@@ -1357,6 +1467,15 @@ class DesktopWindow(QMainWindow):
         elif not narrow and self._companion_auto_hidden:
             self.companion_dock.show()
             self._companion_auto_hidden = False
+        compact = self.width() < 1180
+        self.model_badge.setVisible(not compact)
+        if hasattr(self, "activity_dock") and not self.focus_button.isChecked():
+            if compact and self.activity_dock.isVisible() and not self.activity_dock.isFloating():
+                self.activity_dock.hide()
+                self._activity_auto_hidden = True
+            elif not compact and self._activity_auto_hidden:
+                self.activity_dock.show()
+                self._activity_auto_hidden = False
 
     def _restore_layout(self) -> None:
         geometry = self.settings.value("geometry")
@@ -1377,14 +1496,19 @@ class DesktopWindow(QMainWindow):
         self.notify("Painéis restaurados")
 
     def set_page(self, index: int) -> None:
+        if not 0 <= index < self.pages.count():
+            return
         self.pages.setCurrentIndex(index)
-        self.page_title.setText(("Conversa", "Sua agenda", "Do seu jeito", "Aprendizado e recuperação")[index])
+        self.page_title.setText(("Conversa", "Sua agenda", "Do seu jeito", "Aprendizado e recuperação", "Central da Nyx")[index])
         for i, button in enumerate(self.nav_buttons):
             button.setChecked(i == index)
         if index == 1:
             self._refresh_reminders()
         elif index == 3:
             self._refresh_learning()
+        elif index == 4:
+            self._refresh_center_tasks()
+            self._refresh_status()
         if self.motion_check.isChecked():
             self._stop_transition()
             page = self.pages.currentWidget()
@@ -1601,6 +1725,7 @@ class DesktopWindow(QMainWindow):
                 self._add_activity(f"Microagente · {agent.get('role', 'especialista')} · {'concluído' if agent.get('ok') else 'com pendência'}")
 
     def _add_activity(self, text: str) -> None:
+        self.control_center.add_activity(text)
         self.activity.insertItem(0, f"{datetime.now().strftime('%H:%M')}   {text}")
         while self.activity.count() > 100:
             self.activity.takeItem(self.activity.count() - 1)
@@ -1669,6 +1794,7 @@ class DesktopWindow(QMainWindow):
         self.reminders.clear()
         scheduler = self._scheduler()
         if not scheduler:
+            self.agenda_empty.hide()
             self.agenda_feedback.setText("Agenda indisponível nesta sessão.")
             return
         for reminder in scheduler.list_pending():
@@ -1678,6 +1804,7 @@ class DesktopWindow(QMainWindow):
             self.reminders.addItem(item)
             if reminder["id"] == selected_id:
                 self.reminders.setCurrentItem(item)
+        self.agenda_empty.setVisible(self.reminders.count() == 0)
 
     def _add_reminder(self) -> None:
         scheduler = self._scheduler()
@@ -1707,17 +1834,25 @@ class DesktopWindow(QMainWindow):
         self.model_badge.setToolTip(getattr(llm, "unavailable_reason", "") or "Modelo executado neste computador.")
         if not self.isVisible():
             return
+        from core.runtime_budget import INFERENCE_GATE
+        state = INFERENCE_GATE.telemetry()
+        self.control_center.set_session(model=self._model_name(), busy=self._busy,
+            blocked=self.controller.loop.registry.control.is_cancelled(),
+            active=state["active"], waiting=state["waiting"])
         try:
             import psutil
-            from core.runtime_budget import INFERENCE_GATE
 
             memory = psutil.virtual_memory()
             self.ram_label.setText(f"RAM · {memory.percent:.0f}% usada · {memory.available / 1024 ** 3:.1f} GiB livres")
             self.ram_bar.setValue(int(memory.percent))
-            state = INFERENCE_GATE.telemetry()
             self.queue_label.setText(f"Inferência · {state['active']} ativa · {state['waiting']} aguardando")
+            if self.pages.currentIndex() == 4:
+                self.control_center.set_resources(cpu=psutil.cpu_percent(interval=None),
+                                                   free_gib=memory.available / 1024 ** 3)
         except Exception:
             log.debug("Desktop telemetry unavailable", exc_info=True)
+            self.control_center.values["resources"].setText("Indisponível")
+            self.control_center.notes["resources"].setText("Não foi possível consultar o sistema")
         loop = getattr(self.controller, "loop", None)
         if loop:
             self.companion.mode = loop.mode_name

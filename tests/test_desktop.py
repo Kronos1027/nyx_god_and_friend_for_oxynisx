@@ -14,6 +14,83 @@ from ui.desktop import DesktopWindow
 from ui.overlay import OverlayWindow
 
 
+def test_control_center_routes_to_existing_panels(desktop):
+    window, _, _ = desktop
+    assert window.pages.currentIndex() == 4
+    assert window.nav_buttons[4].isChecked()
+    for route, title in (("tasks", "Tarefas"), ("memory", "Memória e interesses"),
+                         ("privacy", "Observação e iniciativa")):
+        window.control_center.route_buttons[route].click()
+        assert window.pages.currentIndex() == 3
+        assert window.learning_tabs.tabText(window.learning_tabs.currentIndex()) == title
+        assert window.learning_section.currentText() == title
+    window.control_center.route_buttons["agenda"].click()
+    assert window.pages.currentIndex() == 1
+    window._open_center_route("chat")
+    assert window.pages.currentIndex() == 0
+
+
+def test_global_stop_blocks_actions_and_resume_requires_user_control(desktop, monkeypatch):
+    window, app, _ = desktop
+    control = window.controller.loop.registry.control
+    window.emergency_button.click()
+    assert control.is_cancelled()
+    assert "interrompidas" in window.control_center.status.text()
+    assert window.control_center.resume_button.isVisible()
+    monkeypatch.setattr("psutil.virtual_memory", lambda: (_ for _ in ()).throw(OSError("fixture")))
+    window._refresh_status()
+    assert "interrompidas" in window.control_center.status.text()
+    assert window.control_center.values["resources"].text() == "Indisponível"
+    window.control_center.resume_button.click()
+    app.processEvents()
+    assert not control.is_cancelled()
+
+
+def test_center_activity_is_bounded(desktop):
+    window, _, _ = desktop
+    for index in range(12):
+        window._add_activity(f"Owned UI event {index}")
+    assert window.control_center.activity.count() == 6
+    assert "11" in window.control_center.activity.item(0).text()
+
+
+def test_compact_layout_keeps_global_controls_visible(desktop):
+    window, app, _ = desktop
+    window.resize(920, 680)
+    app.processEvents()
+    assert not window.model_badge.isVisible()
+    assert not window.activity_dock.isVisible()
+    assert window.emergency_button.isVisible()
+    assert window.page_title.width() > 100
+    assert window.page_title.geometry().right() < window.panel_button.geometry().left()
+    window.resize(1320, 860)
+    app.processEvents()
+    assert window.model_badge.isVisible()
+    assert window.activity_dock.isVisible()
+
+
+def test_center_opens_projects_and_real_telemetry(desktop, tmp_path, monkeypatch):
+    from ui.workspace_window import WorkspaceWindow
+    window, app, _ = desktop
+    studio = WorkspaceWindow(project_directory=tmp_path / "studio", package_directory=tmp_path / "packages")
+    studio.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen)
+    monkeypatch.setattr(WorkspaceWindow, "_instance", studio)
+    try:
+        window.control_center.route_buttons["studio"].click()
+        assert studio.tabs.currentWidget() is studio.projects_panel
+        window.theme_combo.setCurrentIndex(window.theme_combo.findData("daylight"))
+        assert studio.styleSheet() == window.styleSheet()
+        _wait(app, lambda: studio.projects_panel.job is None, timeout=10)
+        window.control_center.route_buttons["performance"].click()
+        assert studio.tabs.currentIndex() == 3
+        _wait(app, lambda: studio.telemetry_job is None, timeout=10)
+        assert "atualizada" in studio.lbl_status.text()
+        assert "CPU" in studio.lbl_hw_info.text()
+    finally:
+        _wait(app, lambda: studio.telemetry_job is None and studio.projects_panel.job is None, timeout=10)
+        studio.close()
+
+
 def test_resource_controls_set_real_admission_and_persist(desktop):
     from core.resource_governor import RESOURCE_GOVERNOR, ResourcePolicy
     from core.runtime_budget import GIB, ResourceSnapshot
@@ -323,15 +400,21 @@ def test_desktop_submission_runs_real_controller_and_restores_chat_context(deskt
 def test_desktop_agenda_controls_write_and_cancel_persistent_reminders(desktop):
     window, app, _ = desktop
     window.set_page(1)
+    assert window.agenda_empty.isVisible()
+    assert not window.cancel_reminder_button.isEnabled()
     window.reminder_text.setText("Retomar o projeto")
     window._add_reminder()
     assert window.reminders.count() == 1
+    assert not window.agenda_empty.isVisible()
     database = window._scheduler().database
     assert ReminderScheduler(database).list_pending()[0]["message"] == "Retomar o projeto"
     window.reminders.setCurrentRow(0)
-    window._cancel_reminder()
+    assert window.cancel_reminder_button.isEnabled()
+    window.cancel_reminder_button.click()
     assert ReminderScheduler(database).list_pending() == []
     assert window.reminders.count() == 0
+    assert window.agenda_empty.isVisible()
+    assert not window.cancel_reminder_button.isEnabled()
 
 
 def test_desktop_preferences_and_docks_are_saved_and_motion_can_stop(desktop):
