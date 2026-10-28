@@ -7,7 +7,7 @@ import time
 import inspect
 
 from core.llm_client import BackendUnavailable, OfflineLLM
-from core.runtime_budget import InferenceBusyError, InferencePressureError
+from core.runtime_budget import InferenceBusyError, InferenceCancelledError, InferencePressureError
 
 
 class RecoveringLLM:
@@ -23,6 +23,10 @@ class RecoveringLLM:
     @property
     def model(self):
         return getattr(self._client, "model", None)
+
+    @property
+    def generation_report(self):
+        return getattr(self._client, "generation_report", [])
 
     @property
     def unavailable_reason(self):
@@ -77,7 +81,7 @@ class RecoveringLLM:
             return client.generate(user_input, **kwargs)
         except BackendUnavailable as exc:
             # Queue contention is not evidence that the provider is unavailable.
-            if isinstance(exc.__cause__, (InferenceBusyError, InferencePressureError)):
+            if isinstance(exc.__cause__, (InferenceBusyError, InferenceCancelledError, InferencePressureError)):
                 raise
             with self._refresh_lock:
                 if self._client is client:

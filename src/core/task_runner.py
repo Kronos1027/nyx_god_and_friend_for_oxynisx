@@ -11,7 +11,7 @@ import time
 from uuid import uuid4
 
 from core.agent_loop import LoopResult
-from core.llm_client import NyxResponse, parse_response
+from core.llm_client import ModelOutputError, NyxResponse, parse_response
 
 
 class TaskStopped(RuntimeError):
@@ -240,12 +240,21 @@ class TaskRunner:
                 parameters = inspect.signature(self.loop.llm.generate).parameters
                 kwargs = {"history": history}
                 accepts_kwargs = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in parameters.values())
-                for name, value in (("memory_context", context), ("task_tools", tools)):
+                def recovering():
+                    self.on_progress({"phase": "recovering", "task_id": self.task_id,
+                                      "step": len(self.steps) + 1, "tool": ""})
+                for name, value in (("memory_context", context), ("task_tools", tools), ("on_recovery", recovering)):
                     if name in parameters or accepts_kwargs:
                         kwargs[name] = value
                 from core.runtime_budget import inference_scope, WorkPriority
-                with inference_scope(WorkPriority.TASK, self.cancelled.is_set):
-                    raw = self.loop.llm.generate(prompt, **kwargs)
+                with inference_scope(WorkPriority.TASK, lambda: self.cancelled.is_set()
+                                     or self.clock() >= self.deadline or self.loop.registry.control.is_cancelled()):
+                    try:
+                        raw = self.loop.llm.generate(prompt, **kwargs)
+                    finally:
+                        report = getattr(self.loop.llm, "generation_report", None)
+                        if report:
+                            self.loop.audit.log_event("model_generation", task_id=self.task_id, attempts=report)
                 self._check()
                 proposed = parse_response(raw)
                 if proposed.parse_ok and proposed.action.type != "none":
@@ -280,6 +289,10 @@ class TaskRunner:
                 if not result.executed:
                     return self._finish(result, "finished" if result.response.parse_ok else "invalid_response")
                 self._observe(result)
+        except ModelOutputError as exc:
+            self.loop.audit.log_event("model_output_rejected", task_id=self.task_id,
+                                      parse_error=str(exc), output_characters=len(exc.raw))
+            return self._finish(LoopResult(response=NyxResponse.safe_fallback(exc.raw, str(exc))), "invalid_response")
         except TaskStopped as exc:
             return self._stop(str(exc))
         except Exception as exc:

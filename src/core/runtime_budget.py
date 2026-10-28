@@ -315,6 +315,7 @@ def post_ollama_json(url: str, payload: dict, timeout: float) -> dict:
     import urllib.request
 
     from core.resource_governor import RESOURCE_GOVERNOR
+    deadline = time.monotonic() + timeout
     priority, cancelled = _work_context.get()
     with INFERENCE_GATE.slot(timeout=timeout, priority=priority, cancelled=cancelled):
         snapshot = _free_then_snapshot(resource_snapshot())
@@ -334,9 +335,12 @@ def post_ollama_json(url: str, payload: dict, timeout: float) -> dict:
         )
         if cancelled is not None and cancelled():
             raise InferenceCancelledError("Pedido cancelado antes da inferência.")
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise InferenceBusyError("Prazo esgotado antes de enviar a inferência.")
         started = time.monotonic()
         try:
-            with urllib.request.urlopen(request, timeout=timeout) as response:
+            with urllib.request.urlopen(request, timeout=remaining) as response:
                 raw = response.read(2_097_153)
                 if len(raw) > 2_097_152:
                     raise ValueError("Resposta do modelo excedeu 2 MiB")

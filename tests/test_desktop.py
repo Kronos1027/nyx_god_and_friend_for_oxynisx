@@ -54,6 +54,13 @@ def test_center_activity_is_bounded(desktop):
     assert "11" in window.control_center.activity.item(0).text()
 
 
+def test_recovery_progress_is_visible_without_claiming_execution(desktop):
+    window, _, _ = desktop
+    window._on_task_progress({"phase": "recovering", "step": 2, "task_id": "owned"})
+    assert "gerando novamente" in window.busy_label.text()
+    assert "não foi executada" in window.control_center.activity.item(0).text()
+
+
 def test_compact_layout_keeps_global_controls_visible(desktop):
     window, app, _ = desktop
     window.resize(920, 680)

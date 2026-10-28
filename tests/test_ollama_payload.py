@@ -26,7 +26,7 @@ def test_task_tools_narrow_schema_without_mutating_shared_schema(monkeypatch):
 
 def test_empty_task_registry_only_allows_conversation(monkeypatch):
     captured = []
-    monkeypatch.setattr("core.runtime_budget.post_ollama_json", lambda url, payload, timeout: captured.append(payload) or {})
+    monkeypatch.setattr("core.runtime_budget.post_ollama_json", lambda url, payload, timeout: captured.append(payload) or {"message": {"content": "{}"}})
     OllamaClient().generate("Oi", task_tools=[])
     assert captured[0]["format"]["properties"]["action"]["properties"]["type"]["enum"] == ["none"]
 
@@ -40,7 +40,7 @@ def test_fast_thinking_mode_requires_runtime_metadata(monkeypatch):
     client.configure_thinking()
     assert client.think is False
     captured = []
-    monkeypatch.setattr("core.runtime_budget.post_ollama_json", lambda url, payload, timeout: captured.append(payload) or {})
+    monkeypatch.setattr("core.runtime_budget.post_ollama_json", lambda url, payload, timeout: captured.append(payload) or {"message": {"content": "{}"}})
     client.generate("Oi")
     assert captured[-1]["think"] is False
     metadata["thinking"]["values"] = ["low", "high"]

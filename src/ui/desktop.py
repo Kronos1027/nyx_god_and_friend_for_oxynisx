@@ -1669,6 +1669,9 @@ class DesktopWindow(QMainWindow):
         step = progress["step"]
         if phase == "planning":
             self.busy_label.setText(f"Avaliando a próxima etapa · {step}")
+        elif phase == "recovering":
+            self.busy_label.setText(f"Etapa {step} · gerando novamente a resposta incompleta")
+            self._add_activity("Resposta incompleta descartada. Uma nova geração está em andamento; a ação desta etapa não foi executada.")
         elif phase == "executing":
             self.busy_label.setText(f"Etapa {step} · executando {progress['tool']}")
         elif phase == "confirmation":
@@ -1689,6 +1692,7 @@ class DesktopWindow(QMainWindow):
     def _on_processing(self, busy: bool) -> None:
         if not busy:
             self._refresh_tasks()
+            self._refresh_center_tasks()
         self._busy = busy
         self._initiative.activity()
         self.cancel_task_button.setEnabled(busy and getattr(self.controller.loop, "task_runner", None) is not None)

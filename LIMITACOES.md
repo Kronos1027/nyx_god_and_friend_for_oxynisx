@@ -5,6 +5,13 @@
 O ambiente atual é Windows com RTX 3060. As seções L1–L4 abaixo são histórico
 do desenvolvimento inicial, não descrevem a máquina atual.
 
+- O cliente Ollama agora regenera uma vez uma saída JSON inválida/interrompida,
+  sem executar a proposta descartada. Isso não garante recuperação de toda falha:
+  orçamento, cancelamento, pressão de memória ou nova saída inválida encerram
+  a tentativa. JSON válido também não comprova que a ação escolhida é correta.
+  O cancelamento de uma chamada HTTP já enviada aguarda seu retorno/timeout.
+  Ver `docs/JSON_RECOVERY.md`.
+
 - A Central organiza as capacidades existentes; não ativa servidores MCP nem
   executa scripts gerados. Sua prévia visual é feita com modelo de demonstração;
   esse rótulo não representa troca do modelo configurado no aplicativo real.

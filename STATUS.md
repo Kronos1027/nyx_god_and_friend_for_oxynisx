@@ -2,6 +2,26 @@
 
 Última atualização: 2026-10-28
 
+## Correção de respostas JSON interrompidas
+
+- Localizado o erro exato informado pelo usuário: saída de 453 caracteres,
+  encerrada dentro da ação `browser/media_status`. Não era falha da instrução
+  do usuário. Os logs anteriores não guardavam o motivo de término do Ollama.
+- Uma única regeneração antes de qualquer execução, com proposta anterior
+  descartada, prazo compartilhado e confirmações preservadas. Falhas de formato
+  não desativam o modelo. Interface informa recuperação em andamento; auditoria
+  registra metadados por tentativa. Detalhes em `docs/JSON_RECOVERY.md`.
+- JSON ambíguo, parâmetros com tipo incorreto e números não finitos são
+  bloqueados. Erros TypeError internos não causam repetição silenciosa da geração.
+- **786 aprovados, 1 pulado, 1 aviso em 69,26 s, saída 0**, incluindo navegador,
+  Windows e sandbox reais. `build/sandbox-probes/json-recovery-regression.xml`
+  e `.log`. Ruff aprovado.
+- Qwen3.5:4b real: cumprimento e planejamento de consulta de mídia válidos;
+  corte injetado recuperado na segunda geração. Nenhuma ferramenta executada
+  nesse ensaio. `build/sandbox-probes/json-recovery-live.json` e `.log`.
+- As mudanças valem ao reiniciar a execução a partir deste projeto. Um binário
+  instalado separadamente só incorpora o código após nova compilação/instalação.
+
 ## Interface — Central e organização do aplicativo
 
 - Central inicial com estado real da sessão, RAM/CPU, resumo de tarefas e

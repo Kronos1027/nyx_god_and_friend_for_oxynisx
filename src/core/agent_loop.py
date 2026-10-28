@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from config import AUTONOMY_SOURCES_UI, PermissionMode
-from core.llm_client import NyxResponse, parse_response
+from core.llm_client import ModelOutputError, NyxResponse, parse_response
 from core.verifier import ActionVerifier
 from tools.registry import ToolRegistry, ToolResult
 
@@ -141,11 +141,21 @@ class AgentLoop:
 
         # 1) LLM com gramática GBNF ou Ollama com contexto de memória
         mem_ctx = self.memory.build_system_prompt_context() if self.memory else None
+        generation_error = None
         if raw_response is None:
             try:
-                raw = self.llm.generate(user_input, history=self.history, memory_context=mem_ctx)
-            except TypeError:
-                raw = self.llm.generate(user_input, history=self.history)
+                import inspect
+                parameters = inspect.signature(self.llm.generate).parameters
+                kwargs = {"history": self.history}
+                if "memory_context" in parameters or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in parameters.values()):
+                    kwargs["memory_context"] = mem_ctx
+                raw = self.llm.generate(user_input, **kwargs)
+            except ModelOutputError as exc:
+                raw, generation_error = exc.raw, str(exc)
+            finally:
+                report = getattr(self.llm, "generation_report", None)
+                if report:
+                    self.audit.log_event("model_generation", attempts=report)
         else:
             raw = raw_response
 
@@ -156,7 +166,7 @@ class AgentLoop:
         # 2) Validação estrutural — parse incerto => ação none (seção 3.3)
         from core.llm_client import parse_response  # import local evita ciclo
 
-        response = parse_response(raw)
+        response = NyxResponse.safe_fallback(raw, generation_error) if generation_error else parse_response(raw)
         if not response.parse_ok:
             self.audit.log_decision(
                 user_input=user_input,
@@ -171,11 +181,6 @@ class AgentLoop:
                 result_output=None,
                 mode=self.mode_name,
             )
-            if not response.speech_output or "Tive um problema interno" in response.speech_output:
-                response.speech_output = (
-                    f"Aviso do Grande Sábio: Detectei uma anomalia na estrutura da resposta ({response.parse_error}). "
-                    "A ação foi isolada por segurança. Pode reformular a instrução ou pedir para tentar de outra forma."
-                )
             remember(user_input, response)
             return LoopResult(response=response, executed=False)
 
