@@ -638,8 +638,8 @@ class DesktopWindow(QMainWindow):
         layout = self._tab_section(self.learning_tabs, "Tarefas")
         layout.addWidget(self._muted("Histórico local com pausa e retomada explícita. Resposta concluída não comprova que todo o objetivo foi alcançado. Efeitos incertos exigem revisão e um novo pedido."))
         self.task_budget_combo = QComboBox()
-        self.task_budget_combo.addItem("Próximos pedidos: 6 ações / 3 minutos", "default")
-        self.task_budget_combo.addItem("Próximos pedidos: 12 ações / 10 minutos", "extended")
+        self.task_budget_combo.addItem("Automático por progresso · até 48 ações / 30 minutos", "default")
+        self.task_budget_combo.addItem("Bloco inicial maior · até 48 ações / 30 minutos", "extended")
         saved = str(self.settings.value("task_budget", "default"))
         self.task_budget_combo.setCurrentIndex(max(0, self.task_budget_combo.findData(saved)))
         self.task_budget_combo.currentIndexChanged.connect(self._set_task_budget)
@@ -1672,6 +1672,8 @@ class DesktopWindow(QMainWindow):
         elif phase == "recovering":
             self.busy_label.setText(f"Etapa {step} · gerando novamente a resposta incompleta")
             self._add_activity("Resposta incompleta descartada. Uma nova geração está em andamento; a ação desta etapa não foi executada.")
+        elif phase == "budget_extended":
+            self._add_activity(f"Progresso verificado: continuando a tarefa além da etapa {step - 1}.")
         elif phase == "executing":
             self.busy_label.setText(f"Etapa {step} · executando {progress['tool']}")
         elif phase == "confirmation":

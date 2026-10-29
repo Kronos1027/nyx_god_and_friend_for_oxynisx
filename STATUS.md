@@ -1,6 +1,30 @@
 # Nyx — estado verificado
 
-Última atualização: 2026-10-28
+Última atualização: 2026-10-29
+
+## Continuação além de seis ações e descoberta de aplicativos
+
+- Na interface, blocos de seis ações são ampliados quando as seis últimas
+  ações foram bem-sucedidas e verificadas. Teto global de 48 ações/30 minutos,
+  cancelamento preservado, eventos na atividade e na auditoria. A retomada
+  mantém essa regra e o tempo já gasto, inclusive ao pausar na sexta ação.
+- Corrigidos os casos dos logs: `app_name` aceito ao abrir aplicativo,
+  Steam resolvida pelo registro da instalação, descoberta de aplicativos
+  disponível ao planejador e contagem correta de janelas verificadas.
+  Parâmetros nulos não disfarçam mais uma listagem repetida.
+- Executáveis são resolvidos por instalação, sem busca pelo diretório atual
+  ou execução de strings de comandos. Abertura sem janela confirmada não é
+  declarada verificada; cancelamento depois do envio preserva resultado incerto.
+- Regressão: **799 aprovados, 2 falhas, 1 pulado em 75,18 s**. As duas falhas
+  são ensaios de clique físico com o alvo coberto por outra janela; o runtime
+  recusou o clique. Não foi enfraquecida essa proteção. Ruff aprovado.
+  Evidência: `build/sandbox-probes/continuation-regression.xml` e `.log`.
+- Uso real pela interface: cumprimento respondido por Qwen3.5:4b; pedido de
+  abrir Steam produziu a ação correta e chegou à confirmação. Abertura e
+  oito leituras pela interface ainda aguardam a interação humana nessa janela.
+  Detalhes e identificadores em `docs/LIVE_ACCEPTANCE_2026-10-29.md`.
+- Pet, sprites e modo de segurança preservados. Esta entrega não conclui
+  as integrações pendentes do roteiro Evolution 2.0.
 
 ## Correção de respostas JSON interrompidas
 

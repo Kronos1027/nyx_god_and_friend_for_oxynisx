@@ -185,7 +185,7 @@ def test_task_panel_continues_paused_checkpoint_and_updates_budget(desktop, tmp_
         window._show_saved_task(window.task_history.currentItem())
         assert "Etapas: 1 de 6" in window.task_preview.toPlainText()
         window.task_budget_combo.setCurrentIndex(1)
-        assert runner.default_budget == (12, 600)
+        assert runner.default_budget == (12, 1800)
         assert journal.get(identity)["max_actions"] == 6
         llm.queue(json.dumps({"emotion": "idle", "action": {"type": "none", "params": {}}, "speech_output": "Resultado: observed"}))
         window._continue_saved_task()

@@ -254,6 +254,54 @@ def test_invalid_json_stops_without_side_effects(tmp_path):
     assert not result.response.parse_ok and not runner.active and runner.steps == []
 
 
+def test_automatic_budget_continues_past_six_verified_actions(tmp_path):
+    replies = [reply("read_file", {"path": str(i)}) for i in range(8)] + [reply(speech="Oito concluídas")]
+    runner, loop, registry = make_runner(tmp_path, replies)
+    registry.register(ToolSpec("read_file", "read"), lambda p: ToolResult(True, "value-" + p["path"]))
+    runner.set_budget_profile("default")
+    progress = []
+    result = runner.start("Leia os oito arquivos", progress.append)
+    assert len(runner.steps) == 8 and runner.max_actions == 12
+    assert result.response.speech_output == "Oito concluídas"
+    assert len([p for p in progress if p["phase"] == "budget_extended"]) == 1
+    assert any(e["event"] == "task_budget_extended" for e in loop.audit.read_all())
+
+
+def test_automatic_budget_does_not_extend_failed_work(tmp_path):
+    runner, _, registry = make_runner(tmp_path, [reply("read_file", {"path": str(i)}) for i in range(8)])
+    registry.register(ToolSpec("read_file", "read"), lambda p: ToolResult(p["path"] != "0", output="value", error="missing"))
+    runner.set_budget_profile("default")
+    result = runner.start("Leia os arquivos")
+    assert len(runner.steps) == 6 and runner.max_actions == 6
+    assert "Sem progresso" in result.response.speech_output
+
+
+def test_null_ui_fields_do_not_evade_repeat_detection():
+    assert TaskRunner._signature("ui_action", {"action": "list_windows"}) == TaskRunner._signature(
+        "ui_action", {"action": "list_windows", "hwnd": None, "snapshot": None})
+
+
+def test_automatic_budget_keeps_global_ceiling(tmp_path):
+    runner, _, registry = make_runner(tmp_path, [reply("read_file", {"path": str(i)}) for i in range(49)])
+    registry.register(ToolSpec("read_file", "read"), lambda p: ToolResult(True, "value"))
+    runner.set_budget_profile("default")
+    result = runner.start("Leia os arquivos")
+    assert len(runner.steps) == runner.AUTO_ACTION_CEILING == 48
+    assert "Limite geral" in result.response.speech_output
+
+
+def test_automatic_budget_preserves_cancellation_after_extension(tmp_path):
+    runner, _, registry = make_runner(tmp_path, [reply("read_file", {"path": str(i)}) for i in range(10)])
+    registry.register(ToolSpec("read_file", "read"), lambda p: ToolResult(True, "value"))
+    runner.set_budget_profile("default")
+    def progress(event):
+        if event["phase"] == "observed" and event["step"] == 7:
+            runner.cancel()
+    result = runner.start("Leia os arquivos", progress)
+    assert len(runner.steps) == 7 and runner.max_actions == 12
+    assert "interrompido" in result.response.speech_output
+
+
 def test_verifier_crash_preserves_uncertainty_about_started_action(tmp_path):
     runner, loop, registry = make_runner(tmp_path, [reply("read_file")])
     calls = []

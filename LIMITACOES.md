@@ -1,9 +1,19 @@
 # LIMITACOES.md — limitações reais, sem contorno silencioso
 
-## Estado atual — Evolution 2.0 (28/10/2026)
+## Estado atual — Evolution 2.0 (29/10/2026)
 
 O ambiente atual é Windows com RTX 3060. As seções L1–L4 abaixo são histórico
 do desenvolvimento inicial, não descrevem a máquina atual.
+
+- A continuação de tarefas na interface é automática em blocos de seis quando
+  as seis últimas ações foram bem-sucedidas e verificadas, até 48 ações/30 minutos.
+  Essa regra remove a parada fixa em seis; não comprova progresso semântico nem
+  garante conclusão de qualquer pedido. Repetições, falhas e limites globais ainda
+  podem interromper uma tarefa. Ver `docs/TASK_EXECUTION.md`.
+- A descoberta de aplicativos usa registros App Paths do Windows, registro do
+  cliente Steam e nomes de utilitários do Windows. Não é um catálogo completo de
+  aplicativos UWP, portáteis ou atalhos do Menu Iniciar. A janela precisa ser
+  identificada pelo executável; abrir um processo sem janela observada não basta.
 
 - O cliente Ollama agora regenera uma vez uma saída JSON inválida/interrompida,
   sem executar a proposta descartada. Isso não garante recuperação de toda falha:

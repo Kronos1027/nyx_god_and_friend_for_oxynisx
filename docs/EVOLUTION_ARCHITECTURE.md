@@ -72,9 +72,10 @@ antes de conectar CodeTask, skills ou MCP. Evidências e lacunas estão em
 e ausência de ciclos. AgentTeam agenda somente nós com dependências bem-sucedidas.
 As respostas das dependências têm autoridade `untrusted_observation`; permissões
 continuam determinadas pelo papel e pelo registro, inclusive circuit breaker.
-O limite de seis chamadas do pedido principal permanece; uma delegação tem seu
-próprio limite de quatro agentes/duas etapas cada. Não são seis consultas físicas
-somando toda a equipe. O painel e checkpoint guardam os resultados subordinados.
+O pedido principal começa com seis chamadas e amplia o bloco quando há progresso
+verificado, até 48 ações/30 minutos. Uma delegação tem seu próprio limite de quatro
+agentes/duas etapas cada. O orçamento principal conta delegações, não cada consulta
+física da equipe. O painel e checkpoint guardam os resultados subordinados.
 
 Um token de cancelamento por execução atravessa a fila de inferência e as checagens
 de OperationControl nas ferramentas. Expirar encerra a espera do chamador, solicita

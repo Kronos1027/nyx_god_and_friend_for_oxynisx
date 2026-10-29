@@ -19,13 +19,16 @@ class TaskStopped(RuntimeError):
 
 
 class TaskRunner:
-    BUDGET_PROFILES = {"default": (6, 180), "extended": (12, 600)}
+    BUDGET_PROFILES = {"default": (6, 1800), "extended": (12, 1800)}
+    AUTO_ACTION_CEILING = 48
 
     def __init__(self, loop, max_actions: int = 6, timeout: float = 180, clock=time.monotonic, journal=None):
         self.loop = loop
         self.max_actions = max(1, min(max_actions, 12))
         self.timeout = max(1, min(timeout, 600))
         self.default_budget = (self.max_actions, self.timeout)
+        self.default_auto_extend = False  # explicit programmatic budgets remain strict
+        self.auto_extend = False
         self.clock = clock
         self.cancelled = threading.Event()
         self.pause_requested = threading.Event()
@@ -48,9 +51,12 @@ class TaskRunner:
         if profile not in self.BUDGET_PROFILES:
             raise ValueError("Perfil de orçamento desconhecido.")
         self.default_budget = self.BUDGET_PROFILES[profile]
+        self.default_auto_extend = True
 
     @staticmethod
     def _signature(tool, params):
+        if tool == "ui_action":
+            params = {key: value for key, value in params.items() if value is not None}
         payload = json.dumps([tool, params], sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
@@ -62,6 +68,7 @@ class TaskRunner:
             "spent": self.spent + max(0, self.clock() - self.started_at),
             "steps": self.steps, "seen": self.seen, "pending": self.pending,
             "inflight": self.inflight, "uncertain": self.uncertain,
+            "auto_extend": self.auto_extend,
             "replans": self.replans})
 
     def continue_task(self, task_id, on_progress=None):
@@ -80,11 +87,12 @@ class TaskRunner:
                 raise ValueError("Resultado externo incerto. Inspecione o estado e formule um novo pedido; esta ação não será repetida.")
             if item["state"] not in {"PAUSED", "RESOURCE_PRESSURE"}:
                 raise ValueError("Somente uma tarefa pausada pode ser retomada.")
-            if item["spent"] >= item["timeout"] or len(item["steps"]) >= item["max_actions"]:
+            if item["spent"] >= item["timeout"] or (len(item["steps"]) >= item["max_actions"] and not item.get("auto_extend")):
                 raise ValueError("Orçamento original esgotado. Revise os resultados antes de um novo pedido.")
             self.loop.registry.control.begin()
             self.task_id, self.goal = item["id"], item["goal"]
             self.max_actions, self.timeout = item["max_actions"], item["timeout"]
+            self.auto_extend = item.get("auto_extend") is True
             self.steps, self.seen = item["steps"], item["seen"]
             self.replans = item.get("replans", 0)
             self.started_at, self.spent = self.clock(), item["spent"]
@@ -117,7 +125,19 @@ class TaskRunner:
     def _guard(self, tool: str, params: dict):
         self._check()
         if len(self.steps) >= self.max_actions:
-            raise TaskStopped(f"Limite de {self.max_actions} ações atingido; a tarefa pode estar incompleta.")
+            recent = self.steps[-6:]
+            progressing = len(recent) == 6 and all(step["ok"] and step["verified"] for step in recent)
+            if self.auto_extend and progressing and self.max_actions < self.AUTO_ACTION_CEILING:
+                previous = self.max_actions
+                self.max_actions = min(self.AUTO_ACTION_CEILING, self.max_actions + 6)
+                self._checkpoint("PLAN")
+                self.loop.audit.log_event("task_budget_extended", task_id=self.task_id,
+                                          previous=previous, max_actions=self.max_actions, reason="verified_progress")
+                self.on_progress({"phase": "budget_extended", "task_id": self.task_id,
+                                  "step": len(self.steps) + 1, "tool": tool, "max_actions": self.max_actions})
+            else:
+                reason = "Sem progresso verificado suficiente para continuar automaticamente." if self.auto_extend and not progressing else "Limite geral da tarefa atingido."
+                raise TaskStopped(f"{reason} {len(self.steps)} ações registradas; confira as pendências.")
         signature = self._signature(tool, params)
         if (self.seen and signature == self.seen[-1]) or self.seen.count(signature) >= 2:
             raise TaskStopped("A mesma ação foi proposta novamente. Interrompi a repetição para evitar um ciclo.")
@@ -139,6 +159,7 @@ class TaskRunner:
             self.loop.registry.control.begin()
             self.active = True
             self.max_actions, self.timeout = self.default_budget
+            self.auto_extend = self.default_auto_extend
             self.cancelled.clear()
             self.pause_requested.clear()
             self.task_id = uuid4().hex
@@ -160,7 +181,9 @@ class TaskRunner:
             except Exception:
                 self.active = False
                 raise
-            self.loop.audit.log_event("task_started", task_id=self.task_id, max_actions=self.max_actions)
+            self.loop.audit.log_event("task_started", task_id=self.task_id, max_actions=self.max_actions,
+                                      auto_extend=self.auto_extend, timeout_seconds=self.timeout,
+                                      action_ceiling=self.AUTO_ACTION_CEILING if self.auto_extend else self.max_actions)
             return self._advance()
         finally:
             self._lock.release()
@@ -207,7 +230,9 @@ class TaskRunner:
                 else:
                     prompt = (
                         f"PEDIDO ORIGINAL: {self.goal}\n\n"
-                        f"Já foram executadas {len(self.steps)} de no máximo {self.max_actions} ações. "
+                        f"Já foram executadas {len(self.steps)} ações. "
+                        + ("O bloco de planejamento é ampliado automaticamente se houver progresso verificado; "
+                           "não encerre só por atingir seis ações. " if self.auto_extend else f"O limite é {self.max_actions} ações. ") +
                         "Use as observações para escolher a próxima ação necessária. "
                         "Se o pedido terminou ou precisa de informação do usuário, use action.type=none e responda. "
                         "Não repita uma ação sem mudança de estado. Uma releitura após alteração é permitida para verificar o resultado. "
@@ -306,7 +331,7 @@ class TaskRunner:
                    for item in self.loop.history[-2:]]
         if not self.steps:
             return history
-        # At most twelve rows. Shorten fields before serialization, never JSON itself.
+        # Retain every action, with bounded excerpts; never truncate serialized JSON.
         output_limit = max(32, min(800, 1800 // len(self.steps)))
         ledger = []
         for number, step in enumerate(self.steps, 1):

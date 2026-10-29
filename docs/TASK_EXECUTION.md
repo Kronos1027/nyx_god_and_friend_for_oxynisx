@@ -4,13 +4,19 @@ A interface Windows usa TaskRunner para decidir, executar, observar e decidir no
 
 ## Limites e resultados
 
-- Até seis ações e 180 segundos por pedido, incluindo espera por confirmação. O prazo é cooperativo: não encerra à força uma operação ou geração já iniciada. Antes de cada nova ação, o prazo e o cancelamento são verificados.
+- Na interface, seis ações são o bloco inicial de planejamento, não um encerramento obrigatório. Ao chegar ao bloco, se as seis últimas ações tiveram resultado e verificação positivos, o orçamento aumenta em seis. O teto global é 48 ações e 30 minutos, incluindo espera por confirmação; o prazo não é renovado. O perfil ampliado começa com 12 ações e segue a mesma regra. Orçamentos programáticos explícitos continuam estritos. O prazo é cooperativo: não encerra à força uma geração já iniciada.
 - Uma ação idêntica consecutiva é bloqueada antes da execução; uma mesma chamada pode ocorrer novamente após outra ação, permitindo ler, alterar e reler. Uma terceira ocorrência é bloqueada. Esses limites ainda podem interromper tarefas legítimas longas e precisam de avaliação por tipo de tarefa.
 - Observações são dados externos limitados em tamanho; histórico de planejamento é limitado. Não concedem autoridade para mudar o pedido ou as políticas. Proteção por instruções não prova resistência completa a prompt injection.
 - Cada ação sensível/destrutiva segue a política atual. A confirmação fica vinculada à tarefa e aos parâmetros exatos. Confirmar uma etapa não aprova a próxima; alterar ou reutilizar a confirmação é recusado.
 - A interface mostra etapa, ferramenta, resultado da verificação e prévia limitada. O botão Interromper solicita cancelamento; Ctrl+Alt+K também bloqueia controle de tela e solicita cancelamento. Ações já executadas não são desfeitas automaticamente.
 - Encerramento do planejamento pelo modelo não prova sucesso do objetivo. Falhas e resultados não verificados recebem aviso na resposta. Se o verificador falhar depois que a operação começou, o resultado permanece explicitamente desconhecido.
-- O histórico de conversa registra o pedido original e a resposta final; passos intermediários ficam na auditoria. Não há retomada automática de efeitos após reiniciar o aplicativo. Persistência de tarefas e reconciliação de ações incompletas continuam pendentes.
+- O histórico de conversa registra o pedido original e a resposta final; passos intermediários ficam na auditoria e no diário persistente. Tarefas pausadas podem ser retomadas explicitamente, preservando progresso e tempo gasto, inclusive quando a pausa aconteceu na sexta ação. Aprovações antigas e ações de resultado incerto não são repetidas após reiniciar.
+
+## Continuação por progresso — 2026-10-29
+
+A ampliação fica registrada como `task_budget_extended` e aparece no painel de atividade. Falhas ou falta de verificação no bloco impedem a ampliação; repetição de ações, cancelamento e pressão de recursos continuam interrompendo o trabalho. Parâmetros nulos de `ui_action` são ignorados na assinatura de repetição, evitando que a mesma listagem seja repetida apenas por incluir `hwnd: null`.
+
+Os testes de controle cobrem oito ações, limite global, cancelamento após ampliação e pausa/reinício exatamente na sexta ação. A validação pela interface com modelo local é registrada separadamente; testes roteirizados não comprovam competência do modelo.
 
 ## Evidência
 

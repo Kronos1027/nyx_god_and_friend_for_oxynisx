@@ -56,6 +56,32 @@ def test_eight_real_reads_pause_restart_and_continue_same_id(tmp_path):
         journal.close()
 
 
+def test_automatic_continuation_survives_pause_at_six_and_restart(tmp_path):
+    paths = [tmp_path / f"value-{i}.txt" for i in range(8)]
+    for i, path in enumerate(paths):
+        path.write_text(str(i))
+    actions = [reply("read_file", {"path": str(path)}) for path in paths]
+    journal = TaskJournal(tmp_path / "tasks.db")
+    runner, _ = runner_at(tmp_path, journal, actions[:6])
+    runner.set_budget_profile("default")
+    def progress(event):
+        if event["phase"] == "observed" and event["step"] == 6:
+            runner.pause()
+    runner.start("Leia os oito valores", progress)
+    identity = runner.task_id
+    assert journal.get(identity)["auto_extend"] is True
+    journal.close()
+    journal = TaskJournal(tmp_path / "tasks.db")
+    try:
+        restored, _ = runner_at(tmp_path, journal, actions[6:] + [reply()])
+        restored.continue_task(identity)
+        saved = journal.get(identity)
+        assert saved["state"] == "PLANNING_FINISHED" and len(saved["steps"]) == 8
+        assert saved["max_actions"] == 12 and saved["timeout"] == 1800
+    finally:
+        journal.close()
+
+
 def test_real_process_crash_after_effect_never_replays(tmp_path):
     helper = tmp_path / "trusted_crash_test.py"
     helper.write_text('''import json,os,sys

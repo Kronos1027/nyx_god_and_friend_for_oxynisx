@@ -403,8 +403,8 @@ class UITool:
             )
 
     def open_app(self, params: dict) -> ToolResult:
-        """Inicia um aplicativo ou abre um documento no Windows 11."""
-        app_name = str(params.get("app", params.get("name", params.get("path", "")))).strip()
+        """Abre um aplicativo instalado e observa sua janela real."""
+        app_name = str(params.get("app") or params.get("name") or params.get("app_name") or params.get("path") or "").strip()
         if not app_name:
             return ToolResult(ok=False, error="Parâmetro 'app' ou 'name' é obrigatório.")
 
@@ -420,28 +420,41 @@ class UITool:
         if low_app in web_services or low_app.startswith(("http://", "https://", "www.")):
             return self.open_url({"url": web_services.get(low_app, app_name)})
 
+        dispatched = False
         try:
-            import re
-            if any(c in app_name for c in ('"', '\n', '\r', '&', '|', '<', '>', '%')):
-                raise ValueError("Informe somente o nome ou caminho de um aplicativo, sem comandos ou argumentos.")
-            suffix = Path(app_name).suffix.lower()
-            if suffix and suffix != ".exe":
-                raise ValueError("Abertura de scripts e arquivos executáveis indiretos não é permitida por esta ferramenta.")
-            if not suffix and not re.fullmatch(r"[\w -]{1,80}", app_name):
-                raise ValueError("Nome de aplicativo inválido.")
-            if Path(app_name).is_absolute():
-                executable = Path(app_name).resolve()
-                trusted = [Path(value).resolve() for value in (os.environ.get("WINDIR"),
-                    os.environ.get("ProgramFiles"), os.environ.get("ProgramFiles(x86)")) if value]
-                if not executable.is_file() or not any(root in executable.parents for root in trusted):
-                    raise ValueError("Executável fora das pastas de aplicativos instalados; use um aplicativo registrado pelo Windows.")
-            elif "\\" in app_name or "/" in app_name:
-                raise ValueError("Caminhos relativos não são aceitos para iniciar aplicativos.")
+            import time
+            from tools.installed_apps import resolve_app, matching_windows
+            app = resolve_app(app_name)
             self.control.check()
-            os.startfile(app_name)
-            return ToolResult(ok=True, output=f"Aplicativo/item iniciado: '{app_name}'", meta={"app": app_name})
+            existing = matching_windows(app.path)
+            if existing:
+                return ToolResult(True, f"{app.name} já está aberto.",
+                    meta={"app": app.name, "executable": str(app.path), "windows": existing,
+                          "verified": True, "check": "installed_app_window"})
+            os.startfile(str(app.path))
+            dispatched = True
+            deadline = time.monotonic() + 4
+            windows = []
+            while time.monotonic() < deadline:
+                self.control.check()
+                windows = matching_windows(app.path)
+                if windows:
+                    break
+                time.sleep(0.15)
+            return ToolResult(True, f"{app.name}: " + ("janela confirmada." if windows else "abertura solicitada; janela ainda não confirmada."),
+                meta={"app": app.name, "executable": str(app.path), "windows": windows,
+                      "verified": bool(windows), "check": "installed_app_window"})
         except Exception as exc:
-            return ToolResult(ok=False, error=f"Falha ao abrir '{app_name}': {exc}")
+            return ToolResult(ok=False, error=f"Falha ao abrir '{app_name}': {exc}",
+                              meta={"outcome_unknown": dispatched or getattr(exc, "outcome_unknown", False)})
+
+    def list_installed_apps(self, params):
+        from tools.installed_apps import installed_apps, normalized_name
+        query = normalized_name(str(params.get("query") or ""))
+        apps = [{"name": app.name, "path": str(app.path), "source": app.source}
+                for app in installed_apps() if not query or query in normalized_name(app.name)
+                or query in normalized_name(app.path.stem)][:80]
+        return ToolResult(True, json.dumps(apps, ensure_ascii=False), meta={"apps": apps, "count": len(apps)})
 
     def get_active_window(self, params: dict | None = None) -> ToolResult:
         """Retorna o título e detalhes da janela ativa em foco."""
@@ -808,6 +821,7 @@ class UITool:
             "type_text": self.type_text,
             "press_key": self.press_key,
             "open_app": self.open_app,
+            "list_installed_apps": self.list_installed_apps,
             "launch": self.open_app,
             "open_url": self.open_url,
             "url": self.open_url,

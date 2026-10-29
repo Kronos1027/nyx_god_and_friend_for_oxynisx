@@ -167,6 +167,10 @@ class ActionVerifier:
                 taxonomy_error=None if confirmed else ErrorTaxonomy.VERIFICATION_FAILED)
 
         if sub_action in ("open_app", "launch"):
+            if result.meta.get("check") == "installed_app_window":
+                confirmed = result.meta.get("verified") is True and bool(result.meta.get("windows"))
+                return VerificationResult(confirmed, "ui_action", "installed_app_window",
+                                          "Janela identificada pelo executável instalado." if confirmed else "Janela não confirmada.")
             if result.meta.get("check") == "controlled_navigation":
                 return VerificationResult(result.meta.get("verified") is True, "ui_action", "controlled_navigation",
                                           "Página verificada no navegador isolado; isso não confirma reprodução de mídia.")
@@ -212,8 +216,8 @@ class ActionVerifier:
                 suggested_recovery_route="Repetir captura de tela via mss ou pyautogui.",
             )
 
-        if sub_action in ("list_apps", "list_windows"):
-            apps = result.meta.get("apps", [])
+        if sub_action in ("list_apps", "list_windows", "list_installed_apps"):
+            apps = result.meta.get("windows" if sub_action == "list_windows" else "apps", [])
             return VerificationResult(
                 verified=True,
                 action_type="ui_action",
