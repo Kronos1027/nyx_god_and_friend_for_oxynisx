@@ -1,0 +1,200 @@
+[
+  {
+    "model": "qwen2.5:3b-instruct",
+    "available": true,
+    "total_prompts": 20,
+    "schema_ok_count": 19,
+    "schema_accuracy_pct": 95.0,
+    "action_match_count": 16,
+    "action_accuracy_pct": 80.0,
+    "avg_latency_s": 2.01,
+    "results": [
+      {
+        "prompt": "quais aplicativos estão abertos agora no meu computador?",
+        "expected": "ui_action",
+        "actual": "ui_action",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 8.24,
+        "speech": "Estou listando os aplicativos abertos no momento."
+      },
+      {
+        "prompt": "pesquise a previsão do tempo hoje e onde estamos",
+        "expected": "web",
+        "actual": "web",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 0.88,
+        "speech": "Buscando a previsão do tempo atual para a localização em que estamos..."
+      },
+      {
+        "prompt": "como está o uso da placa de vídeo e temperatura do hardware?",
+        "expected": "project_status",
+        "actual": "project_status",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 1.11,
+        "speech": "A placa de vídeo e a temperatura do hardware estão sendo monitoradas atualmente."
+      },
+      {
+        "prompt": "crie um script python que calcule fibonacci e mostre no workspace",
+        "expected": "workspace",
+        "actual": "shell",
+        "schema_ok": true,
+        "action_match": false,
+        "elapsed_s": 1.66,
+        "speech": "Script Python criado e executado para exibir os primeiros 10 números de Fibonacc"
+      },
+      {
+        "prompt": "monte uma planilha com os gastos mensais no workspace",
+        "expected": "workspace",
+        "actual": "workspace",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 1.78,
+        "speech": "A planilha de gastos mensais foi criada no workspace. Agora você pode começar a "
+      },
+      {
+        "prompt": "elabore um relatório comparativo sobre agentes autônomos em markdown",
+        "expected": "workspace",
+        "actual": "write_file",
+        "schema_ok": true,
+        "action_match": false,
+        "elapsed_s": 4.33,
+        "speech": "Elaborando um relatório comparativo sobre agentes autônomos em formato Markdown."
+      },
+      {
+        "prompt": "pesquise as últimas notícias sobre inteligência artificial",
+        "expected": "web",
+        "actual": "web",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 1.31,
+        "speech": "Buscando as últimas notícias sobre inteligência artificial, por favor, aguarde u"
+      },
+      {
+        "prompt": "abra o spotify no navegador",
+        "expected": "ui_action",
+        "actual": "ui_action",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 1.42,
+        "speech": "Abrindo o navegador e navegando até o Spotify para iniciar uma sessão."
+      },
+      {
+        "prompt": "olhe a tela e me diga o que está visível",
+        "expected": "ui_action",
+        "actual": "ui_action",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 1.07,
+        "speech": "Estou prestes a ver o conteúdo visível na tela atual."
+      },
+      {
+        "prompt": "qual janela está ativa e em foco no momento?",
+        "expected": "ui_action",
+        "actual": "ui_action",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 1.31,
+        "speech": "A janela ativa e em foco no momento está sendo identificada."
+      },
+      {
+        "prompt": "inspecione os controles e botões da janela atual",
+        "expected": "ui_action",
+        "actual": "ui_action",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 1.34,
+        "speech": "Inspeção dos controles e botões da janela atual em curso."
+      },
+      {
+        "prompt": "leia o conteúdo do arquivo config.py",
+        "expected": "read_file",
+        "actual": "none",
+        "schema_ok": false,
+        "action_match": false,
+        "elapsed_s": 1.28,
+        "speech": "Tive um problema interno ao processar isso. Pode repetir?"
+      },
+      {
+        "prompt": "escreva uma anotação no arquivo notas.txt com o texto reunião amanhã",
+        "expected": "write_file",
+        "actual": "write_file",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 1.55,
+        "speech": "Anotação 'reunião amanhã' salva no arquivo 'notas.txt'."
+      },
+      {
+        "prompt": "procure todos os arquivos .py na pasta src",
+        "expected": "find_files",
+        "actual": "find_files",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 1.27,
+        "speech": "Estou pronto para ver todos os arquivos .py na pasta src."
+      },
+      {
+        "prompt": "o que está copiado na minha área de transferência?",
+        "expected": "clipboard",
+        "actual": "clipboard",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 1.34,
+        "speech": "Estou copiando algo. Por favor, diga-me o que você gostaria que eu fizesse com e"
+      },
+      {
+        "prompt": "feche a janela do aplicativo notepad",
+        "expected": "ui_action",
+        "actual": "ui_action",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 1.26,
+        "speech": "A janela do aplicativo Notepad foi fechada."
+      },
+      {
+        "prompt": "minimize a janela atual",
+        "expected": "ui_action",
+        "actual": "ui_action",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 1.21,
+        "speech": "A janela atual foi minimizada."
+      },
+      {
+        "prompt": "capture um screenshot da minha tela agora",
+        "expected": "ui_action",
+        "actual": "ui_action",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 1.15,
+        "speech": "Capturando uma imagem da sua tela, isso pode levar alguns segundos..."
+      },
+      {
+        "prompt": "olá Nyx, como você está hoje?",
+        "expected": "none",
+        "actual": "none",
+        "schema_ok": true,
+        "action_match": true,
+        "elapsed_s": 1.22,
+        "speech": "Estou bem, estou perguntando como estou eu hoje. Estou aqui para obter informaçõ"
+      },
+      {
+        "prompt": "explique a diferença entre memória RAM e VRAM",
+        "expected": "none",
+        "actual": "workspace",
+        "schema_ok": true,
+        "action_match": false,
+        "elapsed_s": 5.49,
+        "speech": "Memória RAM e VRAM são dois tipos de memória importantes em computadores. Memóri"
+      }
+    ]
+  },
+  {
+    "model": "qwen2.5-14b-128k:latest",
+    "available": true,
+    "error": "Falha ao comunicar com Ollama: HTTP Error 500: Internal Server Error",
+    "note": "Excedeu VRAM (OOM) com num_ctx 8192 na RTX 3060 12GB."
+  }
+]

@@ -1,0 +1,77 @@
+{
+  "version": "0.1.0",
+  "timestamp": "2026-10-22T13:57:32.061796+00:00",
+  "frozen": false,
+  "python": "3.11.15",
+  "platform": "Windows-10-10.0.26300-SP0",
+  "user_data_dir": "E:\\projeto\\Nova pasta",
+  "checks": {
+    "schema_resource": {
+      "ok": true,
+      "path": "E:\\projeto\\Nova pasta\\src\\core\\schema.gbnf"
+    },
+    "module:PyQt6.QtCore": {
+      "ok": true,
+      "version": null
+    },
+    "module:PyQt6.QtWidgets": {
+      "ok": true,
+      "version": null
+    },
+    "module:faster_whisper": {
+      "ok": true,
+      "version": "1.2.1"
+    },
+    "module:kokoro_onnx": {
+      "ok": true,
+      "version": null
+    },
+    "module:llama_cpp": {
+      "ok": true,
+      "version": "0.3.2"
+    },
+    "module:onnxruntime": {
+      "ok": true,
+      "version": "1.30.0"
+    },
+    "module:sounddevice": {
+      "ok": true,
+      "version": "0.5.6"
+    },
+    "module:soundfile": {
+      "ok": true,
+      "version": "0.14.0"
+    },
+    "module:pywinauto": {
+      "ok": true,
+      "version": "0.6.9"
+    },
+    "module:pyautogui": {
+      "ok": true,
+      "version": "0.9.54"
+    },
+    "encrypted_backup": {
+      "ok": true
+    },
+    "companion_resource": {
+      "ok": true
+    },
+    "multi_step_task": {
+      "ok": true,
+      "planner": "scripted",
+      "actions": 2
+    },
+    "qt_application": {
+      "ok": true
+    },
+    "desktop_render": {
+      "ok": true,
+      "width": 1320,
+      "height": 860
+    },
+    "writable_user_data": {
+      "ok": true
+    }
+  },
+  "ok": true
+}

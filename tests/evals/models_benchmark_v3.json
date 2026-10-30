@@ -1,0 +1,47 @@
+[
+  {
+    "model_name": "qwen2.5:3b-instruct",
+    "vram_before_mb": 3475,
+    "vram_peak_mb": 3517,
+    "vram_delta_mb": 42,
+    "total_eval_tokens": 983,
+    "total_eval_duration_s": 9.770548,
+    "tokens_per_sec": 100.60848173510841,
+    "schema_valid_count": 10,
+    "tool_match_count": 2,
+    "total_prompts": 10,
+    "schema_accuracy_pct": 100.0,
+    "tool_match_pct": 20.0,
+    "error_message": null
+  },
+  {
+    "model_name": "PetrosStav/gemma3-tools:12b",
+    "vram_before_mb": 3483,
+    "vram_peak_mb": 10181,
+    "vram_delta_mb": 6698,
+    "total_eval_tokens": 0,
+    "total_eval_duration_s": 0.0,
+    "tokens_per_sec": 0.0,
+    "schema_valid_count": 0,
+    "tool_match_count": 0,
+    "total_prompts": 10,
+    "schema_accuracy_pct": 0.0,
+    "tool_match_pct": 0.0,
+    "error_message": "timed out"
+  },
+  {
+    "model_name": "qwen2.5-14b-128k:latest",
+    "vram_before_mb": 10181,
+    "vram_peak_mb": 10647,
+    "vram_delta_mb": 466,
+    "total_eval_tokens": 1038,
+    "total_eval_duration_s": 38.234949999,
+    "tokens_per_sec": 27.14793663983209,
+    "schema_valid_count": 10,
+    "tool_match_count": 4,
+    "total_prompts": 10,
+    "schema_accuracy_pct": 100.0,
+    "tool_match_pct": 40.0,
+    "error_message": null
+  }
+]

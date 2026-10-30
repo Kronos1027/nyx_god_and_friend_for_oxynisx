@@ -1,0 +1,1 @@
+{"installed": "0.1.0", "update": null, "supported": false, "error": "ValueError: A release mais recente não está acessível (404). O repositório é privado; defina NYX_GITHUB_TOKEN ou grave o token em %LOCALAPPDATA%\\Nyx\\github_token."}

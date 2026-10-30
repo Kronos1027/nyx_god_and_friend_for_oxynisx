@@ -1,0 +1,33 @@
+[
+  {
+    "target": "Barra de tarefas do Windows ou menu Iniciar",
+    "error": "timed out"
+  },
+  {
+    "target": "Relógio do sistema no canto inferior direito",
+    "expected_zone": "bottom_right",
+    "duration_s": 0.91,
+    "vram_mb": 12000,
+    "raw_response": "A rectangle with a black background and a gray border.  It is centered in the image.",
+    "parsed_coords": null,
+    "has_valid_json": false
+  },
+  {
+    "target": "Botão de fechar (X) no canto superior direito",
+    "expected_zone": "top_right",
+    "duration_s": 0.07,
+    "vram_mb": 12000,
+    "raw_response": "",
+    "parsed_coords": null,
+    "has_valid_json": false
+  },
+  {
+    "target": "Barra de título da janela ativa",
+    "expected_zone": "top",
+    "duration_s": 0.12,
+    "vram_mb": 12000,
+    "raw_response": "ids of the elements in the image.",
+    "parsed_coords": null,
+    "has_valid_json": false
+  }
+]
