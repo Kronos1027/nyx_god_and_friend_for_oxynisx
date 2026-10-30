@@ -1,5 +1,10 @@
 # Respostas incompletas do modelo — 28/10/2026
 
+Atualização de 30/10: o contexto efetivo também limita a resposta. A montagem
+agora reserva espaço, compacta entradas e distingue contexto cheio de teto de
+saída. Recuperação por contexto cheio mantém o teto e evita acrescentar texto.
+Ver [diagnóstico e evidência](RELIABILITY_2026-10-30.md).
+
 O erro informado pelo usuário foi localizado no log de desenvolvimento às
 10:48:42 (São Paulo): o JSON terminou com 453 caracteres dentro da ação
 `browser/media_status`. O parser acusou vírgula ausente exatamente no fim da

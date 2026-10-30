@@ -25,6 +25,8 @@ def response(action=None, speech="feito"):
 def test_agent_team_runs_two_independent_agents_concurrently(tmp_path):
     class ParallelLLM:
         def generate(self, user_input, history=None):
+            if "análise concluída" in user_input:
+                return response(speech="A consulta retornou análise concluída.")
             return response({"type": "read_file", "params": {"path": "notes.txt"}})
 
     barrier = threading.Barrier(2)
@@ -76,6 +78,8 @@ def test_agent_team_rejects_oversized_or_invalid_requests(tmp_path):
 def test_agent_team_executes_only_scoped_registered_read_tool(tmp_path):
     class ReadLLM:
         def generate(self, user_input, history=None):
+            if "conteúdo" in user_input:
+                return response(speech="O arquivo contém: conteúdo.")
             return response({"type": "read_file", "params": {"path": "notes.txt"}})
 
     registry = ToolRegistry()
@@ -181,9 +185,10 @@ def test_agent_team_stops_when_a_tool_would_repeat(tmp_path):
         {"role": "arquivos", "task": "leia"},
     ])
 
-    assert result.ok is True
+    assert result.ok is False
     assert len(calls) == 1
     assert "conteúdo" in result.output
+    assert result.meta["agents"][0]["state"] == "INCOMPLETE"
 
 
 def test_browser_agent_cannot_click_or_open_local_files(tmp_path):
@@ -272,8 +277,108 @@ def test_browser_agent_allows_structured_read_actions(tmp_path):
 
     class StructBrowserLLM:
         def generate(self, user_input, history=None):
+            if "ação links executada" in user_input:
+                return response(speech="Observação: ação links executada.")
             return response({"type": "browser", "params": {"action": "links"}})
 
     result = AgentTeam(StructBrowserLLM(), registry, audit).run([{"role": "navegador", "task": "extraia links"}])
     assert result.ok is True
     assert "ação links executada" in result.output
+
+
+def test_role_catalog_restricts_registered_actions_and_final_turn(tmp_path):
+    catalogs = []
+    class Model:
+        def generate(self, prompt, history=None, task_tools=None):
+            catalogs.append(task_tools)
+            return response({"type": "browser", "params": {"action": "links"}}) if len(catalogs) == 1 else response(speech="Página retornou três links.")
+    registry = ToolRegistry()
+    contract = {"action": "read|links|click|type|close", "url": "https"}
+    registry.register(ToolSpec("browser", "browser", input_contract=contract,
+                              sensitive_probe=lambda p: p.get("action") == "read"),
+                      lambda p: ToolResult(True, "três links"))
+    result = AgentTeam(Model(), registry, AuditLogger(tmp_path)).run([{"role": "navegador", "task": "Liste links"}])
+    assert result.ok
+    assert catalogs[0][0]["params_contract"]["action"] == "links"
+    assert catalogs[1] == []
+    assert contract["action"] == "read|links|click|type|close"
+
+
+def test_child_catalog_excludes_disabled_sensitive_destructive_and_foreign_tools(tmp_path):
+    captured = []
+    class Model:
+        def generate(self, prompt, **kwargs):
+            captured.append(kwargs["task_tools"])
+            return response(speech="Não há consultas disponíveis para esta investigação.")
+    registry = ToolRegistry()
+    registry.register(ToolSpec("read_file", "read", sensitive=True), lambda p: None)
+    registry.register(ToolSpec("find_files", "find", destructive=True), lambda p: None)
+    registry.register(ToolSpec("web", "web"), lambda p: None)
+    registry.register(ToolSpec("skills", "skills"), lambda p: None)
+    registry.disabled_tools.add("web")
+    result = AgentTeam(Model(), registry, AuditLogger(tmp_path)).run([{"role": "pesquisa", "task": "Investigue"}])
+    assert result.ok and captured == [[]]
+    assert result.meta["agents"][0]["evidence_kind"] == "analysis_only"
+
+
+def test_scoped_catalog_reaches_real_client_schema_without_running_model(tmp_path, monkeypatch):
+    from core.llm_client import OllamaClient
+    payloads = []
+    def post(url, payload, timeout):
+        payloads.append(payload)
+        return {"message": {"content": response(speech="A investigação requer um caminho de arquivo.")}}
+    monkeypatch.setattr("core.runtime_budget.post_ollama_json", post)
+    registry = ToolRegistry()
+    registry.register(ToolSpec("read_file", "read"), lambda p: None)
+    registry.register(ToolSpec("skills", "skills"), lambda p: None)
+    result = AgentTeam(OllamaClient(), registry, AuditLogger(tmp_path)).run([{"role": "pesquisa", "task": "Investigue arquivos"}])
+    assert result.ok
+    assert payloads[0]["format"]["properties"]["action"]["properties"]["type"]["enum"] == ["none", "read_file"]
+    assert "operation=\"learn\"" not in payloads[0]["messages"][0]["content"]
+
+
+def test_skill_scope_failure_reports_actionable_reason(tmp_path):
+    class Model:
+        def generate(self, prompt, **kwargs):
+            return response({"type": "skills", "params": {"op": "list"}})
+    result = AgentTeam(Model(), ToolRegistry(), AuditLogger(tmp_path)).run([{"role": "pesquisa", "task": "Liste o catálogo"}])
+    assert not result.ok and "skills" in result.error and "ferramenta direta" in result.error
+    assert result.meta["agents"][0]["state"] == "SCOPE_DENIED"
+
+
+def test_future_only_report_is_incomplete_and_blocks_dependency(tmp_path):
+    calls = []
+    class Model:
+        def generate(self, prompt, **kwargs):
+            calls.append(prompt)
+            return response(speech="Vou verificar o catálogo de habilidades locais para Python e Ollama. Por favor, aguarde um momento.")
+    result = AgentTeam(Model(), ToolRegistry(), AuditLogger(tmp_path)).run([
+        {"id": "research", "role": "pesquisa", "task": "Liste o catálogo"},
+        {"id": "dependent", "role": "codigo", "task": "Analise o catálogo", "depends_on": ["research"]}])
+    assert not result.ok and len(calls) == 1
+    assert [a["state"] for a in result.meta["agents"]] == ["INCOMPLETE", "DEPENDENCY_FAILED"]
+
+
+def test_final_turn_cannot_execute_a_second_unsummarized_consultation(tmp_path):
+    generated, executed = [], []
+    class Model:
+        def generate(self, prompt, **kwargs):
+            generated.append(prompt)
+            return response({"type": "read_file", "params": {"path": str(len(generated))}})
+    registry = ToolRegistry()
+    registry.register(ToolSpec("read_file", "read"), lambda p: executed.append(p) or ToolResult(True, "conteúdo parcial"))
+    result = AgentTeam(Model(), registry, AuditLogger(tmp_path)).run([{"role": "arquivos", "task": "Leia arquivos"}])
+    assert not result.ok and len(executed) == 1
+    assert result.meta["agents"][0]["state"] == "INCOMPLETE"
+    assert result.meta["agents"][0]["partial_output"] == "conteúdo parcial"
+
+
+def test_internal_model_typeerror_is_not_retried_with_legacy_signature(tmp_path):
+    calls = []
+    class Model:
+        def generate(self, prompt, **kwargs):
+            calls.append(kwargs)
+            raise TypeError("internal failure")
+    result = AgentTeam(Model(), ToolRegistry(), AuditLogger(tmp_path)).run([{"role": "pesquisa", "task": "Analise"}])
+    assert not result.ok and len(calls) == 1
+    assert "internal failure" in result.error

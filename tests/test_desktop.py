@@ -30,6 +30,31 @@ def test_control_center_routes_to_existing_panels(desktop):
     assert window.pages.currentIndex() == 0
 
 
+def test_saved_task_returns_to_its_original_conversation(desktop, monkeypatch):
+    from types import SimpleNamespace
+    from PyQt6.QtWidgets import QListWidgetItem
+    window, _, _ = desktop
+    origin = window.chat_id
+    window.store.append(origin, "user", "Contexto da conversa original")
+    window.new_chat()
+    assert window.chat_id != origin
+    task = {"chat_id": origin}
+    monkeypatch.setattr(window, "_task_journal", lambda: SimpleNamespace(get=lambda identity: task))
+    item = QListWidgetItem("Tarefa pausada")
+    item.setData(Qt.ItemDataRole.UserRole, "saved-task")
+    window.task_history.addItem(item)
+    window.task_history.setCurrentItem(item)
+    called = []
+    monkeypatch.setattr(window.controller, "continue_task", lambda identity: called.append((identity, window.chat_id)))
+    window._continue_saved_task()
+    assert called == [("saved-task", origin)]
+    assert window.controller.loop.conversation_id == origin
+    assert window.controller.loop.history[-1]["content"] == "Contexto da conversa original"
+    task.clear()
+    window._continue_saved_task()
+    assert len(called) == 1  # Legacy/unbound records must not adopt an unrelated chat.
+
+
 def test_global_stop_blocks_actions_and_resume_requires_user_control(desktop, monkeypatch):
     window, app, _ = desktop
     control = window.controller.loop.registry.control

@@ -59,6 +59,9 @@ def build_registry(cfg: NyxConfig) -> ToolRegistry:
     """Monta o registry com as ferramentas completas + specs de segurança."""
     cfg.ensure_dirs()
     registry = ToolRegistry()
+    from tools.calculator_tool import calculate, calculator_contract
+    registry.register(ToolSpec("calculator", "Calcula valores observados com aritmética decimal",
+                               input_contract=calculator_contract()), calculate)
     reminder_scheduler = ReminderScheduler(Path("data/nyx_schedule.db"))
     registry.reminder_scheduler = reminder_scheduler
 
@@ -109,9 +112,10 @@ def build_registry(cfg: NyxConfig) -> ToolRegistry:
             destructive=False,
             sensitive=True,
             destructive_probe=lambda p: ui.is_destructive(p.get("action", ""), p),
-            input_contract={"action": "list_windows|list_installed_apps|focus_window|inspect_elements|read_element|click_element|type_element|screenshot|open_app",
+            input_contract={"action": "list_windows|list_installed_apps|list_steam_games|focus_window|inspect_elements|read_element|click_element|type_element|screenshot|open_app",
                 "app": "open_app: nome instalado, ex. Steam, Calculadora, Bloco de notas. Não use comandos. Se não encontrar, list_installed_apps com query.",
                 "query": "Filtro de nome em list_installed_apps; list_windows só mostra janelas já abertas, não aplicativos instalados.",
+                "steam": "Para escolher jogos use list_steam_games (manifestos locais); query opcional, limit 1–50, offset 0–512. Não instala nem inicia jogos.",
                 "hwnd": "Identificador retornado por list_windows; evita títulos ambíguos",
                 "snapshot": "Obrigatório em read_element/click_element/type_element; retornado por inspect_elements, expira em 30 s",
                 "id": "ID de controle da mesma inspeção", "text": "Texto para type_element",
@@ -197,12 +201,13 @@ def build_registry(cfg: NyxConfig) -> ToolRegistry:
         ToolSpec(name="schedule", description="Cria, lista e cancela lembretes locais", sensitive=False),
         make_reminder_tool_func(reminder_scheduler),
     )
-    from core.evolution import EvolutionLab, make_evolution_tool_func
+    from core.evolution import EvolutionLab, make_evolution_tool_func, evolution_contract
     registry.evolution_lab = EvolutionLab(Path("data/nyx_evolution.db"))
     from core.research import ResearchQueue
     registry.research_queue = ResearchQueue(registry.evolution_lab)
     registry.register(
-        ToolSpec(name="evolution", description="Pesquisa persistente e simulação de habilidades propostas", sensitive=False),
+        ToolSpec(name="evolution", description="Pesquisa persistente e simulação de habilidades propostas", sensitive=False,
+                 input_contract=evolution_contract()),
         make_evolution_tool_func(registry.evolution_lab, registry),
     )
     from tools.skill_tool import register_skill_tool

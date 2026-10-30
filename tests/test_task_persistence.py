@@ -82,6 +82,29 @@ def test_automatic_continuation_survives_pause_at_six_and_restart(tmp_path):
         journal.close()
 
 
+def test_resume_cannot_mix_another_conversation(tmp_path):
+    file = tmp_path / "value.txt"
+    file.write_text("11")
+    journal = TaskJournal(tmp_path / "tasks.db")
+    try:
+        runner, _ = runner_at(tmp_path, journal, [reply("read_file", {"path": str(file)}), reply()])
+        runner.loop.conversation_id = "chat-a"
+        def progress(event):
+            if event["phase"] == "observed":
+                runner.pause()
+        runner.start("Leia", progress)
+        assert journal.get(runner.task_id)["chat_id"] == "chat-a"
+        runner.loop.conversation_id = "chat-b"
+        with pytest.raises(ValueError, match="conversa de origem"):
+            runner.continue_task(runner.task_id)
+        assert not runner.active
+        runner.loop.conversation_id = "chat-a"
+        runner.continue_task(runner.task_id)
+        assert journal.get(runner.task_id)["state"] == "PLANNING_FINISHED"
+    finally:
+        journal.close()
+
+
 def test_real_process_crash_after_effect_never_replays(tmp_path):
     helper = tmp_path / "trusted_crash_test.py"
     helper.write_text('''import json,os,sys

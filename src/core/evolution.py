@@ -126,11 +126,14 @@ class EvolutionLab:
             checks = []
             for step in json.loads(row["steps"]):
                 spec = registry.spec(step["tool"])
+                available = spec is not None and step["tool"] not in registry.disabled_tools
                 checks.append({"tool": step["tool"], "registered": spec is not None,
-                               "requires_review": spec is None or spec.sensitive or spec.is_destructive_for(step["params"]),
+                               "available": available,
+                               "requires_review": not available or spec.is_sensitive_for(step["params"])
+                                   or spec.is_destructive_for(step["params"]),
                                "expected": step["expected"]})
             report = {"kind": "structural_simulation", "executed": False,
-                      "structurally_valid": all(c["registered"] for c in checks),
+                      "structurally_valid": all(c["available"] for c in checks),
                       "behavior_verified": False, "checks": checks}
             db.execute("UPDATE proposals SET status='simulated',report=? WHERE id=?",
                        (json.dumps(report, ensure_ascii=False), identity))
@@ -147,11 +150,31 @@ class EvolutionLab:
             return {"schema_version": 1, "knowledge": [dict(r) for r in db.execute("SELECT * FROM knowledge ORDER BY created")]}
 
 
+def evolution_contract():
+    """The planner needs this contract even when using a compact system prompt."""
+    return {
+        "operation": "status|search|learn|study|studies|cancel_study|propose|simulate",
+        "required": {"search": ["query"], "learn": ["topic", "content", "source"],
+                     "study": ["topic", "url"], "cancel_study": ["id"],
+                     "propose": ["name", "steps"], "simulate": ["id"]},
+        "study_sources": "HTTPS: docs.ollama.com, docs.python.org, learn.microsoft.com",
+        "steps": "1–12 objetos {tool,params,expected}",
+        "meaning": "search consulta notas; study agenda leitura nos intervalos; learn salva nota de fonte já lida. "
+                   "status não pesquisa; simulate não executa; notas não são treinamento nem fatos verificados.",
+    }
+
+
 def make_evolution_tool_func(lab: EvolutionLab, registry):
     from tools.registry import ToolResult
 
     def run(params: dict):
-        operation = params.get("operation", "status")
+        operation = params.get("operation")
+        # Historical model output used {query: ...}; this is an unambiguous read.
+        # Other omissions must never silently return status as if work was done.
+        if "operation" not in params and set(params) == {"query"}:
+            operation = "search"
+        if not isinstance(operation, str) or not operation:
+            raise ValueError("Informe operation. Para buscar notas, use operation='search' e query; para consultar o laboratório, operation='status'.")
         if operation == "learn":
             result = lab.learn(params.get("topic"), params.get("content"), params.get("source"))
         elif operation == "search":
@@ -173,7 +196,7 @@ def make_evolution_tool_func(lab: EvolutionLab, registry):
             else:
                 result = queue.list_jobs()
         else:
-            raise ValueError("Operação inválida: learn, search, propose, simulate, status")
-        return ToolResult(ok=True, output=json.dumps(result, ensure_ascii=False))
+            raise ValueError("Operação inválida: status, search, learn, study, studies, cancel_study, propose, simulate")
+        return ToolResult(ok=True, output=json.dumps(result, ensure_ascii=False), meta={"operation": operation})
 
     return run

@@ -1,6 +1,8 @@
+import json
+
 import pytest
 
-from core.evolution import EvolutionLab, make_evolution_tool_func
+from core.evolution import EvolutionLab, evolution_contract, make_evolution_tool_func
 from tools.registry import ToolRegistry, ToolSpec, ToolResult
 
 
@@ -65,3 +67,49 @@ def test_tool_registry_barrier_reports_invalid_input(tmp_path):
     registry.register(ToolSpec("evolution", "lab"), make_evolution_tool_func(lab, registry))
     result = registry.execute("evolution", {"operation": "learn"})
     assert isinstance(result, ToolResult) and not result.ok
+
+
+def test_query_without_operation_searches_notes_instead_of_returning_status(tmp_path):
+    lab = EvolutionLab(tmp_path / "lab.db")
+    lab.learn("Python", "Uma nota sobre geradores", "https://docs.python.org/3/")
+    tool = make_evolution_tool_func(lab, ToolRegistry())
+    result = tool({"query": "geradores"})
+    assert result.ok and result.meta["operation"] == "search"
+    assert [item["topic"] for item in json.loads(result.output)] == ["Python"]
+    assert "knowledge_count" not in result.output
+    assert json.loads(tool({"operation": "status"}).output)["knowledge_count"] == 1
+
+
+@pytest.mark.parametrize("params", [{}, {"topic": "Python"}, {"query": "Python", "content": "incompleto"},
+                                   {"operation": None}, {"operation": []}])
+def test_ambiguous_missing_operation_is_not_silently_successful(tmp_path, params):
+    lab = EvolutionLab(tmp_path / "lab.db")
+    registry = ToolRegistry()
+    registry.register(ToolSpec("evolution", "lab"), make_evolution_tool_func(lab, registry))
+    result = registry.execute("evolution", params)
+    assert not result.ok and "Informe operation" in result.error
+    assert lab.overview()["knowledge_count"] == 0
+
+
+def test_simulation_respects_dynamic_review_and_runtime_disabled_tools(tmp_path):
+    lab = EvolutionLab(tmp_path / "lab.db")
+    registry = ToolRegistry()
+    registry.register(ToolSpec("browser", "browser", sensitive_probe=lambda p: p["action"] == "click"),
+                      lambda p: pytest.fail("Simulation must not execute tools"))
+    proposal = lab.propose("Dynamic policy", [
+        {"tool": "browser", "params": {"action": "read"}, "expected": "read page"},
+        {"tool": "browser", "params": {"action": "click"}, "expected": "click reviewed"}])
+    report = lab.simulate(proposal["id"], registry)
+    assert report["structurally_valid"] and not report["executed"]
+    assert [check["requires_review"] for check in report["checks"]] == [False, True]
+    registry.disabled_tools.add("browser")
+    report = lab.simulate(proposal["id"], registry)
+    assert not report["structurally_valid"] and not report["executed"]
+    assert all(check["registered"] and not check["available"] and check["requires_review"]
+               for check in report["checks"])
+
+
+def test_evolution_contract_covers_the_real_queue_operations():
+    contract = evolution_contract()
+    assert {"study", "studies", "cancel_study"} <= set(contract["operation"].split("|"))
+    assert contract["required"]["study"] == ["topic", "url"]

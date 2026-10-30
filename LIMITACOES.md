@@ -1,9 +1,22 @@
 # LIMITACOES.md — limitações reais, sem contorno silencioso
 
-## Estado atual — Evolution 2.0 (29/10/2026)
+## Estado atual — Evolution 2.0 (30/10/2026)
 
 O ambiente atual é Windows com RTX 3060. As seções L1–L4 abaixo são histórico
 do desenvolvimento inicial, não descrevem a máquina atual.
+
+- O orçamento de prompt estima tokens por bytes; não é uma contagem exata do
+  tokenizer. Compacta detalhes opcionais sem cortar pedido atual e estados das
+  etapas. Se o mínimo não cabe, a tarefa pausa. O ensaio real passou com oito
+  leituras e cálculo, mas isso não garante planejamento correto para toda tarefa.
+- Cálculo decimal é limitado e informa arredondamento. O modelo ainda precisa
+  selecionar os operandos corretos; schema válido não prova semântica correta.
+- A biblioteca Steam local é consultável por manifests. Pode incluir utilitários
+  e não comprova licença ou execução. A escolha pelo modelo ainda não foi
+  validada nesta revisão: a reserva de RAM bloqueou o ensaio.
+- Checkpoints antigos sem conversa vinculada não são retomados pela interface
+  em outro chat; revise as etapas e formule um novo pedido. Novas tarefas
+  preservam o vínculo. Ver `docs/RELIABILITY_2026-10-30.md`.
 
 - A continuação de tarefas na interface é automática em blocos de seis quando
   as seis últimas ações foram bem-sucedidas e verificadas, até 48 ações/30 minutos.

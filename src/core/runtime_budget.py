@@ -322,11 +322,15 @@ def post_ollama_json(url: str, payload: dict, timeout: float) -> dict:
         ensure_resource_headroom(snapshot)
         RESOURCE_GOVERNOR.admit(snapshot, priority)
         request_payload = dict(payload)
+        prompt_report = {}
         if url.endswith("/api/chat") or url.endswith("/api/generate"):
             options = dict(request_payload.get("options", {}))
             host = url.rsplit("/api/", 1)[0]
             options["num_ctx"] = ollama_request_context(host, request_payload.get("model", ""), snapshot)
             request_payload["options"] = options
+            if url.endswith("/api/chat"):
+                from core.prompt_budget import prepare_chat_payload
+                request_payload, prompt_report = prepare_chat_payload(request_payload, options["num_ctx"])
         request = urllib.request.Request(
             url,
             data=json.dumps(request_payload).encode("utf-8"),
@@ -344,7 +348,10 @@ def post_ollama_json(url: str, payload: dict, timeout: float) -> dict:
                 raw = response.read(2_097_153)
                 if len(raw) > 2_097_152:
                     raise ValueError("Resposta do modelo excedeu 2 MiB")
-                return json.loads(raw.decode("utf-8"))
+                result = json.loads(raw.decode("utf-8"))
+                if isinstance(result, dict) and prompt_report:
+                    result["_nyx_budget"] = prompt_report
+                return result
         finally:
             RESOURCE_GOVERNOR.record_latency(time.monotonic() - started)
 

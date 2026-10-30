@@ -131,6 +131,8 @@ def test_browser_investigations_are_serial_even_when_reads_may_overlap(tmp_path)
     class Model:
         def generate(self, prompt, **kwargs):
             calls.append("a" if "Tarefa: first" in prompt else "b")
+            if "browser -> links" in prompt:
+                return response(speech="Links consultados.")
             return response("browser", {"action": "links"})
     registry = ToolRegistry()
     registry.register(ToolSpec("browser", "read"), lambda p: ToolResult(True, "links"))

@@ -68,6 +68,10 @@ class ChatStore:
             """, (chat_id, min(250, max(1, limit)))).fetchall()
         return [dict(row) for row in rows]
 
+    def exists(self, chat_id: str) -> bool:
+        with self._connect() as connection:
+            return connection.execute("SELECT 1 FROM chats WHERE id=?", (chat_id,)).fetchone() is not None
+
     def append(self, chat_id: str, role: str, content: str) -> None:
         if role not in {"user", "assistant", "error"}:
             raise ValueError("Papel de mensagem inválido.")

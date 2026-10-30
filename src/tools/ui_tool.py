@@ -450,11 +450,40 @@ class UITool:
 
     def list_installed_apps(self, params):
         from tools.installed_apps import installed_apps, normalized_name
-        query = normalized_name(str(params.get("query") or ""))
+        query = normalized_name(str(params.get("query") or params.get("app") or params.get("name") or params.get("app_name") or ""))
         apps = [{"name": app.name, "path": str(app.path), "source": app.source}
                 for app in installed_apps() if not query or query in normalized_name(app.name)
-                or query in normalized_name(app.path.stem)][:80]
-        return ToolResult(True, json.dumps(apps, ensure_ascii=False), meta={"apps": apps, "count": len(apps)})
+                or query in normalized_name(app.path.stem)]
+        total = len(apps)
+        apps = apps[:30]
+        # Keep executable paths in metadata; the planner can open by the observed name.
+        summary = {"names": [app["name"] for app in apps], "total": total, "truncated": total > len(apps)}
+        if not apps:
+            summary["message"] = "Nenhum aplicativo instalado corresponde ao filtro."
+        if not query or "steam" in query:
+            summary["steam_games"] = "Use list_steam_games para consultar jogos instalados, não list_installed_apps."
+        return ToolResult(True, json.dumps(summary, ensure_ascii=False, separators=(",", ":")),
+                          meta={"apps": apps, "count": len(apps), "total": total})
+
+    def list_steam_games(self, params):
+        from tools.installed_apps import steam_game_catalog, normalized_name
+        try:
+            self.control.check()
+            catalog = steam_game_catalog()
+            query = normalized_name(str(params.get("query") or ""))
+            games = [game for game in catalog.pop("games") if not query or query in normalized_name(game["name"])]
+            limit, offset = params.get("limit", 20), params.get("offset", 0)
+            if type(limit) is not int or not 1 <= limit <= 50 or type(offset) is not int or not 0 <= offset <= 512:
+                return ToolResult(False, error="Use limit entre 1 e 50 e offset entre 0 e 512.")
+            page = games[offset:offset + limit]
+            result = {"games": page, "total": len(games), "offset": offset,
+                      "next_offset": offset + len(page) if offset + len(page) < len(games) else None,
+                      "note": "Manifestos locais; a lista pode incluir utilitários e não comprova que um jogo abre ou está licenciado.",
+                      **catalog}
+            return ToolResult(True, json.dumps(result, ensure_ascii=False, separators=(",", ":")),
+                              meta={"games": page, "count": len(page), "total": len(games), "check": "steam_local_manifests"})
+        except (OSError, UnicodeError, ValueError) as exc:
+            return ToolResult(False, error=f"Não foi possível consultar a biblioteca Steam: {exc}")
 
     def get_active_window(self, params: dict | None = None) -> ToolResult:
         """Retorna o título e detalhes da janela ativa em foco."""
@@ -822,6 +851,7 @@ class UITool:
             "press_key": self.press_key,
             "open_app": self.open_app,
             "list_installed_apps": self.list_installed_apps,
+            "list_steam_games": self.list_steam_games,
             "launch": self.open_app,
             "open_url": self.open_url,
             "url": self.open_url,

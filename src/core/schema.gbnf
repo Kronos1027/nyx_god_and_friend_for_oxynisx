@@ -10,7 +10,7 @@ action-object ::= "{" ws1 "\"type\"" ws ":" ws action-type ws "," ws1 "\"params\
 
 emotion ::= "\"idle\"" | "\"talk\"" | "\"think\"" | "\"surprised\"" | "\"listening\"" | "\"error\"" | "\"sleep\""
 
-action-type ::= "\"shell\"" | "\"read_file\"" | "\"write_file\"" | "\"find_files\"" | "\"ui_action\"" | "\"clipboard\"" | "\"macro_run\"" | "\"project_status\"" | "\"workspace\"" | "\"web\"" | "\"browser\"" | "\"code_task\"" | "\"schedule\"" | "\"agent_team\"" | "\"evolution\"" | "\"skills\"" | "\"none\""
+action-type ::= "\"shell\"" | "\"read_file\"" | "\"write_file\"" | "\"find_files\"" | "\"ui_action\"" | "\"clipboard\"" | "\"macro_run\"" | "\"project_status\"" | "\"workspace\"" | "\"web\"" | "\"browser\"" | "\"code_task\"" | "\"schedule\"" | "\"agent_team\"" | "\"evolution\"" | "\"skills\"" | "\"calculator\"" | "\"none\""
 
 boolean ::= "true" | "false"
 

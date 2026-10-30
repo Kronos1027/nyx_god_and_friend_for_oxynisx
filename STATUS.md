@@ -1,6 +1,22 @@
 # Nyx — estado verificado
 
-Última atualização: 2026-10-29
+Última atualização: 2026-10-30
+
+## Contexto, cálculo, Steam, aprendizado e retomada
+
+- Corrigido o esgotamento confirmado nos logs: 1979 tokens de entrada em um
+  contexto de 2048 deixavam só 69 para responder; a recuperação anterior piorava
+  o espaço. Agora há reserva de resposta, compactação e auditoria do contexto.
+- Calculadora decimal limitada corrige a falta de ferramenta de aritmética;
+  catálogo de jogos Steam por manifests locais, descoberta por instalação e
+  reconhecimento do renderer com ancestral verificado.
+- Contratos de aprendizado e microagentes corrigidos; promessa não é entrega,
+  simulação respeita permissões dinâmicas e retomada volta ao chat de origem.
+- **807 aprovados, 50 pulados, 1 aviso em 36,01 s, saída 0; Ruff aprovado.**
+- **Qwen3.5:4b real: 9 ações, oito leituras, soma correta 396 em 32,61 s; dez
+  gerações JSON válidas na primeira tentativa.** Sem operação da interface.
+- Consulta Steam leu 19 itens; escolha pelo modelo adiada por RAM abaixo de
+  1 GiB. Pet preservado. Detalhes: `docs/RELIABILITY_2026-10-30.md`.
 
 ## Continuação além de seis ações e descoberta de aplicativos
 

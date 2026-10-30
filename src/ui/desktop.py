@@ -714,9 +714,24 @@ class DesktopWindow(QMainWindow):
             self.task_preview.setPlainText("\n".join(lines))
 
     def _continue_saved_task(self):
+        if self._busy:
+            return
         item = self.task_history.currentItem()
-        if item:
-            self.controller.continue_task(item.data(Qt.ItemDataRole.UserRole))
+        journal = self._task_journal()
+        if not item or not journal:
+            return
+        try:
+            task_id = item.data(Qt.ItemDataRole.UserRole)
+            task = journal.get(task_id)
+            origin = task.get("chat_id")
+            if not origin or not self.store.exists(origin):
+                self.toast.show_message("Conversa de origem indisponível neste registro. Revise as etapas e formule um novo pedido.")
+                return
+            self.activate_chat(origin)
+            self.set_page(0)
+            self.controller.continue_task(task_id)
+        except Exception as exc:
+            self.toast.show_message(str(exc))
 
     def _delete_saved_task(self):
         item = self.task_history.currentItem()
@@ -1767,6 +1782,7 @@ class DesktopWindow(QMainWindow):
             self._add_card(message["role"], message["content"])
         loop = getattr(self.controller, "loop", None)
         if loop:
+            loop.conversation_id = chat_id
             loop.history = [{"role": m["role"], "content": m["content"]} for m in messages if m["role"] in {"user", "assistant"}][-12:]
             if getattr(loop, "memory", None):
                 loop.memory.session_id = chat_id
