@@ -425,19 +425,28 @@ class UITool:
             import time
             from tools.installed_apps import resolve_app, matching_windows
             app = resolve_app(app_name)
+            def observe():
+                if app.app_id:
+                    from tools.app_catalog import matching_package_windows
+                    return matching_package_windows(app.app_id)
+                return matching_windows(app.path)
             self.control.check()
-            existing = matching_windows(app.path)
+            existing = observe()
             if existing:
                 return ToolResult(True, f"{app.name} já está aberto.",
                     meta={"app": app.name, "executable": str(app.path), "windows": existing,
                           "verified": True, "check": "installed_app_window"})
-            os.startfile(str(app.path))
+            if app.app_id:
+                from tools.app_catalog import launch_package
+                launch_package(app)
+            else:
+                os.startfile(str(app.path))
             dispatched = True
-            deadline = time.monotonic() + 4
+            deadline = time.monotonic() + 20
             windows = []
             while time.monotonic() < deadline:
                 self.control.check()
-                windows = matching_windows(app.path)
+                windows = observe()
                 if windows:
                     break
                 time.sleep(0.15)
@@ -446,7 +455,10 @@ class UITool:
                       "verified": bool(windows), "check": "installed_app_window"})
         except Exception as exc:
             return ToolResult(ok=False, error=f"Falha ao abrir '{app_name}': {exc}",
-                              meta={"outcome_unknown": dispatched or getattr(exc, "outcome_unknown", False)})
+                              meta={"outcome_unknown": dispatched or getattr(exc, "outcome_unknown", False),
+                                    "error_code": getattr(exc, "code", "OPEN_APP_FAILED"),
+                                    "suggestions": getattr(exc, "candidates", []),
+                                    "next_best_actions": ["list_installed_apps", "list_windows"]})
 
     def list_installed_apps(self, params):
         from tools.installed_apps import installed_apps, normalized_name

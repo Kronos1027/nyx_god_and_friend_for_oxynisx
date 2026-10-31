@@ -5,6 +5,23 @@ import os
 from pathlib import Path
 import re
 import unicodedata
+from difflib import get_close_matches
+
+
+class AppResolutionError(ValueError):
+    def __init__(self, code, candidates):
+        self.code = code
+        self.candidates = candidates
+        message = "Nome ambíguo" if code == "AMBIGUOUS" else "Aplicativo não encontrado"
+        super().__init__(message + ". " + ("Candidatos: " + ", ".join(candidates) if candidates else
+                         "Consulte list_installed_apps; nenhuma correspondência segura."))
+
+
+ALIASES = {"edge": "msedge", "microsoft edge": "msedge", "google chrome": "chrome",
+           "paint": "mspaint", "bloco de notas": "notepad", "vscode": "code",
+           "vs code": "code", "visual studio code": "code", "obs": "obs64",
+           "explorador": "explorer", "explorador de arquivos": "explorer",
+           "terminal": "wt", "gerenciador de tarefas": "taskmgr"}
 
 
 def normalized_name(value):
@@ -16,6 +33,7 @@ class InstalledApp:
     name: str
     path: Path
     source: str
+    app_id: str | None = None
 
 
 def executable_path(value):
@@ -69,11 +87,38 @@ def installed_apps():
         except OSError:
             continue
     system = Path(os.environ.get('WINDIR', r'C:\Windows')) / 'System32'
-    for name, binary in (('Bloco de notas', 'notepad.exe'), ('Calculadora', 'calc.exe'), ('Paint', 'mspaint.exe')):
+    for name, binary in (('Bloco de notas', 'notepad.exe'), ('Calculadora', 'calc.exe'), ('Paint', 'mspaint.exe'),
+                         ('Gerenciador de Tarefas', 'taskmgr.exe')):
         path = executable_path(str(system / binary))
         if path:
             found.append(InstalledApp(name, path, 'Windows System32'))
-    return list({(app.name.casefold(), str(app.path).casefold()): app for app in found}.values())
+    explorer = executable_path(str(system.parent / 'explorer.exe'))
+    if explorer:
+        found.append(InstalledApp('Explorador de Arquivos', explorer, 'Windows'))
+    # Fixed installation locations only; no recursive disk scan or PATH/CWD search.
+    locations = {
+        'ProgramFiles': ('Google/Chrome/Application/chrome.exe', 'Microsoft VS Code/Code.exe',
+                         'obs-studio/bin/64bit/obs64.exe'),
+        'ProgramFiles(x86)': ('Google/Chrome/Application/chrome.exe', 'Microsoft/Edge/Application/msedge.exe'),
+        'LOCALAPPDATA': ('Programs/Microsoft VS Code/Code.exe', 'Programs/Antigravity/Antigravity.exe',
+                         'Google/Chrome/Application/chrome.exe'),
+        'APPDATA': ('Spotify/Spotify.exe',),
+    }
+    for variable, relatives in locations.items():
+        root = os.environ.get(variable)
+        if root:
+            for relative in relatives:
+                path = executable_path(str(Path(root) / relative))
+                if path:
+                    found.append(InstalledApp(path.stem, path, 'Pasta padrão de instalação'))
+    if explorer:
+        from tools.app_catalog import executable_shortcuts, packaged_apps
+        for name, target in executable_shortcuts():
+            path = executable_path(target)
+            if path:
+                found.append(InstalledApp(name, path, 'Menu Iniciar sem argumentos'))
+        found.extend(InstalledApp(name, explorer, 'Windows AppsFolder', app_id) for name, app_id in packaged_apps())
+    return list({(app.name.casefold(), str(app.path).casefold(), app.app_id): app for app in found}.values())
 
 
 def resolve_app(query):
@@ -83,7 +128,7 @@ def resolve_app(query):
     catalog = installed_apps()
     path = executable_path(query)
     if path:
-        registered = [app for app in catalog if app.path == path]
+        registered = [app for app in catalog if app.path == path and not app.app_id]
         roots = [Path(value).resolve() for value in (os.environ.get('WINDIR'), os.environ.get('ProgramFiles'),
                  os.environ.get('ProgramFiles(x86)')) if value]
         if registered:
@@ -94,10 +139,37 @@ def resolve_app(query):
     if not re.fullmatch(r'[\w .-]{1,80}', query) or Path(query).suffix.casefold() not in ('', '.exe'):
         raise ValueError('Use somente o nome de um aplicativo; comandos, argumentos e scripts não são aceitos.')
     key = normalized_name(query)
-    matches = [app for app in catalog if key in (normalized_name(app.name), normalized_name(app.path.stem))]
-    unique = {str(app.path).casefold(): app for app in matches}
+    for article in ('o ', 'a ', 'um ', 'uma '):
+        if key.startswith(article):
+            key = key[len(article):]
+            break
+    if key in ('navegador', 'browser'):
+        import winreg
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                    r'Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice') as choice:
+                progid = winreg.QueryValueEx(choice, 'ProgId')[0].casefold()
+            key = next((binary for prefix, binary in (('msedge', 'msedge'), ('chrome', 'chrome'),
+                       ('firefox', 'firefox'), ('opera', 'opera'), ('brave', 'brave')) if progid.startswith(prefix)), key)
+        except OSError:
+            pass
+    key = ALIASES.get(key, key)
+    matches = [app for app in catalog if key == normalized_name(app.name)
+               or (not app.app_id and key == normalized_name(app.path.stem))]
+    if key in ('calculadora', 'configuracoes'):
+        packaged = [app for app in matches if app.app_id]
+        if packaged:
+            matches = packaged
+    # App Paths may point directly to the packaged Notepad/Paint executable;
+    # prefer that registered identity over System32's forwarding stub.
+    registered = [app for app in matches if app.source == 'Windows App Paths']
+    if registered and key in ('notepad', 'mspaint'):
+        matches = registered
+    unique = {(str(app.path).casefold(), app.app_id): app for app in matches}
     if len(unique) != 1:
-        raise ValueError('Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.')
+        names = sorted({app.name for app in catalog})
+        candidates = sorted({app.name for app in matches})[:5] if matches else get_close_matches(query, names, n=5, cutoff=0.6)
+        raise AppResolutionError('AMBIGUOUS' if matches else 'NOT_FOUND', candidates)
     return next(iter(unique.values()))
 
 
@@ -129,6 +201,10 @@ def _matching_owner(process, executable):
     path = Path(process.exe()).resolve()
     if path == executable:
         return 'executable'
+    if (executable.name.casefold() == 'discord.exe' and path.name.casefold() == 'discord.exe'
+            and path.parent.parent == executable.parent
+            and re.fullmatch(r'app-\d+\.\d+\.\d+', path.parent.name)):
+        return 'discord_versioned_installation'
     if (executable.name.casefold() != 'steam.exe' or path.name.casefold() != 'steamwebhelper.exe'
             or executable.parent not in path.parents):
         return None

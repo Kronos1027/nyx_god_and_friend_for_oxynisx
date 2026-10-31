@@ -32,6 +32,31 @@ def test_ambiguous_installed_name_requires_discovery(monkeypatch):
         apps.resolve_app("Editor")
 
 
+def test_spoken_alias_prefers_registered_notepad_over_stub(monkeypatch):
+    registered = apps.InstalledApp('notepad', Path('C:/Apps/Notepad.exe'), 'Windows App Paths')
+    stub = apps.InstalledApp('Bloco de notas', Path('C:/Windows/System32/notepad.exe'), 'Windows System32')
+    monkeypatch.setattr(apps, 'installed_apps', lambda: [registered, stub])
+    assert apps.resolve_app('o Bloco de notas') == registered
+
+
+def test_suggestions_do_not_launch_fuzzy_match(monkeypatch):
+    monkeypatch.setattr(apps, 'installed_apps', lambda: [
+        apps.InstalledApp('Steam', Path('C:/Apps/steam.exe'), 'fixture')])
+    with pytest.raises(apps.AppResolutionError) as error:
+        apps.resolve_app('Steem')
+    assert error.value.code == 'NOT_FOUND'
+    assert error.value.candidates == ['Steam']
+
+
+def test_alias_does_not_choose_between_distinct_installations(monkeypatch):
+    monkeypatch.setattr(apps, 'installed_apps', lambda: [
+        apps.InstalledApp('msedge', Path('C:/One/msedge.exe'), 'fixture'),
+        apps.InstalledApp('msedge', Path('C:/Two/msedge.exe'), 'fixture')])
+    with pytest.raises(apps.AppResolutionError) as error:
+        apps.resolve_app('o Edge')
+    assert error.value.code == 'AMBIGUOUS'
+
+
 @pytest.mark.parametrize("key", ["app", "name", "app_name", "path"])
 def test_open_installed_app_alias_and_verified_window(key, tmp_path, monkeypatch):
     app = apps.InstalledApp("Steam", tmp_path / "steam.exe", "fixture")
@@ -108,6 +133,15 @@ def test_matching_window_rejects_reused_hwnd(tmp_path, monkeypatch):
     pids = iter([(0, 2), (0, 3)])
     monkeypatch.setattr('win32process.GetWindowThreadProcessId', lambda hwnd: next(pids))
     assert apps.matching_windows(executable) == []
+
+
+def test_discord_bootstrap_requires_versioned_executable_in_same_installation(tmp_path):
+    executable = tmp_path / 'Discord' / 'Discord.exe'
+    assert apps._matching_owner(ProcessFixture(1, executable.parent / 'app-1.0.9266' / 'Discord.exe'), executable) == 'discord_versioned_installation'
+    for path in (tmp_path / 'Other' / 'app-1.0.9266' / 'Discord.exe',
+                 executable.parent / 'other' / 'Discord.exe',
+                 executable.parent / 'app-1.0.9266' / 'other.exe'):
+        assert apps._matching_owner(ProcessFixture(1, path), executable) is None
 
 
 @pytest.mark.parametrize('alias', ['query', 'app', 'name', 'app_name'])
