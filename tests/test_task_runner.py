@@ -37,6 +37,55 @@ def test_new_task_cannot_clear_emergency_latch(tmp_path):
     assert not runner.active
 
 
+def test_explicit_no_delegation_filters_catalog_and_blocks_rogue_proposal(tmp_path):
+    runner, loop, registry = make_runner(tmp_path, [])
+    calls, catalogs = [], []
+    registry.register(ToolSpec('agent_team', 'team'), lambda p: (calls.append(p) or ToolResult(True)))
+    def generate(prompt, history=None, task_tools=None, **kwargs):
+        catalogs.append(task_tools)
+        return reply('agent_team', {'tasks': []})
+    loop.llm.generate = generate
+    result = runner.start('Leia diretamente; não delegue.')
+    assert all(t['name'] != 'agent_team' for t in catalogs[0])
+    assert calls == []
+    assert 'delegação foi excluída' in result.response.speech_output
+
+
+def test_sum_replans_before_double_counting_and_rejects_wrong_final_total(tmp_path):
+    from tools.calculator_tool import calculate
+    runner, _, registry = make_runner(tmp_path, [reply('read_file', {'path': 'a.txt'}),
+        reply('read_file', {'path': 'b.txt'}), reply('calculator', {'operation': 'sum', 'values': [11, 22]}),
+        reply('calculator', {'operation': 'sum', 'values': [33, 22]}), reply(speech='A soma total é 55.'),
+        reply(speech='A soma total é 33.')])
+    registry.register(ToolSpec('read_file', 'read'), lambda p: ToolResult(True, '11' if p['path'] == 'a.txt' else '22'))
+    calls = []
+    def calculator(params):
+        calls.append(params)
+        return calculate(params)
+    registry.register(ToolSpec('calculator', 'math'), calculator)
+    result = runner.start('Leia os arquivos e calcule a soma.')
+    assert result.response.speech_output == 'A soma total é 33.'
+    assert len(calls) == 1
+    assert runner.replans == 2
+
+
+def test_file_sum_rejects_an_extra_file_before_execution_and_delivers_answer(tmp_path):
+    from tools.calculator_tool import calculate
+    runner, _, registry = make_runner(tmp_path, [reply('read_file', {'path': 'a-1.txt'}),
+        reply('read_file', {'path': 'a-2.txt'}), reply('calculator', {'values': [11, 22]}),
+        reply('read_file', {'path': 'a-3.txt'}), reply(speech='Valores 11 e 22; soma total é 33.')])
+    calls = []
+    def read(params):
+        calls.append(params['path'])
+        return ToolResult(True, '11' if params['path'] == 'a-1.txt' else '22')
+    registry.register(ToolSpec('read_file', 'read'), read)
+    registry.register(ToolSpec('calculator', 'math'), calculate)
+    result = runner.start('Leia arquivos a-1.txt até a-2.txt e entregue a soma.')
+    assert '33' in result.response.speech_output
+    assert calls == ['a-1.txt', 'a-2.txt']
+    assert runner.replans == 1
+
+
 def test_uncertain_external_effect_stops_without_replanning_or_replay(tmp_path):
     runner, _, registry = make_runner(tmp_path, [reply("ui_action", {"action": "click_element"}),
                                                reply("ui_action", {"action": "click_element"})])

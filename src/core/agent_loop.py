@@ -186,6 +186,8 @@ class AgentLoop:
 
         # 3) Política de confirmação (seção 4.2)
         action = response.action
+        self.audit.log_event('action_proposed', action_type=action.type, action_params=action.params,
+                             speech_output=response.speech_output, executed=False)
         needs_confirm, confirm_prompt, blocked_reason = self._confirmation_policy(response)
 
         if blocked_reason == "unknown_tool":

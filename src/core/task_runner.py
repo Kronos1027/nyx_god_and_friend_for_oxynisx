@@ -130,6 +130,13 @@ class TaskRunner:
 
     def _guard(self, tool: str, params: dict):
         self._check()
+        from core.tool_selection import select_task_tools
+        if not select_task_tools(self.goal, [{'name': tool}]):
+            raise TaskStopped('A delegação foi excluída pelo pedido original; nenhuma microagente foi iniciada.')
+        from core.arithmetic_grounding import calculator_issue, source_issue
+        issue = source_issue(self.goal, self.steps, tool, params) or calculator_issue(self.goal, self.steps, tool, params)
+        if issue:
+            raise TaskStopped(issue)
         if len(self.steps) >= self.max_actions:
             recent = self.steps[-6:]
             progressing = len(recent) == 6 and all(step["ok"] and step["verified"] for step in recent)
@@ -268,6 +275,8 @@ class TaskRunner:
                             history.append({"role": "user", "content": notes})
                     except Exception:
                         self.loop.audit.log_event("learning_context_unavailable", task_id=self.task_id)
+                from core.tool_selection import select_task_tools
+                tools = select_task_tools(self.goal, tools)
                 parameters = inspect.signature(self.loop.llm.generate).parameters
                 kwargs = {"history": history}
                 accepts_kwargs = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in parameters.values())
@@ -288,6 +297,19 @@ class TaskRunner:
                             self.loop.audit.log_event("model_generation", task_id=self.task_id, attempts=report)
                 self._check()
                 proposed = parse_response(raw)
+                if proposed.parse_ok:
+                    from core.arithmetic_grounding import calculator_issue, final_sum_issue, source_issue
+                    issue = (source_issue(self.goal, self.steps, proposed.action.type, proposed.action.params)
+                             or calculator_issue(self.goal, self.steps, proposed.action.type, proposed.action.params)
+                             or final_sum_issue(self.goal, self.steps, proposed))
+                    if issue:
+                        if self.replans >= 2:
+                            return self._stop('A conclusão não corresponde aos dados verificados. ' + issue)
+                        self.replans += 1
+                        self.planning_feedback = issue
+                        self.loop.audit.log_event('task_replan', task_id=self.task_id,
+                            reason='arithmetic_grounding', attempt=self.replans, detail=issue)
+                        continue
                 if proposed.parse_ok and proposed.action.type != "none":
                     signature = self._signature(proposed.action.type, proposed.action.params)
                     repeated = (self.seen and signature == self.seen[-1]) or self.seen.count(signature) >= 2
