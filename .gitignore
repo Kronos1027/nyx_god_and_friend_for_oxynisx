@@ -27,6 +27,7 @@ ollama_models/
 # Logs de auditoria em runtime (append-only, locais por máquina)
 logs/*.jsonl
 logs/*.log
+logs/*.json
 logs/traces/
 data/nyx_schedule.db*
 data/nyx_chats.db*
