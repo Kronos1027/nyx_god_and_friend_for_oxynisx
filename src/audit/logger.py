@@ -12,6 +12,9 @@ from __future__ import annotations
 
 import json
 import threading
+from contextlib import contextmanager
+from contextvars import ContextVar
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -25,19 +28,38 @@ class AuditLogger:
         self.session_id = session_id
         self.path = self.log_dir / f"nyx_audit_{session_id}.jsonl"
         self._lock = threading.Lock()
+        self._task = ContextVar('nyx_audit_task', default=None)
+
+    @contextmanager
+    def task_scope(self, task_id):
+        if not re.fullmatch(r'[a-f0-9]{32}', str(task_id)):
+            raise ValueError('Identificador de tarefa inválido para auditoria.')
+        token = self._task.set(task_id)
+        try:
+            yield
+        finally:
+            self._task.reset(token)
 
     def log_event(self, event: str, **payload: object) -> dict:
         """Grava um evento append-only. Nunca quebra o fluxo do agente."""
+        task_id = payload.get('task_id') or self._task.get()
         entry = {
             "ts": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
             "session": self.session_id,
             "event": event,
             **payload,
         }
+        if task_id:
+            entry['task_id'] = task_id
         line = json.dumps(entry, ensure_ascii=False, default=str)
         with self._lock:
             with open(self.path, "a", encoding="utf-8") as fh:
                 fh.write(line + "\n")
+            if task_id and re.fullmatch(r'[a-f0-9]{32}', str(task_id)):
+                directory = self.log_dir / 'traces'
+                directory.mkdir(exist_ok=True)
+                with (directory / f'{task_id}.jsonl').open('a', encoding='utf-8') as trace:
+                    trace.write(line + '\n')
         return entry
 
     def log_decision(

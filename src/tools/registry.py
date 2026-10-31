@@ -79,6 +79,8 @@ class ToolRegistry:
         self.team_inference_lock = Lock()
         self.team_outstanding = []
         self.disabled_tools: set[str] = set()
+        from core.circuit_breaker import CircuitBreaker
+        self.breaker = CircuitBreaker()
 
     def register(self, spec: ToolSpec, func: ToolFunc) -> None:
         if spec.name in self._tools:
@@ -115,11 +117,16 @@ class ToolRegistry:
                 meta={"blocked": True, "reason": "unknown_tool"},
             )
         spec, func = entry
+        blocked = self.breaker.blocked(name, params or {}, reserve=True)
+        if blocked:
+            return ToolResult(False, error=blocked["message"], meta=blocked)
         try:
-            return func(dict(params or {}))
+            result = func(dict(params or {}))
         except Exception as exc:  # noqa: BLE001 — barreira de isolamento por ferramenta
-            return ToolResult(
+            result = ToolResult(
                 ok=False,
                 error=f"exceção em {name}: {type(exc).__name__}: {exc}",
                 meta={"tool": name},
             )
+        self.breaker.record(name, params or {}, result.ok)
+        return result

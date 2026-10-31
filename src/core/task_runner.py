@@ -93,6 +93,7 @@ class TaskRunner:
                 raise ValueError("Somente uma tarefa pausada pode ser retomada.")
             if item["spent"] >= item["timeout"] or (len(item["steps"]) >= item["max_actions"] and not item.get("auto_extend")):
                 raise ValueError("Orçamento original esgotado. Revise os resultados antes de um novo pedido.")
+            self.loop.registry.breaker.reset()
             self.loop.registry.control.begin()
             self.task_id, self.goal = item["id"], item["goal"]
             self.chat_id = item.get("chat_id")
@@ -211,7 +212,7 @@ class TaskRunner:
             try:
                 self._check()
                 from core.operation_control import operation_scope
-                with operation_scope(lambda: self.cancelled.is_set() or self.clock() >= self.deadline):
+                with self.loop.audit.task_scope(self.task_id), operation_scope(lambda: self.cancelled.is_set() or self.clock() >= self.deadline):
                     result = self.loop.confirm_pending(exact, True, synthesize=False,
                                                        record_history=False, before_execute=self._guard)
                 if not result.executed:
@@ -226,6 +227,10 @@ class TaskRunner:
             self._lock.release()
 
     def _advance(self) -> LoopResult:
+        with self.loop.audit.task_scope(self.task_id):
+            return self._advance_traced()
+
+    def _advance_traced(self) -> LoopResult:
         try:
             while True:
                 self._check()

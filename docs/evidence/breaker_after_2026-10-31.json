@@ -1,0 +1,24 @@
+{
+  "scope": "ferramenta real, sem planejador; nenhum título de janela publicado",
+  "attempts": [
+    {
+      "ok": false,
+      "error": "Falha ao abrir 'NyxDiagnosticMissingApplication': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+      "verified": false
+    },
+    {
+      "ok": false,
+      "error": "Falha ao abrir 'NyxDiagnosticMissingApplication': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+      "verified": false
+    },
+    {
+      "ok": false,
+      "error": "Falha ao abrir 'NyxDiagnosticMissingApplication': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+      "verified": false
+    }
+  ],
+  "disabled_tools": [],
+  "list_windows_ok": true,
+  "list_windows_error": null,
+  "elapsed_s": 0.3437
+}

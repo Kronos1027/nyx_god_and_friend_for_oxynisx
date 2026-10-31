@@ -343,7 +343,14 @@ class DesktopWindow(QMainWindow):
         self._refresh_status()
 
     def _open_center_route(self, route):
-        if route == "chat":
+        if route == "tool_health":
+            from ui.tool_health import ToolHealthDialog
+            if not getattr(self, '_tool_health_dialog', None):
+                self._tool_health_dialog = ToolHealthDialog(self.controller.loop.registry, self.controller.loop.audit, self)
+            self._tool_health_dialog.refresh()
+            self._tool_health_dialog.show()
+            self._tool_health_dialog.raise_()
+        elif route == "chat":
             self.set_page(0)
             self.composer.setFocus()
         elif route == "agenda":

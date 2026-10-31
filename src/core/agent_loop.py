@@ -254,7 +254,12 @@ class AgentLoop:
             remember(user_input, response)
             return LoopResult(response=response, executed=False)
 
-        # Circuit Breaker check
+        blocked = self.registry.breaker.blocked(action.type, action.params)
+        if blocked:
+            response.speech_output = blocked["message"]
+            return LoopResult(response=response, tool_result=ToolResult(False, error=blocked["message"], meta=blocked))
+
+        # Explicit administrative disable remains independent of transient failures.
         if action.type in self.disabled_tools:
             result = ToolResult(
                 ok=False,
@@ -298,14 +303,10 @@ class AgentLoop:
             recovery=verification.suggested_recovery_route,
         )
 
-        # Atualiza Circuit Breaker
-        if not result.ok or not verification.verified:
-            self.tool_failure_counts[action.type] = self.tool_failure_counts.get(action.type, 0) + 1
-            if self.tool_failure_counts[action.type] >= 3:
-                self.disabled_tools.add(action.type)
-                self.audit.log_event("circuit_breaker_triggered", tool=action.type, failures=3)
-        else:
-            self.tool_failure_counts[action.type] = 0
+        self.registry.breaker.observe(action.type, action.params, verification.verified)
+        self.audit.log_event("tool_health", tool=action.type, params=action.params,
+                             hard_failure=not result.ok, unverified=result.ok and not verification.verified,
+                             paused=bool(self.registry.breaker.blocked(action.type, action.params)))
 
         # Síntese ReAct pós-ferramenta:
         # Se for modelo real e a ação gerou saída ou erro, alimenta a observação de volta
@@ -393,6 +394,10 @@ class AgentLoop:
                 self._remember(user_input, resp)
             return LoopResult(response=resp, executed=False)
 
+        blocked = self.registry.breaker.blocked(a_type, params)
+        if blocked:
+            return LoopResult(response=NyxResponse(emotion="error", speech_output=blocked["message"]),
+                              tool_result=ToolResult(False, error=blocked["message"], meta=blocked))
         if a_type in self.disabled_tools:
             resp = NyxResponse(
                 emotion="error",
@@ -408,13 +413,10 @@ class AgentLoop:
             before_execute(a_type, params)
         result = self.registry.execute(a_type, params)
         verification = self.verifier.verify(a_type, params, result)
-        if not result.ok or not verification.verified:
-            self.tool_failure_counts[a_type] = self.tool_failure_counts.get(a_type, 0) + 1
-            if self.tool_failure_counts[a_type] >= 3:
-                self.disabled_tools.add(a_type)
-                self.audit.log_event("circuit_breaker_triggered", tool=a_type, failures=3)
-        else:
-            self.tool_failure_counts[a_type] = 0
+        self.registry.breaker.observe(a_type, params, verification.verified)
+        self.audit.log_event("tool_health", tool=a_type, params=params,
+                             hard_failure=not result.ok, unverified=result.ok and not verification.verified,
+                             paused=bool(self.registry.breaker.blocked(a_type, params)))
         self.audit.log_event(
             "confirmed_execution",
             action_type=a_type,
@@ -462,6 +464,7 @@ class AgentLoop:
 
     def reset_circuit_breaker(self, tool_name: str | None = None) -> None:
         """Reinicia o contador de falhas e desbloqueia ferramentas no circuit breaker."""
+        self.registry.breaker.reset(tool_name)
         if tool_name:
             self.tool_failure_counts.pop(tool_name, None)
             self.disabled_tools.discard(tool_name)

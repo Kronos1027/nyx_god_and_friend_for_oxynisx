@@ -82,6 +82,7 @@ class ControlCenter(QWidget):
             ("privacy", "Sensores e privacidade", "Escolha o que pode ser observado."),
             ("agenda", "Agenda", "Organize e acompanhe seus lembretes."),
             ("performance", "Desempenho", "Consulte CPU, RAM e GPU disponíveis."),
+            ("tool_health", "Saúde das ferramentas", "Veja pausas, falhas e tentativas de recuperação."),
         ):
             button = QPushButton(f"{title}  ↗\n{description}")
             button.setObjectName("OverviewRoute")

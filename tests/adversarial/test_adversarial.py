@@ -154,7 +154,8 @@ def test_adversarial_circuit_breaker_after_three_failures(tmp_path):
     llm.queue(payload)
     r3 = loop.process("tenta 3")
     assert not r3.tool_result.ok
-    assert "shell" in loop.disabled_tools
+    assert "shell" not in loop.disabled_tools
+    assert registry.breaker.blocked("shell", {})
 
     # Tentativa 4 -> Nem tenta executar a ferramenta, bloqueia imediatamente no loop
     llm.queue(payload)
