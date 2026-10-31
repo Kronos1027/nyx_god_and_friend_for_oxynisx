@@ -204,9 +204,11 @@ def safe_context_tokens(snapshot: ResourceSnapshot) -> int:
 
 def ensure_resource_headroom(snapshot: ResourceSnapshot) -> None:
     if snapshot.ram_available_bytes is not None and snapshot.ram_available_bytes < 1 * GIB:
-        raise InferencePressureError("RAM livre abaixo de 1 GiB; aguarde o sistema liberar memória.")
+        raise InferencePressureError(f"RAM livre abaixo de 1 GiB ({snapshot.ram_available_bytes / GIB:.2f} GiB livres); "
+                                     "aguarde o sistema liberar memória. Nenhuma geração foi enviada.")
     if snapshot.vram_free_bytes is not None and snapshot.vram_free_bytes < 768 * MIB:
-        raise InferencePressureError("VRAM livre abaixo de 768 MiB; aguarde antes de gerar.")
+        raise InferencePressureError(f"VRAM livre abaixo de 768 MiB ({snapshot.vram_free_bytes / MIB:.0f} MiB livres); "
+                                     "aguarde antes de gerar. Nenhuma geração foi enviada.")
 
 
 IDLE_RESIDENT_SECONDS = 60.0
@@ -306,7 +308,19 @@ def ollama_request_context(host: str, model: str, snapshot: ResourceSnapshot) ->
     if budget is None:
         budget = 4 * GIB
     if type(size) is not int or not 0 < size <= budget:
-        raise InferencePressureError("O modelo não cabe no orçamento atual ou seu tamanho não pôde ser confirmado. Libere memória e tente novamente.")
+        def gib(value):
+            return f"{value / GIB:.2f} GiB" if type(value) is int else "desconhecida"
+        reason = ("O modelo não cabe no orçamento atual" if type(size) is int and size > 0 else
+                  "O tamanho do modelo não pôde ser confirmado no inventário local")
+        error = InferencePressureError(
+            f"{reason}. Modelo: {model}; pesos: {gib(size)}; orçamento de pesos: {gib(budget)}; "
+            f"RAM livre: {gib(snapshot.ram_available_bytes)}; VRAM livre: {gib(snapshot.vram_free_bytes)}. "
+            "Nenhuma geração foi enviada. Confira o inventário e os recursos em Desempenho antes de tentar novamente.")
+        error.details = {"code": "MODEL_BUDGET" if type(size) is int and size > 0 else "MODEL_SIZE_UNKNOWN",
+                         "model": model, "size_bytes": size, "weight_budget_bytes": budget,
+                         "ram_available_bytes": snapshot.ram_available_bytes,
+                         "vram_free_bytes": snapshot.vram_free_bytes}
+        raise error
     return safe_context_tokens(snapshot)
 
 

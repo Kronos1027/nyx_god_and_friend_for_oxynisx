@@ -1,0 +1,63 @@
+{
+  "service_ready": true,
+  "samples": [
+    {
+      "stage": "before_service",
+      "snapshot": {
+        "ram_available_bytes": 1061158912,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 10763915264,
+        "cpu_percent": 0.0,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 19375202304,
+        "commit_limit_bytes": 33205702656
+      },
+      "budget_bytes": 0
+    },
+    {
+      "stage": "after_service",
+      "snapshot": {
+        "ram_available_bytes": 1033297920,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 10762670080,
+        "cpu_percent": 21.2,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 19375202304,
+        "commit_limit_bytes": 33205702656
+      },
+      "budget_bytes": 0
+    },
+    {
+      "stage": "after_registry",
+      "snapshot": {
+        "ram_available_bytes": 1018986496,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 10763915264,
+        "cpu_percent": 29.4,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 19374497792,
+        "commit_limit_bytes": 33205702656
+      },
+      "budget_bytes": 0
+    },
+    {
+      "stage": "before_request",
+      "snapshot": {
+        "ram_available_bytes": 1018490880,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 10763915264,
+        "cpu_percent": 24.2,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 19377242112,
+        "commit_limit_bytes": 33205702656
+      },
+      "budget_bytes": 0
+    }
+  ],
+  "model": [
+    {
+      "name": "qwen3.5:4b",
+      "size": 3324173934
+    }
+  ]
+}
