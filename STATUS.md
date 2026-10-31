@@ -582,11 +582,11 @@ demais fases e aceitações completas continuam pendentes.
 ## Atualização: Correção de Timeout, Suporte a IA Local Completa e Aceleração GPU CUDA — 2026-10-22
 
 - **Diagnóstico da Causa Raiz do Timeout**:
-  1. O Windows iniciava automaticamente um executável do Ollama em `C:\Users\darlan\AppData\Local\Programs\Ollama\ollama.exe` que não possuía bibliotecas CUDA instaladas (apenas `ggml-cpu-sse42.dll`), rodando 100% em CPU. As requisições demoravam 77+ segundos e estouravam o timeout da aplicação.
+  1. O Windows iniciava automaticamente um executável do Ollama em `<USUARIO>\AppData\Local\Programs\Ollama\ollama.exe` que não possuía bibliotecas CUDA instaladas (apenas `ggml-cpu-sse42.dll`), rodando 100% em CPU. As requisições demoravam 77+ segundos e estouravam o timeout da aplicação.
   2. Em `src/core/runtime_budget.py`, a fórmula de orçamento `model_weight_budget_bytes` multiplicava o orçamento por `max(0, ram_available - 2 GiB) * 2`. Com ~1.5 a 2.2 GiB de RAM disponível (padrão no Windows com apps abertos), o orçamento caía para 0 bytes, fazendo a Nyx recusar todos os modelos locais com `preferred_model_deferred` ("O modelo não cabe no orçamento atual"), mesmo com mais de 11 GiB de VRAM livre na GeForce RTX 3060.
   3. O timeout da fila de inferência `INFERENCE_GATE.slot` estava limitado rigidamente a 45 segundos (`min(timeout, 45.0)`), e o timeout do cliente Ollama era de apenas 60 segundos, insuficiente para cold-load de modelos maiores (ex: Qwen 3.5 9B) ou geração sob carga.
 - **Correções Aplicadas**:
-  - Sincronizadas as bibliotecas de aceleração GPU CUDA (`cuda_v12`, `cuda_v13`, `vulkan`, `llama-server.exe` compilado para CUDA) de `E:\Ollama\lib\ollama` para `C:\Users\darlan\AppData\Local\Programs\Ollama\lib\ollama`.
+  - Sincronizadas as bibliotecas de aceleração GPU CUDA (`cuda_v12`, `cuda_v13`, `vulkan`, `llama-server.exe` compilado para CUDA) de `E:\Ollama\lib\ollama` para `<USUARIO>\AppData\Local\Programs\Ollama\lib\ollama`.
   - Atualizado `src/core/ollama_service.py` para preferir a instalação com suporte total a CUDA (`E:\Ollama\ollama.exe`) e ampliar o timeout de prontidão do serviço para 12s.
   - Corrigido `src/core/runtime_budget.py`:
     - `model_weight_budget_bytes` agora permite staging proporcional de memória quando VRAM dedicada está disponível e a RAM do sistema está na faixa saudável de 1.5 a 4 GiB, permitindo carregar modelos como Qwen 3.5 4B e Qwen 3.5 9B perfeitamente na GPU.

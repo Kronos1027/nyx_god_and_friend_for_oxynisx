@@ -9,7 +9,7 @@
 ### Rodada 1 — 21:56 a 22:09
 
 1. Leu a conversa compartilhada (https://chatgpt.com/s/cx_6ad95f3ab2f48191a0ee6981a1aa07be) por extração de texto; o link é uma SPA e não entrega o conteúdo em HTML puro.
-2. Localizou o projeto em `E:\projeto\Nova pasta` e leu `STATUS.md`; conferiu o estado em disco (revisão de voz de 21:44-21:45, build/instalação de 21:46, suíte verde).
+2. Localizou o projeto em `<PROJETO>` e leu `STATUS.md`; conferiu o estado em disco (revisão de voz de 21:44-21:45, build/instalação de 21:46, suíte verde).
 3. Verificou a suíte antes de mexer: 337 aprovados, 1 ignorado.
 4. Implementou **preferências de voz na interface**:
    - `src/audio/tts.py`: `VoiceSettings` (voz, velocidade, volume) com validação/limites, `normalize_voice`, `normalize_speed`, `normalize_volume`, `sapi_rate`, `PT_BR_VOICES` e `TextToSpeech.configure()`. Kokoro recebe voz/velocidade e o volume escala as amostras; SAPI5 recebe volume 0–100 e taxa −10..10.
@@ -106,7 +106,7 @@
 ## Como retomar
 
 ```powershell
-cd 'E:\projeto\Nova pasta'
+cd '<PROJETO>'
 .\.venv\Scripts\python.exe -m ruff check src tests tools
 .\.venv\Scripts\python.exe -m pytest -q
 .\packaging\build.ps1 -Clean      # gera dist\Nyx e o ZIP portátil

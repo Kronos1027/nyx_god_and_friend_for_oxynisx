@@ -1,0 +1,526 @@
+{
+  "timestamp": "2026-10-31T12:40:16.993641+00:00",
+  "scope": "ferramentas reais; sem planejador LLM; não é aceite ponta a ponta",
+  "opens_apps": true,
+  "repetitions": 3,
+  "apps": [
+    {
+      "name": "calculadora",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": false,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 4.4383
+        },
+        {
+          "ok": true,
+          "verified": false,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 4.1722
+        },
+        {
+          "ok": true,
+          "verified": false,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 4.1842
+        }
+      ],
+      "median_s": 4.1842
+    },
+    {
+      "name": "Bloco de notas",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": false,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 4.199
+        },
+        {
+          "ok": true,
+          "verified": false,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 4.1571
+        },
+        {
+          "ok": true,
+          "verified": false,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 4.2055
+        }
+      ],
+      "median_s": 4.199
+    },
+    {
+      "name": "o navegador",
+      "attempts": [
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'o navegador': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.061
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'o navegador': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0639
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'o navegador': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0652
+        }
+      ],
+      "median_s": 0.0639
+    },
+    {
+      "name": "Chrome",
+      "attempts": [
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Chrome': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0693
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Chrome': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0666
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Chrome': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0689
+        }
+      ],
+      "median_s": 0.0689
+    },
+    {
+      "name": "Edge",
+      "attempts": [
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Edge': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0637
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Edge': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.071
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Edge': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0642
+        }
+      ],
+      "median_s": 0.0642
+    },
+    {
+      "name": "o discord",
+      "attempts": [
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'o discord': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0705
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'o discord': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0739
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'o discord': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0908
+        }
+      ],
+      "median_s": 0.0739
+    },
+    {
+      "name": "Spotify",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "controlled_navigation",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 2.9679
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "controlled_navigation",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 2.171
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "controlled_navigation",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 1.3711
+        }
+      ],
+      "median_s": 2.171
+    },
+    {
+      "name": "Steam",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.3579
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.2357
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1066
+        }
+      ],
+      "median_s": 0.2357
+    },
+    {
+      "name": "OBS",
+      "attempts": [
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'OBS': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.098
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'OBS': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.095
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'OBS': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.1031
+        }
+      ],
+      "median_s": 0.098
+    },
+    {
+      "name": "VS Code",
+      "attempts": [
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'VS Code': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.108
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'VS Code': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.1399
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'VS Code': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.1302
+        }
+      ],
+      "median_s": 0.1302
+    },
+    {
+      "name": "Antigravity",
+      "attempts": [
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Antigravity': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0975
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Antigravity': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.1052
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Antigravity': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0991
+        }
+      ],
+      "median_s": 0.0991
+    },
+    {
+      "name": "Explorador de Arquivos",
+      "attempts": [
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Explorador de Arquivos': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0974
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Explorador de Arquivos': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0923
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Explorador de Arquivos': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.1028
+        }
+      ],
+      "median_s": 0.0974
+    },
+    {
+      "name": "Configurações",
+      "attempts": [
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Configurações': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.112
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Configurações': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0898
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Configurações': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0852
+        }
+      ],
+      "median_s": 0.0898
+    },
+    {
+      "name": "WhatsApp",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "controlled_navigation",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 1.3055
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "controlled_navigation",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 0.4817
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "controlled_navigation",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 0.9409
+        }
+      ],
+      "median_s": 0.9409
+    },
+    {
+      "name": "Paint",
+      "attempts": [
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Paint': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.1044
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Paint': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0968
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Paint': Aplicativo não encontrado ou nome ambíguo. Consulte list_installed_apps com query antes de tentar novamente.",
+          "window_count": 0,
+          "elapsed_s": 0.0933
+        }
+      ],
+      "median_s": 0.0968
+    }
+  ],
+  "resources_before": {
+    "ram_available_bytes": 2656292864,
+    "vram_total_bytes": 12884901888,
+    "vram_free_bytes": 10708365312,
+    "cpu_percent": 0.0,
+    "ram_total_bytes": 17099575296,
+    "committed_bytes": 17369640960,
+    "commit_limit_bytes": 33205702656
+  },
+  "weight_budget_bytes": 4747653120,
+  "context_tokens": 1024,
+  "top10_rss": [
+    {
+      "name": "msedge.exe",
+      "rss_bytes": 846594048
+    },
+    {
+      "name": "ChatGPT.exe",
+      "rss_bytes": 570572800
+    },
+    {
+      "name": "msedge.exe",
+      "rss_bytes": 509386752
+    },
+    {
+      "name": "steamwebhelper.exe",
+      "rss_bytes": 430534656
+    },
+    {
+      "name": "ChatGPT.exe",
+      "rss_bytes": 422526976
+    },
+    {
+      "name": "MsMpEng.exe",
+      "rss_bytes": 417402880
+    },
+    {
+      "name": "msedge.exe",
+      "rss_bytes": 407097344
+    },
+    {
+      "name": "msedge.exe",
+      "rss_bytes": 396574720
+    },
+    {
+      "name": "msedge.exe",
+      "rss_bytes": 363274240
+    },
+    {
+      "name": "msedge.exe",
+      "rss_bytes": 359677952
+    }
+  ],
+  "ollama_ps": {
+    "error": "<urlopen error [WinError 10061] Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente>"
+  },
+  "ollama_tags": {
+    "error": "<urlopen error [WinError 10061] Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente>"
+  },
+  "resources_after": {
+    "ram_available_bytes": 2073387008,
+    "vram_total_bytes": 12884901888,
+    "vram_free_bytes": 10927935488,
+    "cpu_percent": 39.8,
+    "ram_total_bytes": 17099575296,
+    "committed_bytes": 18812284928,
+    "commit_limit_bytes": 33205702656
+  }
+}
