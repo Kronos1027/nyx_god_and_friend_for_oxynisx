@@ -151,6 +151,14 @@ def resource_snapshot() -> ResourceSnapshot:
 
 def model_weight_budget_bytes(snapshot: ResourceSnapshot) -> int | None:
     """Estimate a safe maximum disk-sized model, leaving OS/display headroom."""
+    from core.resource_profiles import profile_name, current_profile
+    if profile_name() != 'conservative' and snapshot.vram_free_bytes is not None:
+        profile = current_profile()
+        # Cold load needs host staging headroom even for entirely GPU-sized weights.
+        if snapshot.ram_available_bytes is None or snapshot.ram_available_bytes < int(2.5 * GIB):
+            return 0
+        return max(0, min(profile.resident_cap_bytes - profile.kv_reserve_bytes,
+                          snapshot.vram_free_bytes - profile.vram_reserve_bytes - profile.kv_reserve_bytes))
     ram_budget = (
         max(0, snapshot.ram_available_bytes - 2 * GIB)
         if snapshot.ram_available_bytes is not None
@@ -185,7 +193,14 @@ def admit_gguf_load(path: Path, requested_context: int) -> int:
 
 
 def safe_context_tokens(snapshot: ResourceSnapshot) -> int:
-    """Choose a small context from current free memory; never exceed 4096."""
+    """Choose a context under the selected profile; conservative mode caps at 4096."""
+    from core.resource_profiles import profile_name, current_profile
+    if profile_name() != 'conservative' and snapshot.vram_free_bytes is not None:
+        profile = current_profile()
+        if (snapshot.ram_available_bytes is not None and snapshot.ram_available_bytes >= int(2.5 * GIB)
+                and snapshot.vram_free_bytes >= profile.vram_reserve_bytes + profile.kv_reserve_bytes):
+            return profile.context_tokens
+        return 1024
     ram = snapshot.ram_available_bytes
     if ram is not None and ram < 3 * GIB:
         return 1024
@@ -279,8 +294,12 @@ def ollama_models(host: str, endpoint: str) -> list[dict]:
 
 def resident_context(snapshot: ResourceSnapshot, installed: dict, running: list[dict]) -> int | None:
     """Reuse only the exact fully GPU-resident model without growing its context."""
+    from core.resource_profiles import profile_name, current_profile
+    profile = current_profile()
+    reserve = 4 * GIB if profile_name() == 'conservative' else profile.vram_reserve_bytes
+    maximum = 4096 if profile_name() == 'conservative' else profile.context_tokens
     if (snapshot.ram_available_bytes is None or snapshot.ram_available_bytes <= 1 * GIB
-            or snapshot.vram_free_bytes is None or snapshot.vram_free_bytes < 4 * GIB):
+            or snapshot.vram_free_bytes is None or snapshot.vram_free_bytes < reserve):
         return None
     digest = installed.get("digest")
     if not isinstance(digest, str) or not digest:
@@ -289,8 +308,10 @@ def resident_context(snapshot: ResourceSnapshot, installed: dict, running: list[
         if model.get("name") != installed.get("name") or model.get("digest") != digest:
             continue
         size, gpu, context = (model.get(key) for key in ("size", "size_vram", "context_length"))
+        if profile.resident_cap_bytes and type(gpu) is int and gpu > profile.resident_cap_bytes:
+            continue
         if (all(type(value) is int for value in (size, gpu, context))
-                and size > 0 and gpu == size and 512 <= context <= 4096):
+                and size > 0 and gpu == size and 512 <= context <= maximum):
             # Already allocated context is not a new allocation. Fluctuation
             # below the cold-load RAM threshold must not discard residency.
             return context
@@ -329,9 +350,10 @@ def post_ollama_json(url: str, payload: dict, timeout: float) -> dict:
     import urllib.request
 
     from core.resource_governor import RESOURCE_GOVERNOR
+    from core.resource_profiles import resource_profile_scope, profile_name, current_profile
     deadline = time.monotonic() + timeout
     priority, cancelled = _work_context.get()
-    with INFERENCE_GATE.slot(timeout=timeout, priority=priority, cancelled=cancelled):
+    with INFERENCE_GATE.slot(timeout=timeout, priority=priority, cancelled=cancelled), resource_profile_scope(profile_name()):
         snapshot = _free_then_snapshot(resource_snapshot())
         ensure_resource_headroom(snapshot)
         RESOURCE_GOVERNOR.admit(snapshot, priority)
@@ -342,6 +364,8 @@ def post_ollama_json(url: str, payload: dict, timeout: float) -> dict:
             host = url.rsplit("/api/", 1)[0]
             options["num_ctx"] = ollama_request_context(host, request_payload.get("model", ""), snapshot)
             request_payload["options"] = options
+            if profile_name() != 'conservative':
+                request_payload['keep_alive'] = current_profile().keep_alive
             if url.endswith("/api/chat"):
                 from core.prompt_budget import prepare_chat_payload
                 request_payload, prompt_report = prepare_chat_payload(request_payload, options["num_ctx"])

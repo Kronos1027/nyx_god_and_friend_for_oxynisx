@@ -30,6 +30,23 @@ def test_control_center_routes_to_existing_panels(desktop):
     assert window.pages.currentIndex() == 0
 
 
+def test_resource_profile_is_persisted_and_cannot_change_during_task(desktop):
+    from core.resource_profiles import profile_name, select_profile
+    window, _, _ = desktop
+    try:
+        window.resource_profile_combo.setCurrentIndex(window.resource_profile_combo.findData('normal'))
+        assert profile_name() == 'normal'
+        assert window.settings.value('resource_profile') == 'normal'
+        window._busy = True
+        window.resource_profile_combo.setCurrentIndex(window.resource_profile_combo.findData('game'))
+        assert profile_name() == 'normal'
+        assert window.resource_profile_combo.currentData() == 'normal'
+        assert window.settings.value('resource_profile') == 'normal'
+    finally:
+        window._busy = False
+        select_profile('conservative')
+
+
 def test_saved_task_returns_to_its_original_conversation(desktop, monkeypatch):
     from types import SimpleNamespace
     from PyQt6.QtWidgets import QListWidgetItem

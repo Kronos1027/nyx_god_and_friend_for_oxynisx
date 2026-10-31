@@ -96,7 +96,10 @@ class ResourceGovernor:
             elif self.mode == OperatingMode.SLEEP:
                 reason = "Modo sono: inferência suspensa até uma interação do usuário."
             elif priority >= WorkPriority.SUGGESTION:
-                if self.focused or self.mode in {OperatingMode.CONVERSATION, OperatingMode.WORKING, OperatingMode.CREATIVE}:
+                from core.resource_profiles import current_profile
+                if not current_profile().background:
+                    reason = 'Perfil Jogo / Live: trabalho de fundo suspenso.'
+                elif self.focused or self.mode in {OperatingMode.CONVERSATION, OperatingMode.WORKING, OperatingMode.CREATIVE}:
                     reason = "Trabalho de fundo adiado durante foco ou tarefa interativa."
                 elif snapshot.ram_available_bytes is None or snapshot.cpu_percent is None:
                     reason = "Telemetria incompleta; trabalho opcional adiado."

@@ -1246,6 +1246,20 @@ class DesktopWindow(QMainWindow):
         self.preferred_model.setPlaceholderText("Automático (se vazio)")
         self.preferred_model.setToolTip("Nome exato no Ollama. Se não houver memória, a Nyx aguarda em vez de trocar por um modelo menor.")
         runtime_form.addRow("Modelo principal", self.preferred_model)
+        from core.resource_profiles import PROFILES, select_profile
+        self.resource_profile_combo = QComboBox()
+        for key, profile in PROFILES.items():
+            self.resource_profile_combo.addItem(profile.label, key)
+        saved_profile = self.settings.value('resource_profile', 'conservative')
+        if saved_profile not in PROFILES:
+            saved_profile = 'conservative'
+        self.resource_profile_combo.setCurrentIndex(self.resource_profile_combo.findData(saved_profile))
+        select_profile(saved_profile)
+        self.resource_profile_combo.setToolTip('Normal: até 8K; Foco: até 16K; Jogo/Live: até 4K e sem tarefas de fundo. '
+            'Não troca o modelo. Contexto já residente é preservado se compatível; limite novo vale ao carregar. '
+            'Perfis manuais; não detectam jogos ou transmissões automaticamente.')
+        self.resource_profile_combo.currentIndexChanged.connect(self._change_resource_profile)
+        runtime_form.addRow('Perfil de recursos', self.resource_profile_combo)
         layout.addLayout(runtime_form)
         save_runtime = QPushButton("Salvar configuração do modelo")
         save_runtime.clicked.connect(self._save_runtime)
@@ -1857,7 +1871,21 @@ class DesktopWindow(QMainWindow):
     def _toggle_floating_companion(self) -> None:
         self.controller.setVisible(not self.controller.isVisible())
 
+    def _change_resource_profile(self):
+        from core.resource_profiles import select_profile, profile_name
+        if self._busy:
+            self.resource_profile_combo.blockSignals(True)
+            self.resource_profile_combo.setCurrentIndex(self.resource_profile_combo.findData(profile_name()))
+            self.resource_profile_combo.blockSignals(False)
+            return
+        name = self.resource_profile_combo.currentData()
+        select_profile(name)
+        self.settings.setValue('resource_profile', name)
+        self.controller.loop.audit.log_event('resource_profile_changed', profile=name, source='desktop_settings')
+
     def _refresh_status(self) -> None:
+        if hasattr(self, 'resource_profile_combo'):
+            self.resource_profile_combo.setEnabled(not self._busy)
         self.model_badge.setText(self._model_name())
         llm = getattr(getattr(self.controller, "loop", None), "llm", None)
         self.model_badge.setToolTip(getattr(llm, "unavailable_reason", "") or "Modelo executado neste computador.")

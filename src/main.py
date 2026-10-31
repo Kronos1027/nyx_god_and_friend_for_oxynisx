@@ -75,6 +75,14 @@ def run_gui(args: argparse.Namespace) -> int:
     app.setApplicationName("Nyx Desktop Agent")
     app.setApplicationVersion(__version__)
 
+    # Load the persisted profile before model admission, not only after creating UI.
+    from PyQt6.QtCore import QSettings
+    from app_paths import user_data_dir
+    from core.resource_profiles import select_profile, PROFILES
+    settings = QSettings(str(user_data_dir() / 'data' / 'desktop.ini'), QSettings.Format.IniFormat)
+    profile = settings.value('resource_profile', 'conservative')
+    select_profile(profile if profile in PROFILES else 'conservative')
+
     cfg = NyxConfig()
     cfg.ensure_dirs()
 
