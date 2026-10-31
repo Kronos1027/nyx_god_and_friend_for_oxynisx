@@ -43,6 +43,14 @@ class UITool:
                 return True
         return False
 
+    @staticmethod
+    def is_sensitive(params: dict) -> bool:
+        """Only bounded observation is free; unknown actions still require consent."""
+        action = params.get('action', params.get('ui_action', 'list_windows'))
+        return action not in {'list_windows', 'list_installed_apps', 'list_steam_games',
+                              'active_window', 'get_active_window', 'inspect_elements',
+                              'elements', 'read_element', 'screenshot', 'take_screenshot'}
+
     def list_windows(self, params: dict | None = None) -> ToolResult:
         """Lista todas as janelas visíveis com título no Windows."""
         try:
