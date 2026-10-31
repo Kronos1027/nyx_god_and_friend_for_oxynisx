@@ -15,6 +15,12 @@ Nyx é um projeto Python para um assistente desktop que usa modelos locais por O
 - Calculadora decimal limitada para valores observados e consulta somente leitura dos jogos Steam instalados por manifests locais.
 - Na interface Windows, tarefas continuam além de seis ações quando há progresso verificado: blocos ampliados automaticamente até 48 ações/30 minutos, com observação entre etapas, confirmações individuais e botão Interromper. O prazo é cooperativo; uma operação já iniciada pode precisar terminar. [Limites e validação do executor](docs/TASK_EXECUTION.md).
 - Memória SQLite, trilha de auditoria e modo assistido como padrão.
+- Descoberta de aplicativos por App Paths, aliases, pastas conhecidas, atalhos
+  sem argumentos e identidades UWP registradas. Nomes aproximados retornam
+  candidatos; não abrem automaticamente. [Medições e limites](docs/evidence/baseline_2026-10-31.md).
+- Pausas por falha afetam a operação/alvo, com cooldown e recuperação controlada.
+  Central → Saúde das ferramentas permite consultar e reativar pausas transitórias.
+  A parada de emergência e as permissões continuam independentes dessa reativação.
 - Inferência e ações aprovadas rodam em segundo plano. Todas as inferências Ollama da Nyx usam uma fila FIFO limitada: uma ativa e no máximo duas aguardando; a próxima é recusada até haver espaço. O limite vale para chamadas originadas pela Nyx, não para outros aplicativos que compartilham o mesmo serviço Ollama.
 - Fila de fala limitada para não acumular áudio indefinidamente.
 - Companheira Oxynisx animada usando o pet criado pelo usuário; nove ciclos, reações ao clique e efeitos leves, pausados quando ocultos.
@@ -55,6 +61,10 @@ O ZIP aparece em `dist/`. Extraia tudo e execute `install.ps1` para instalar por
 ## Segurança e limites atuais
 
 - Ações de risco exigem confirmação e operações de arquivo respeitam raízes permitidas.
+- No modo assistido, listagens/inspeções de desktop e captura sob demanda são
+  observações sem diálogo por ação. Entrada, abertura, clipboard e ações
+  desconhecidas continuam sensíveis; fechamento/encerramento continuam destrutivos.
+  Aprovação por plano, modo Parceira e allowlists por domínio ainda não estão disponíveis.
 - O modo autônomo pode ser habilitado pela interface e volta ao modo assistido após o prazo configurado. Ações destrutivas continuam exigindo confirmação.
 - A inferência em segundo plano mantém a janela livre, mas fechar o aplicativo durante uma chamada longa pode aguardar o encerramento do processo.
 - Quando o launcher inicia Ollama, limita a um modelo carregado, uma geração paralela, oito pedidos na fila e descarrega modelos após cinco minutos; também desativa os modelos cloud. Um Ollama que já estava aberto precisa ser reiniciado para receber esses limites.

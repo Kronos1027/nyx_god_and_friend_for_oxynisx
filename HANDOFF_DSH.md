@@ -137,3 +137,17 @@ Se outra sessão (ChatGPT/Codex) voltar a editar este repositório, ela deve ler
 - Pet/overlay não alterados, CompanionStage AST idêntico. Fases 0/1 não concluídas.
   Recursos/modelo ainda bloqueiam ensaio; não reduzidas reservas nem trocado modelo.
   LPAC/MCP/updater/lab/Studio congelados para novas features conforme novo prompt.
+
+### Continuação de 31/10/2026 — diagnóstico de recursos e sessão CDP
+
+- Quatro commits locais salvaram baseline, breaker/traces/saúde, catálogo/identidade
+  e evidências. RAM caiu abaixo de 1 GiB em nova sondagem; inferência não validada.
+  Erro agora distingue inventário ausente de orçamento e informa medidas reais.
+- Retirados somente do índice os dois JSONs de runtime; arquivos locais preservados.
+  Não reescrito histórico público. Scanner completo ainda pendente.
+- Cinco timeouts reais de navegador foram reproduzidos. CDP estava em outra aba
+  about:blank porque started interpretava saída do lançador como sessão perdida.
+  Sessão conectada agora não reinicia; falha do transporte não repete comandos.
+  Onze testes reais passaram após a correção. Regressão final: 868 aprovados,
+  27 pulados, zero falhas, 54,087 s; Ruff aprovado, saída 0. Observação R0
+  conectada por allowlist estrita; entrada/abertura/clipboard continuam sensíveis.

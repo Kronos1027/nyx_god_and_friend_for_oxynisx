@@ -65,6 +65,14 @@ Inventário confirmou Qwen3.5:4b instalado; amostra posterior mostrou orçamento
 3.209.195.520 bytes com 2.143.473.664 bytes RAM livres, abaixo dos pesos do 4B.
 Nenhum modelo menor substituiu o escolhido; nenhum aplicativo foi encerrado.
 
+Repetição posterior: serviço iniciado, recusa novamente em 0,19 s, zero ações.
+Sondagem por estágio (`admission_probe_2026-10-31.json`) confirmou inventário do
+Qwen3.5:4b com 3.324.173.934 bytes; RAM livre caiu a 1.018.490.880 bytes, orçamento
+zero, VRAM livre 10.763.915.264 bytes. Essa condição está abaixo do piso de 1 GiB;
+não seria seguro ignorá-la só porque a GPU está livre. O erro agora distingue
+MODEL_SIZE_UNKNOWN de MODEL_BUDGET e mostra pesos, orçamento, RAM/VRAM. As reservas
+e a seleção não mudaram. O relatório não considera inferência validada nesta rodada.
+
 ## Correções medidas após reprodução
 
 - Breaker passa a escopo ferramenta/operação/alvo, cooldown de 60 s, uma tentativa
@@ -111,3 +119,43 @@ comparativo de modelos; progressão por objetivo; catálogo de
 atalhos com argumentos/launchers arbitrários; bateria adversarial de identidade.
 As fases seguintes permanecem pendentes. Nenhuma reserva foi afrouxada para
 forçar aprovação do modelo e nenhum resultado parcial significa fase concluída.
+
+Higiene antecipada: JSONs de runtime e traces ignorados; self_check_latest.json e
+update-check.json removidos apenas do índice, preservados localmente. Histórico
+Git não foi reescrito; versões públicas antigas desses arquivos ainda existem.
+
+## Falha posterior de navegação e correção de sessão
+
+Uma regressão posterior aos 845 aprovados encontrou cinco falhas reais de
+navegador por timeout. Em sondagem direta, Page.navigate devolveu um frame/loader,
+mas Page.getFrameTree seguinte observou outro frame em about:blank. A propriedade
+started usava o estado do processo lançador para reiniciar silenciosamente a
+sessão quando esse processo terminava, mesmo com CDP conectado.
+
+A sessão conectada agora é preservada até close explícito; perda do transporte
+retorna erro e não inicia nova aba para repetir comandos. Após a mudança, os
+11 testes reais de navegador passaram em 8,84 s, saída 0. Testes de regressão
+cobrem saída do lançador com transporte vivo e transporte morto sem replay.
+Falhas anteriores preservadas em build/diagnostic/admission-final.log/xml e
+browser-isolated-failure.log. A rodada paralela sem browser também encontrou
+access violation nativa no teardown Qt, apesar das asserções passarem. O teste do
+novo diálogo agora destrói explicitamente seu objeto Qt; a validação final é
+executada sem duas suítes Qt concorrentes. Não se atribui causa definitiva ao
+crash nativo apenas por esses indícios.
+
+Regressão após correção de transporte: **848 aprovados, 27 pulados, zero falhas,
+50,125 s**, saída 0 (875 casos). Não remove a evidência dos cinco timeouts nem
+prova a causa de toda falha de navegação.
+
+## Primeira redução de atrito de permissões
+
+ui_action deixou de exigir confirmação para toda a ferramenta. Uma allowlist
+estrita de observações (janelas/catálogo/Steam, janela ativa, inspeção/leitura UIA,
+captura sob demanda) é R0. Entrada, abrir app, clipboard, visão com modelo e ações
+desconhecidas continuam sensíveis; close/kill/Alt+F4 continuam destrutivos. Payload
+inválido falha fechado. Os testes cobrem a política e sua ligação ao registro de
+produção. Isso não implementa aprovação por plano, Parceira ou allowlists de apps.
+Não é aceite da fase 5 nem contagem de confirmações de seis passos via modelo real.
+
+Regressão integrada após R0: **868 aprovados, 27 pulados, zero falhas em 54,087 s**,
+saída 0; Ruff aprovado. As falhas e o crash anteriores permanecem registrados.

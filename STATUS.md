@@ -4,6 +4,17 @@
 
 ## Núcleo de desktop — diagnóstico e primeira correção
 
+- Validação mais recente, após sessão CDP e observação R0: **868 aprovados, 27
+  pulados, zero falhas, 54,087 s**, saída 0; Ruff aprovado. Fonte:
+  build/diagnostic/observation-final.xml. Os resultados anteriores abaixo são
+  históricos. A liberação R0 não inclui clipboard, entrada ou abertura de apps.
+
+- Revisão posterior encontrou reinício silencioso de sessão CDP quando o
+  lançador Edge terminava. Sessão conectada agora permanece na mesma aba;
+  transporte morto retorna erro sem replay. Onze ensaios reais passaram após
+  a correção. Os números abaixo registram a regressão anterior; validação final
+  e falhas intermediárias permanecem em docs/evidence/diagnosis_phase0.md.
+
 - Baseline real: três falhas de abertura bloqueavam toda ui_action. Agora o
   breaker separa ferramenta/operação/alvo, recupera após cooldown e distingue
   falha dura de resultado não verificado. Novas tarefas limpam pausas transitórias.

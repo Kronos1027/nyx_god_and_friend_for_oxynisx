@@ -33,5 +33,26 @@
     "errors": "0",
     "skipped": "27",
     "time": "54.694"
+  },
+  "admission-final": {
+    "tests": "873",
+    "failures": "5",
+    "errors": "0",
+    "skipped": "27",
+    "time": "120.262"
+  },
+  "session-final": {
+    "tests": "875",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "27",
+    "time": "50.125"
+  },
+  "observation-final": {
+    "tests": "895",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "27",
+    "time": "54.087"
   }
 }

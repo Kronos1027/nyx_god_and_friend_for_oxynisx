@@ -15,6 +15,16 @@
   verificador de produção; faltam verificadores independentes, 40+ tarefas, picos
   e sessões prolongadas. Traces locais podem conter pedidos/resultados privados;
   não devem ser publicados. A captura ainda não inclui prompt/ToolResult completos.
+- Inferência real desta revisão não passou: serviço indisponível inicialmente,
+  depois recusa de orçamento. A sondagem final encontrou menos de 1 GiB RAM livre
+  e orçamento de pesos zero, com mais de 10 GiB VRAM livres. Erros agora informam
+  tamanho/orçamento/recursos e distinguem inventário ausente. Reservas preservadas.
+- JSONs de runtime foram removidos do índice e ignorados, preservando os locais.
+  Isso não remove cópias do histórico público; varredura completa de segredos e
+  políticas CI/pre-commit permanecem pendentes.
+- Política de observação R0 está conectada ao desktop, com allowlist estrita.
+  Parceira, aprovação por plano e allowlists persistentes não estão implementadas;
+  ações de entrada e abertura continuam confirmadas conforme o modo existente.
 
 O ambiente atual é Windows com RTX 3060. As seções L1–L4 abaixo são histórico
 do desenvolvimento inicial, não descrevem a máquina atual.
