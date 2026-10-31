@@ -1,6 +1,26 @@
 # Nyx — estado verificado
 
-Última atualização: 2026-10-30
+Última atualização: 2026-10-31
+
+## Núcleo de desktop — diagnóstico e primeira correção
+
+- Baseline real: três falhas de abertura bloqueavam toda ui_action. Agora o
+  breaker separa ferramenta/operação/alvo, recupera após cooldown e distingue
+  falha dura de resultado não verificado. Novas tarefas limpam pausas transitórias.
+- Descoberta ampliada com aliases, pastas fixas, Menu Iniciar sem argumentos e
+  UWP registrado. Identidade UWP e Discord versionado substituem comparação pelo
+  stub nesses casos. Espera de janela até 20 segundos, com cancelamento.
+- Ensaio real: **3/15 → 13/15 nomes verificados nas três chamadas**, incluindo duas
+  rotas web. Não é taxa de 15 apps nativos distintos nem avaliação do planejador.
+  Chrome/VS Code não encontrados nas fontes consultadas. Não foram instalados.
+- Traces locais por tarefa e painel Saúde das ferramentas na Central; reset não
+  remove emergência/permissões. Contrato anuncia 16 ações existentes.
+- **845 aprovados, 27 pulados, zero falhas, 54,694 s**, Windows/navegador reais;
+  Ruff aprovado. LPAC opt-in pulado. Pet preservado, CompanionStage idêntico por AST.
+- Fases 0/1 permanecem parciais: faltam bateria completa com verificador independente,
+  picos de recursos, ensaio do planejador e gates de 95%/90%. Diagnóstico P1–P12,
+  falhas intermediárias e métricas: docs/evidence/diagnosis_phase0.md.
+
 
 ## Contexto, cálculo, Steam, aprendizado e retomada
 

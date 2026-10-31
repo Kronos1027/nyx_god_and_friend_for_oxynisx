@@ -1,6 +1,20 @@
 # LIMITACOES.md — limitações reais, sem contorno silencioso
 
-## Estado atual — Evolution 2.0 (30/10/2026)
+## Estado atual — núcleo de desktop (31/10/2026)
+
+- Descoberta agora inclui aliases, pastas fixas, atalhos do Menu Iniciar sem
+  argumentos e UWP registrado. Atalhos com argumentos arbitrários e portáteis
+  continuam sem suporte geral; fuzzy retorna candidatos, não escolhe por conta.
+  Chrome/VS Code não encontrados neste ensaio. Resultados de Spotify/WhatsApp são
+  navegação web, sem login ou prova de reprodução.
+- Breaker transitório separa operação/alvo e tem cooldown; não garante que uma
+  nova tentativa será correta. A UI mantém ferramentas administrativamente
+  desativadas e parada de emergência. Reset por nova tarefa está no TaskRunner;
+  a CLI de uma ação ainda exige reset explícito se não esperar cooldown.
+- O gate de aceitação completo ainda não foi atingido. Evidências iniciais usam
+  verificador de produção; faltam verificadores independentes, 40+ tarefas, picos
+  e sessões prolongadas. Traces locais podem conter pedidos/resultados privados;
+  não devem ser publicados. A captura ainda não inclui prompt/ToolResult completos.
 
 O ambiente atual é Windows com RTX 3060. As seções L1–L4 abaixo são histórico
 do desenvolvimento inicial, não descrevem a máquina atual.
@@ -23,10 +37,8 @@ do desenvolvimento inicial, não descrevem a máquina atual.
   Essa regra remove a parada fixa em seis; não comprova progresso semântico nem
   garante conclusão de qualquer pedido. Repetições, falhas e limites globais ainda
   podem interromper uma tarefa. Ver `docs/TASK_EXECUTION.md`.
-- A descoberta de aplicativos usa registros App Paths do Windows, registro do
-  cliente Steam e nomes de utilitários do Windows. Não é um catálogo completo de
-  aplicativos UWP, portáteis ou atalhos do Menu Iniciar. A janela precisa ser
-  identificada pelo executável; abrir um processo sem janela observada não basta.
+- A descoberta não é universal. Identidade de executável, UWP ou instalação
+  específica precisa ser observada; abrir processo sem janela não basta.
 
 - O cliente Ollama agora regenera uma vez uma saída JSON inválida/interrompida,
   sem executar a proposta descartada. Isso não garante recuperação de toda falha:

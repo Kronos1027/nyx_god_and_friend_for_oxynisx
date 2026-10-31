@@ -122,3 +122,18 @@ cd '<PROJETO>'
 ## Regra de convivência
 
 Se outra sessão (ChatGPT/Codex) voltar a editar este repositório, ela deve ler este arquivo antes de sobrescrever mudanças do DSH e registrar aqui o que fez, com horário.
+
+## Codex — 31/10/2026, 19:08 (America/Sao_Paulo)
+
+- Novo prompt lido; documentação obrigatória revisada antes de editar. Branch
+  codex/nyx-core-reliability-phase1, base 8bc57b5. Nenhuma publicação desta branch.
+- Reprodução real do breaker global e de descoberta/abertura: três chamadas por
+  nome, 15 nomes. 3/15 verificados no baseline; 13/15 após correções (dois web).
+- Corrigidos breaker por operação/alvo, cooldown/meio-aberto, aliases/candidatos,
+  atalhos sem argumentos, UWP por identidade de processo, Discord versionado e
+  espera de 20 s. Trace por tarefa e painel de saúde conectados; contratos ampliados.
+- 845 testes aprovados, 27 pulados, zero falhas em 54,694 s; Ruff aprovado.
+  Relatórios em build/diagnostic; evidências sanitizadas versionáveis em docs/evidence.
+- Pet/overlay não alterados, CompanionStage AST idêntico. Fases 0/1 não concluídas.
+  Recursos/modelo ainda bloqueiam ensaio; não reduzidas reservas nem trocado modelo.
+  LPAC/MCP/updater/lab/Studio congelados para novas features conforme novo prompt.

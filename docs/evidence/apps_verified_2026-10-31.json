@@ -1,0 +1,583 @@
+{
+  "timestamp": "2026-10-31T12:52:40.097365+00:00",
+  "scope": "ferramentas reais; sem planejador LLM; não é aceite ponta a ponta",
+  "opens_apps": true,
+  "repetitions": 3,
+  "apps": [
+    {
+      "name": "calculadora",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 2.2185
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1068
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1032
+        }
+      ],
+      "median_s": 0.1068
+    },
+    {
+      "name": "Bloco de notas",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1095
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1268
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1126
+        }
+      ],
+      "median_s": 0.1126
+    },
+    {
+      "name": "o navegador",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1125
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.108
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1124
+        }
+      ],
+      "median_s": 0.1124
+    },
+    {
+      "name": "Chrome",
+      "attempts": [
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Chrome': Aplicativo não encontrado. Consulte list_installed_apps; nenhuma correspondência segura.",
+          "window_count": 0,
+          "elapsed_s": 0.1025
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Chrome': Aplicativo não encontrado. Consulte list_installed_apps; nenhuma correspondência segura.",
+          "window_count": 0,
+          "elapsed_s": 0.1004
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'Chrome': Aplicativo não encontrado. Consulte list_installed_apps; nenhuma correspondência segura.",
+          "window_count": 0,
+          "elapsed_s": 0.1024
+        }
+      ],
+      "median_s": 0.1024
+    },
+    {
+      "name": "Edge",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1088
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1098
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1332
+        }
+      ],
+      "median_s": 0.1098
+    },
+    {
+      "name": "o discord",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1169
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1141
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1102
+        }
+      ],
+      "median_s": 0.1141
+    },
+    {
+      "name": "Spotify",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "controlled_navigation",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 2.8828
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "controlled_navigation",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 1.1686
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "controlled_navigation",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 2.2356
+        }
+      ],
+      "median_s": 2.2356
+    },
+    {
+      "name": "Steam",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1654
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1636
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1532
+        }
+      ],
+      "median_s": 0.1636
+    },
+    {
+      "name": "OBS",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.7673
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.17
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1781
+        }
+      ],
+      "median_s": 0.1781
+    },
+    {
+      "name": "VS Code",
+      "attempts": [
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'VS Code': Aplicativo não encontrado. Consulte list_installed_apps; nenhuma correspondência segura.",
+          "window_count": 0,
+          "elapsed_s": 0.1446
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'VS Code': Aplicativo não encontrado. Consulte list_installed_apps; nenhuma correspondência segura.",
+          "window_count": 0,
+          "elapsed_s": 0.1172
+        },
+        {
+          "ok": false,
+          "verified": false,
+          "check": "tool_error",
+          "error": "Falha ao abrir 'VS Code': Aplicativo não encontrado. Consulte list_installed_apps; nenhuma correspondência segura.",
+          "window_count": 0,
+          "elapsed_s": 0.1434
+        }
+      ],
+      "median_s": 0.1434
+    },
+    {
+      "name": "Antigravity",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1753
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1455
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1535
+        }
+      ],
+      "median_s": 0.1535
+    },
+    {
+      "name": "Explorador de Arquivos",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1241
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1188
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1307
+        }
+      ],
+      "median_s": 0.1241
+    },
+    {
+      "name": "Configurações",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1263
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1304
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1148
+        }
+      ],
+      "median_s": 0.1263
+    },
+    {
+      "name": "WhatsApp",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "controlled_navigation",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 1.2229
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "controlled_navigation",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 0.8159
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "controlled_navigation",
+          "error": null,
+          "window_count": 0,
+          "elapsed_s": 0.6589
+        }
+      ],
+      "median_s": 0.8159
+    },
+    {
+      "name": "Paint",
+      "attempts": [
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.2688
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1629
+        },
+        {
+          "ok": true,
+          "verified": true,
+          "check": "installed_app_window",
+          "error": null,
+          "window_count": 1,
+          "elapsed_s": 0.1552
+        }
+      ],
+      "median_s": 0.1629
+    }
+  ],
+  "resources_before": {
+    "ram_available_bytes": 1996574720,
+    "vram_total_bytes": 12884901888,
+    "vram_free_bytes": 10545758208,
+    "cpu_percent": 0.0,
+    "ram_total_bytes": 17099575296,
+    "committed_bytes": 19986866176,
+    "commit_limit_bytes": 33205702656
+  },
+  "weight_budget_bytes": 2768498688,
+  "context_tokens": 1024,
+  "top10_rss": [
+    {
+      "name": "msedge.exe",
+      "rss_bytes": 824459264
+    },
+    {
+      "name": "msedge.exe",
+      "rss_bytes": 708722688
+    },
+    {
+      "name": "ChatGPT.exe",
+      "rss_bytes": 539721728
+    },
+    {
+      "name": "Discord.exe",
+      "rss_bytes": 496025600
+    },
+    {
+      "name": "steamwebhelper.exe",
+      "rss_bytes": 434696192
+    },
+    {
+      "name": "MsMpEng.exe",
+      "rss_bytes": 432787456
+    },
+    {
+      "name": "ChatGPT.exe",
+      "rss_bytes": 421269504
+    },
+    {
+      "name": "msedge.exe",
+      "rss_bytes": 398168064
+    },
+    {
+      "name": "msedge.exe",
+      "rss_bytes": 371605504
+    },
+    {
+      "name": "msedge.exe",
+      "rss_bytes": 369508352
+    }
+  ],
+  "ollama_ps": [],
+  "ollama_tags": [
+    {
+      "name": "nyx-coder:9b",
+      "size": 6550825602,
+      "size_vram": null,
+      "context_length": null
+    },
+    {
+      "name": "qwen3.8:27b",
+      "size": 17741872154,
+      "size_vram": null,
+      "context_length": null
+    },
+    {
+      "name": "qwen3.5:9b",
+      "size": 6550825550,
+      "size_vram": null,
+      "context_length": null
+    },
+    {
+      "name": "DeepSeek-R1:latest",
+      "size": 5225376047,
+      "size_vram": null,
+      "context_length": null
+    },
+    {
+      "name": "qwen3.5:4b",
+      "size": 3324173934,
+      "size_vram": null,
+      "context_length": null
+    },
+    {
+      "name": "moondream:1.8b",
+      "size": 1738451197,
+      "size_vram": null,
+      "context_length": null
+    },
+    {
+      "name": "PetrosStav/gemma3-tools:12b",
+      "size": 8149203825,
+      "size_vram": null,
+      "context_length": null
+    },
+    {
+      "name": "qwen2.5:0.5b",
+      "size": 397821319,
+      "size_vram": null,
+      "context_length": null
+    },
+    {
+      "name": "llama3.2:1b",
+      "size": 1321098329,
+      "size_vram": null,
+      "context_length": null
+    },
+    {
+      "name": "qwen2.5:3b-instruct",
+      "size": 1929912432,
+      "size_vram": null,
+      "context_length": null
+    }
+  ],
+  "resources_after": {
+    "ram_available_bytes": 1860816896,
+    "vram_total_bytes": 12884901888,
+    "vram_free_bytes": 10512015360,
+    "cpu_percent": 41.4,
+    "ram_total_bytes": 17099575296,
+    "committed_bytes": 20208439296,
+    "commit_limit_bytes": 33205702656
+  }
+}

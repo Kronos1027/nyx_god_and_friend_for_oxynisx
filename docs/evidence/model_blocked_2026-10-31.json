@@ -1,0 +1,14 @@
+{
+  "model": "qwen3.5:4b",
+  "ui_used": false,
+  "scope": "production planner with read-only fixture and arithmetic guard",
+  "elapsed_seconds": 0.17,
+  "actions": 0,
+  "verified_reads": 0,
+  "response": "Não consegui continuar o pedido: Falha no runtime local: O modelo não cabe no orçamento atual ou seu tamanho não pôde ser confirmado. Libere memória e tente novamente.",
+  "values": [],
+  "extended": false,
+  "generations": [],
+  "pending_confirmation": false,
+  "passed": false
+}

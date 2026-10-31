@@ -1,4 +1,13 @@
-# Nyx — rota para uma quase-AGI (estado e prioridades)
+# Nyx — evolução do agente companheiro (estado e prioridades)
+
+## Prioridade vigente — 31/10/2026
+
+Núcleo funcional e bateria real primeiro: diagnóstico → execução/desktop →
+recursos/modelo → navegador → confiança → presença/memória/voz. Gates e método
+estão em docs/evidence/diagnosis_phase0.md. Fases 0/1 ainda parciais.
+**Congeladas para features novas** até os gates: LPAC/sandbox, MCP, updater/release,
+skills-history, evolution lab e Project Studio. Manutenção de falhas continua.
+O pet/avatar permanece preservado. O roteiro histórico abaixo não muda essa ordem.
 
 MCP, atualização de 27/10/2026: cliente 2025-11-25 exercitado com servidor próprio
 no LPAC, incluindo handshake, inventário, chamada, timeout e cancelamento.

@@ -1,0 +1,37 @@
+{
+  "phase0-regression": {
+    "tests": "857",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "27",
+    "time": "63.029"
+  },
+  "phase1-regression": {
+    "tests": "864",
+    "failures": "1",
+    "errors": "0",
+    "skipped": "27",
+    "time": "54.967"
+  },
+  "phase1-final": {
+    "tests": "868",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "27",
+    "time": "59.549"
+  },
+  "phase1-delivery": {
+    "tests": "869",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "27",
+    "time": "54.416"
+  },
+  "phase1-integrated": {
+    "tests": "872",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "27",
+    "time": "54.694"
+  }
+}
