@@ -105,7 +105,10 @@ class BrowserSession:
     # -- lifecycle ---------------------------------------------------------
     @property
     def started(self) -> bool:
-        return self._started and self._process is not None and self._process.poll() is None
+        # Edge can hand off from its launcher while the owned CDP session stays
+        # alive. Do not silently create a new browser/tab between commands.
+        # A dead transport must fail explicitly; close() permits a fresh start.
+        return self._started and self._ws is not None
 
     def start(self) -> None:
         self.control.check()

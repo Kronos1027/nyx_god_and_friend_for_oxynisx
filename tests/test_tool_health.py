@@ -19,3 +19,5 @@ def test_health_reset_preserves_manual_disables_and_emergency(qapp, tmp_path):
     assert registry.breaker.snapshot() == []
     assert audit.read_all()[-1]['event'] == 'circuit_breaker_reset'
     dialog.close()
+    from PyQt6 import sip
+    sip.delete(dialog)
