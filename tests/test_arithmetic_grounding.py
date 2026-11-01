@@ -40,3 +40,10 @@ def test_explicit_file_interval_rejects_invented_ninth_file_without_restricting_
     assert source_issue(goal, [], 'read_file', {'path': 'numero-8.txt'}) is None
     assert source_issue('Leia os arquivos e entregue a soma.', [], 'read_file', {'path': 'numero-9.txt'}) is None
     assert source_issue('Leia arquivos a-1.txt até b-8.txt e entregue a soma.', [], 'read_file', {'path': 'numero-9.txt'}) is None
+
+
+def test_verified_resolved_paths_deduplicate_absolute_relative_aliases():
+    first = {**read('a.txt', 11), 'resolved_path': r'C:\work\a.txt'}
+    alias = {**read(r'C:\work\a.txt', 11), 'resolved_path': r'C:\work\a.txt'}
+    assert calculator_issue(GOAL, [first, alias], 'calculator', {'values': [11]}) is None
+    assert calculator_issue(GOAL, [first, alias], 'calculator', {'values': [11, 11]})

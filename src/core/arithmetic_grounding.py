@@ -29,7 +29,7 @@ def observed_values(steps):
             value = number(step.get('output', ''))
             if value is None:
                 return None
-            path = step.get('params', {}).get('path')
+            path = step.get('resolved_path') or step.get('params', {}).get('path')
             if not isinstance(path, str) or not path.strip():
                 return None
             path = ntpath.normcase(ntpath.normpath(path))
@@ -87,7 +87,8 @@ def final_sum_issue(goal, steps, response):
     # Calculator output is structured data; do not trust numbers in its prose.
     import json
     try:
-        expected = number(json.loads(last_sum['output'])['result'])
+        expected = number(last_sum['calculation_result'] if 'calculation_result' in last_sum
+                          else json.loads(last_sum['output'])['result'])
     except (ValueError, KeyError, TypeError):
         return None
     if expected is None:

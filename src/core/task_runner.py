@@ -389,6 +389,11 @@ class TaskRunner:
         text = ((output.output if output.ok else output.error) or "") if output else ""
         step = {"tool": action.type, "params": action.params, "ok": bool(output and output.ok),
                 "verified": result.verified, "output": text[:1600], "output_truncated": len(text) > 1600}
+        if output and result.verified:
+            if action.type == 'read_file' and isinstance(output.meta.get('path'), str):
+                step['resolved_path'] = output.meta['path']
+            if action.type == 'calculator' and isinstance(output.meta.get('result'), str):
+                step['calculation_result'] = output.meta['result']
         if action.type == "skills" and output and output.ok and len(text) <= 6000:
             step["skill_observation"] = text
         if action.type == "agent_team" and output:
