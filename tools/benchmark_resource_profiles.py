@@ -77,7 +77,8 @@ def main():
                 args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
                 print(json.dumps({k: row[k] for k in ('profile', 'iteration', 'passed', 'elapsed_s')}, ensure_ascii=False), flush=True)
     unload(args.model)
+    return 0 if report['rows'] and all(row['passed'] for row in report['rows']) else 1
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

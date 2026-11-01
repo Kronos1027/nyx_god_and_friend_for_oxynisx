@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from cli import build_registry
 from config import NyxConfig
 from core.agent_loop import AgentLoop
-from core.agent_team import agent_team_contract
+from core.agent_team import agent_team_contract, make_agent_team_tool_func
 from core.llm_client import OllamaClient
 from core.task_runner import TaskRunner
 from audit.logger import AuditLogger
@@ -33,13 +33,16 @@ def run_workflow(model, output, direct=False):
         path.write_text(str(i * 11), encoding="utf-8")
         paths.append(path)
     registry = build_registry(NyxConfig(allowed_roots=[work], log_dir=work / "logs"))
-    registry.register(ToolSpec("agent_team", "Investigações delegadas", input_contract=agent_team_contract()), lambda p: None)
-    registry.register(ToolSpec("code_task", "Propor correção de código", sensitive=True), lambda p: None)
     client = OllamaClient(model=model)
     if not client.is_available():
         raise RuntimeError("Ollama local indisponível; este diagnóstico não inicia nem substitui o serviço.")
     client.configure_thinking()
     audit = AuditLogger(work / "logs", session_id="real-context")
+    registry.register(ToolSpec('agent_team', 'Investigações delegadas', input_contract=agent_team_contract()),
+                      make_agent_team_tool_func(client, registry, audit))
+    from tools.code_task_tool import make_code_task_tool_func
+    registry.register(ToolSpec('code_task', 'Propor correção de código', sensitive=True),
+                      make_code_task_tool_func(client, [work]))
     loop = AgentLoop(client, registry, audit)
     runner = TaskRunner(loop)
     runner.set_budget_profile("default")

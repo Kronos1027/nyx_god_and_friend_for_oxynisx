@@ -48,7 +48,8 @@ def main():
                 'goal_delivered': result.get('goal_delivered'), 'redundant_reads': result.get('redundant_reads')})
             (output / 'summary.json').write_text(json.dumps(summary, indent=2), encoding='utf-8')
         unload(model)
+    return 0 if summary['results'] and all(row['passed'] for row in summary['results']) else 1
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())
