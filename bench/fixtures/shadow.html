@@ -1,0 +1,32 @@
+<!doctype html><meta charset="utf-8"><title>Nyx Shadow DOM fixture</title>
+<label for="name">Campo externo</label><input id="name" value="preservado">
+<div id="panel"></div><output id="result">pending</output><div id="closed"></div>
+<script>
+const panel = document.querySelector('#panel').attachShadow({mode:'open'});
+panel.innerHTML = '<div id="nested"></div>';
+const nested = panel.querySelector('#nested').attachShadow({mode:'open'});
+nested.innerHTML = `<style>:host{display:block}button,input{margin:8px}</style>
+ <form><span id="name-label">Nome da sombra</span><input id="name" aria-labelledby="name-label" value="old">
+ <label for="secret">Password</label><input id="secret" type="password" value="fixture-secret-never-export">
+ <button type="button" id="go">Confirmar sombra</button>
+ <button type="button" id="disabled" disabled>Disabled</button>
+ <button type="button" class="duplicate">Duplicate</button><button type="button" class="duplicate">Duplicate</button>
+ <button type="button" id="hidden" style="display:none">Hidden</button>
+ <button type="button" id="covered" style="position:absolute;left:700px;top:200px">Covered</button>
+ </form>`;
+const cover = document.createElement('div');
+cover.id = 'cover';
+cover.style = 'position:absolute;left:690px;top:190px;width:160px;height:90px;background:black';
+document.body.append(cover);
+window.trustedShadowInput = false; window.trustedShadowClick = false;
+nested.querySelector('#name').addEventListener('input', e => window.trustedShadowInput = e.isTrusted);
+nested.querySelector('#go').addEventListener('click', e => {
+ window.trustedShadowClick = e.isTrusted;
+ document.querySelector('#result').textContent = 'Hello ' + nested.querySelector('#name').value;
+});
+document.querySelector('#closed').attachShadow({mode:'closed'}).innerHTML = '<input aria-label="Fechado">';
+for (let i=0;i<2;i++) {
+ const host = document.createElement('div'); host.className = 'ambiguous-host'; document.body.append(host);
+ host.attachShadow({mode:'open'}).innerHTML = '<input aria-label="Ambiguous">';
+}
+</script>

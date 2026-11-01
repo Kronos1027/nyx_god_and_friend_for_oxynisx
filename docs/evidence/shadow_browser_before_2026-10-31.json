@@ -1,0 +1,60 @@
+{
+  "scope": "production CDP adapter, independent fixture state check, no LLM",
+  "rows": [
+    {
+      "iteration": 1,
+      "elapsed_s": 0.015,
+      "inspect_ok": true,
+      "type_ok": false,
+      "click_ok": false,
+      "errors": [
+        "Informe seletor CSS ou localizador por role/name, label ou text.",
+        "Informe seletor CSS ou localizador por role/name, label ou text."
+      ],
+      "observed": {
+        "text": "pending",
+        "external": "preservado",
+        "trustedInput": false,
+        "trustedClick": false
+      },
+      "passed": false
+    },
+    {
+      "iteration": 2,
+      "elapsed_s": 0.015,
+      "inspect_ok": true,
+      "type_ok": false,
+      "click_ok": false,
+      "errors": [
+        "Informe seletor CSS ou localizador por role/name, label ou text.",
+        "Informe seletor CSS ou localizador por role/name, label ou text."
+      ],
+      "observed": {
+        "text": "pending",
+        "external": "preservado",
+        "trustedInput": false,
+        "trustedClick": false
+      },
+      "passed": false
+    },
+    {
+      "iteration": 3,
+      "elapsed_s": 0.0,
+      "inspect_ok": true,
+      "type_ok": false,
+      "click_ok": false,
+      "errors": [
+        "Informe seletor CSS ou localizador por role/name, label ou text.",
+        "Informe seletor CSS ou localizador por role/name, label ou text."
+      ],
+      "observed": {
+        "text": "pending",
+        "external": "preservado",
+        "trustedInput": false,
+        "trustedClick": false
+      },
+      "passed": false
+    }
+  ],
+  "passed": false
+}
