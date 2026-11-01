@@ -61,6 +61,7 @@ Thumbs.db
 data/skill_packages/
 dist/
 build/
+docs/evidence/.bench-tmp-*
 *.spec
 !packaging/Nyx.spec
 

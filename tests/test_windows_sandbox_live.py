@@ -19,10 +19,10 @@ import pytest
 from core.windows_sandbox import profile, run_lpac
 from core.sandbox_channel import SandboxChannel
 
-pytestmark = pytest.mark.skipif(
+pytestmark = [pytest.mark.windows_live, pytest.mark.skipif(
     os.name != "nt" or os.environ.get("NYX_TEST_SANDBOX") != "1",
     reason="real Windows LPAC fixture opt-in",
-)
+)]
 
 
 @pytest.fixture(scope="module")

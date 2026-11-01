@@ -2,6 +2,7 @@
 pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-q"
+markers = ["windows_live: real Windows/Chromium fixtures; explicit opt-in and independent of unit doubles"]
 
 [tool.ruff]
 line-length = 100

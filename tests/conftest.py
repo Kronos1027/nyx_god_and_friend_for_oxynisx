@@ -7,6 +7,9 @@ from pathlib import Path
 
 
 def pytest_configure(config):
+    if os.name == 'nt' and config.option.markexpr.strip() == 'windows_live':
+        os.environ.setdefault('NYX_TEST_BROWSER', '1')
+        os.environ.setdefault('NYX_TEST_DESKTOP', '1')
     # Keep runtime copies and generated fixtures on the project's volume. Let
     # pytest retain/clean its numbered runs normally; respect explicit overrides.
     if not config.option.basetemp and not os.environ.get("PYTEST_DEBUG_TEMPROOT"):

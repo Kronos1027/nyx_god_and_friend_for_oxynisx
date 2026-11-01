@@ -15,7 +15,8 @@ import pytest
 from core.operation_control import OperationCancelled
 from tools.browser_tool import BrowserError, BrowserSession
 
-pytestmark = pytest.mark.skipif(os.environ.get("NYX_TEST_BROWSER") != "1", reason="real browser opt-in")
+pytestmark = [pytest.mark.windows_live,
+              pytest.mark.skipif(os.environ.get("NYX_TEST_BROWSER") != "1", reason="real browser opt-in")]
 
 PAGE = b'''<!doctype html><meta charset="utf-8"><title>Nyx live fixture</title>
 <form><label for="input">Nome</label><input id="input" value="old">

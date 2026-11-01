@@ -12,8 +12,9 @@ import pytest
 
 from tools.ui_tool import UITool
 
-pytestmark = pytest.mark.skipif(os.name != "nt" or os.environ.get("NYX_TEST_DESKTOP") != "1",
-                               reason="owned Windows fixture opt-in")
+pytestmark = [pytest.mark.windows_live,
+              pytest.mark.skipif(os.name != "nt" or os.environ.get("NYX_TEST_DESKTOP") != "1",
+                                 reason="owned Windows fixture opt-in")]
 
 
 class RuntimeWorker:
