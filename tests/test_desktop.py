@@ -62,6 +62,16 @@ def test_conversation_deltas_are_plain_text_and_reset_for_new_request(desktop):
     assert len(window._cards) == count + 1
 
 
+def test_memory_diagnostics_opens_without_process_enumeration(desktop, monkeypatch):
+    from ui.resource_diagnostics import ResourceDiagnosticsDialog
+    requests = []
+    monkeypatch.setattr(ResourceDiagnosticsDialog, 'refresh', lambda self, include=False: requests.append(include))
+    window, _, _ = desktop
+    window.memory_diagnostic_button.click()
+    assert window._resource_diagnostic_dialog.isVisible()
+    assert requests == [False]
+
+
 def test_saved_task_returns_to_its_original_conversation(desktop, monkeypatch):
     from types import SimpleNamespace
     from PyQt6.QtWidgets import QListWidgetItem

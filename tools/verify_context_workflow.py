@@ -85,7 +85,7 @@ def run_workflow(model, output, direct=False):
                             and not report['rejected_actions'] and not result.needs_confirmation
                             and result.response.action.type == 'none')
         output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(json.dumps(report, ensure_ascii=False, indent=2))
+        print(json.dumps(report, ensure_ascii=True, indent=2))
         return 0 if report["passed"] else 1
     finally:
         registry.browser_session.close()

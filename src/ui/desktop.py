@@ -1269,6 +1269,9 @@ class DesktopWindow(QMainWindow):
         layout.addWidget(save_runtime)
         self.runtime_feedback = self._muted("Reinicie a Nyx após alterar o modelo principal. Se faltar memória, ela aguardará recursos sem trocar de modelo. Os caminhos são usados ao iniciar o Ollama.")
         layout.addWidget(self.runtime_feedback)
+        self.memory_diagnostic_button = QPushButton('Diagnosticar memória')
+        self.memory_diagnostic_button.clicked.connect(self._show_resource_diagnostics)
+        layout.addWidget(self.memory_diagnostic_button)
         reset = QPushButton("Restaurar organização dos painéis")
         reset.clicked.connect(self._reset_layout)
         layout.addWidget(reset)
@@ -1283,6 +1286,14 @@ class DesktopWindow(QMainWindow):
         self.voice_combo.currentIndexChanged.connect(self._apply_preferences)
         self.speed_slider.valueChanged.connect(self._apply_preferences)
         self.volume_slider.valueChanged.connect(self._apply_preferences)
+
+    def _show_resource_diagnostics(self):
+        from ui.resource_diagnostics import ResourceDiagnosticsDialog
+        if not getattr(self, '_resource_diagnostic_dialog', None):
+            self._resource_diagnostic_dialog = ResourceDiagnosticsDialog(self)
+        self._resource_diagnostic_dialog.show()
+        self._resource_diagnostic_dialog.raise_()
+        self._resource_diagnostic_dialog.refresh(False)
 
     def _update_browser_preferences(self) -> None:
         visible = self.browser_visible_check.isChecked()

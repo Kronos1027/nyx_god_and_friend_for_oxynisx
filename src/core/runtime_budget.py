@@ -220,10 +220,12 @@ def safe_context_tokens(snapshot: ResourceSnapshot) -> int:
 def ensure_resource_headroom(snapshot: ResourceSnapshot) -> None:
     if snapshot.ram_available_bytes is not None and snapshot.ram_available_bytes < 1 * GIB:
         raise InferencePressureError(f"RAM livre abaixo de 1 GiB ({snapshot.ram_available_bytes / GIB:.2f} GiB livres); "
-                                     "aguarde o sistema liberar memória. Nenhuma geração foi enviada.")
+                                     "Nenhuma geração foi enviada. Consulte Personalizar → Modelo local → Diagnosticar memória "
+                                     "para ver o consumo e escolher o que liberar.")
     if snapshot.vram_free_bytes is not None and snapshot.vram_free_bytes < 768 * MIB:
         raise InferencePressureError(f"VRAM livre abaixo de 768 MiB ({snapshot.vram_free_bytes / MIB:.0f} MiB livres); "
-                                     "aguarde antes de gerar. Nenhuma geração foi enviada.")
+                                     "aguarde antes de gerar. Nenhuma geração foi enviada. "
+                                     "Consulte Personalizar → Modelo local → Diagnosticar memória.")
 
 
 IDLE_RESIDENT_SECONDS = 60.0
