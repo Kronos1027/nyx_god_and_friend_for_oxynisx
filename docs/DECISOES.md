@@ -1,5 +1,16 @@
 # DECISOES — registro de decisões reversíveis (uma entrada por decisão)
 
+## D-007 · Janela e foco no encerramento · 01/11/2026
+
+Contexto: nove aberturas observavam janela, mas seis não tinham foco; UWP cloaked
+e mudança de foreground durante resposta produziram falha real. Escolha: filtro
+DWM, foco de janela existente e reconsulta R0 no fim quando a última ação é
+abertura nativa. Sem refocar/reabrir silenciosamente; saída honesta se divergir.
+Verificador independente aperta também identidade dos filhos UWP. Motivo:
+3/9com foco no baseline→9/9em dois ensaios posteriores; falha intermediária
+preservada. Reversão: commits de código reversíveis, mas não restaurar afirmações
+de sucesso sem observação. Spotify/WhatsApp preferem nativo; web só NOT_FOUND.
+
 ## D-006 · Scanner offline isolado e serial · 01/11/2026
 
 Contexto: CI não colecionava sem Qt e não havia barreira de segredos no commit.

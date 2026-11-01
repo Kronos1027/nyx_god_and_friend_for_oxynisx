@@ -1,7 +1,7 @@
 # PROGRESS — memória externa do trabalho (atualize ao fim de cada passo relevante)
 
 **Marco atual:** M0 (integração e baseline ampliado) · **Branch:** nyx-2 · **Base preservada:** 5fc8ee5
-**Próximo passo exato:** corrigir abertura de apps: preferir nativo ao web e focar janela já aberta, com regressão e UI real3×. Investigar seis falhas de foco da suíte completa (isolado12/12). Não reexecutar o relatório legado como método aprovado.
+**Próximo passo exato:** ampliar o harness Apps para os nativos restantes com sinais independentes por classe/processo e rodadas3×. Conferência final de foco implementada; dois ensaios9/9. Não reexecutar o relatório legado como método aprovado.
 **Como retomar:** `git switch nyx-2` · ler AGENTS.md, este arquivo e docs/DECISOES.md · rodar `python -m pytest -q`
 **Bloqueios:**44cenários do harness sem setup/verificador seguro, sem inferir incapacidade da Nyx. Apps não são fechados/resetados, então a bateria nativa parcial não fecha gate. Login Spotify adiado pelo usuário. Migração privada/remoção remota fora do escopo aprovado. Requalificação atual de arquivos passou3/3; antigas recusas de RAM permanecem como histórico.
 
@@ -19,6 +19,22 @@
 | M8 Aceitação final | pendente | | bench 3× completo · soak 2 h · falso sucesso = 0 | |
 
 ## Log (mais recente primeiro)
+- 01/11/2026 — Gate de regressão do incremento:949passes/27skips/0falhas,
+  976casos,48,178s; Ruff limpo. Runner integrado Normal9/9executados,36bloqueados,
+  saída1 correta por cobertura/sem reset. Duas novas fingerprints auditadas
+  pontualmente no baseline de segredos. Próximo: ampliar apps, sem promover marco.
+- 01/11/2026 — Foco nativo: superfície cloaked excluída e conferência final após
+  resposta do modelo. Ensaio final9/9, integrado Normal9/9sem divergências;
+  Conservador bloqueou por RAM, preservado. Janela já aberta recebe foco; fallback
+  web só NOT_FOUND, informado. nativos Spotify/WhatsApp ausentes, sem login.
+  Regressão975casos:948passes/27skips/0falhas,47,078s. Gate Apps20%/sem reset,
+  marco não concluído. Evidência: evidence/native_focus_2026-11-01.md.
+- 01/11/2026 — Defeito crítico em investigação: verificador Apps agora exige
+  foreground. Baseline anterior só3/9com foco. Primeira correção6/9; superfície
+  UWP da Calculadora tinha DWMWA_CLOAKED=2 embora WS_VISIBLE. Filtro DWM elevou
+  para8/9, mas uma rodada confirmou foco e o perdeu antes da conclusão, um falso
+  sucesso no checker final. Artefatos native_focus_ui/native_focus_dwm_ui
+  preservados. Próximo: revalidar pós-condição no encerramento; gate bloqueado.
 - 01/11/2026 — Higiene M0:820passes/13skips no núcleo mínimo sem Qt;
   scanner offline/hook serial/CI configurados, nove falsos positivos auditados,
   sintético bloqueado3/3. Ambiente/cache no E. Regressão completa923passes,

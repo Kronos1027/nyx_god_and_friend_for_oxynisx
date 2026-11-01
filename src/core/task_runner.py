@@ -397,6 +397,8 @@ class TaskRunner:
         step = {"tool": action.type, "params": action.params, "ok": bool(output and output.ok),
                 "verified": result.verified, "output": text[:1600], "output_truncated": len(text) > 1600}
         if output and result.verified:
+            if action.type == 'ui_action' and output.meta.get('launch_kind') == 'native':
+                step['native_app_target'] = {key:output.meta.get(key) for key in ('executable','app_id')}
             if action.type == 'read_file' and isinstance(output.meta.get('path'), str):
                 step['resolved_path'] = output.meta['path']
             if action.type == 'calculator' and isinstance(output.meta.get('result'), str):
@@ -434,6 +436,21 @@ class TaskRunner:
         return self._finish(LoopResult(response=NyxResponse(emotion="idle", speech_output=message)), "stopped")
 
     def _finish(self, result: LoopResult, state: str) -> LoopResult:
+        if state == 'finished' and self.steps and self.steps[-1].get('native_app_target') and self.steps[-1]['verified']:
+            from tools.installed_apps import native_app_postcondition
+            try:
+                final_check = native_app_postcondition(self.steps[-1]['native_app_target'])
+            except Exception as exc:
+                final_check = {'verified':False, 'error_code':'UNVERIFIED',
+                               'details':'A leitura final da janela do aplicativo falhou: ' + str(exc)[:300]}
+            self.loop.audit.log_event('final_postcondition', task_id=self.task_id, **final_check)
+            if not final_check['verified']:
+                state = 'stopped'
+                self.steps[-1]['verified'] = False
+                self.steps[-1]['final_postcondition'] = final_check
+                result.verified = False
+                result.response.speech_output = ('A abertura foi tentada, mas não posso confirmar a conclusão: '
+                    + final_check['details'] + ' Nenhuma nova abertura foi enviada. Confira a janela antes de repetir.')
         self.active = False
         self.pending = None
         if self.uncertain or self.inflight:

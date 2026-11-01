@@ -416,7 +416,7 @@ class UITool:
         if not app_name:
             return ToolResult(ok=False, error="Parâmetro 'app' ou 'name' é obrigatório.")
 
-        # Se for um serviço web conhecido ou URL, abre via navegador
+        # Sites explícitos não são substituídos por aplicativos locais.
         web_services = {
             "spotify": "https://open.spotify.com",
             "youtube": "https://www.youtube.com",
@@ -425,14 +425,29 @@ class UITool:
             "whatsapp": "https://web.whatsapp.com",
         }
         low_app = app_name.lower()
-        if low_app in web_services or low_app.startswith(("http://", "https://", "www.")):
+        if low_app in {'youtube', 'github', 'gmail'} or low_app.startswith(("http://", "https://", "www.")):
             return self.open_url({"url": web_services.get(low_app, app_name)})
 
         dispatched = False
         try:
             import time
-            from tools.installed_apps import resolve_app, matching_windows
-            app = resolve_app(app_name)
+            from tools.installed_apps import resolve_app, matching_windows, AppResolutionError, normalized_name, ALIASES
+            try:
+                app = resolve_app(app_name)
+            except AppResolutionError as exc:
+                service = normalized_name(app_name)
+                for article in ('o ', 'a ', 'um ', 'uma '):
+                    if service.startswith(article):
+                        service = service[len(article):]
+                        break
+                service = ALIASES.get(service, service)
+                if exc.code != 'NOT_FOUND' or service not in {'spotify', 'whatsapp'}:
+                    raise
+                self.control.check()
+                result = self.open_url({'url': web_services[service]})
+                result.output = f'{app_name}: aplicativo nativo não encontrado no catálogo; alternativa web. ' + result.output
+                result.meta.update(launch_kind='web', fallback_reason='native_app_not_found', requested_app=app_name)
+                return result
             def observe():
                 if app.app_id:
                     from tools.app_catalog import matching_package_windows
@@ -441,9 +456,7 @@ class UITool:
             self.control.check()
             existing = observe()
             if existing:
-                return ToolResult(True, f"{app.name} já está aberto.",
-                    meta={"app": app.name, "executable": str(app.path), "windows": existing,
-                          "verified": True, "check": "installed_app_window"})
+                return self._focus_app_window(app, existing, observe, already_open=True)
             if app.app_id:
                 from tools.app_catalog import launch_package
                 launch_package(app)
@@ -458,7 +471,9 @@ class UITool:
                 if windows:
                     break
                 time.sleep(0.15)
-            return ToolResult(True, f"{app.name}: " + ("janela confirmada." if windows else "abertura solicitada; janela ainda não confirmada."),
+            if windows:
+                return self._focus_app_window(app, windows, observe, already_open=False)
+            return ToolResult(True, f"{app.name}: abertura solicitada; janela ainda não confirmada.",
                 meta={"app": app.name, "executable": str(app.path), "windows": windows,
                       "verified": bool(windows), "check": "installed_app_window"})
         except Exception as exc:
@@ -467,6 +482,26 @@ class UITool:
                                     "error_code": getattr(exc, "code", "OPEN_APP_FAILED"),
                                     "suggestions": getattr(exc, "candidates", []),
                                     "next_best_actions": ["list_installed_apps", "list_windows"]})
+
+    def _focus_app_window(self, app, windows, observe, *, already_open):
+        """Opening an app includes observed focus, including an existing window."""
+        hwnd = windows[0]['hwnd']
+        focused = self.focus_window({'hwnd': hwnd})
+        current = observe()
+        owner_still_matches = any(window['hwnd'] == hwnd for window in current)
+        verified = bool(focused.ok and focused.meta.get('verified') and owner_still_matches)
+        meta = {'app':app.name, 'executable':str(app.path), 'windows':current,
+                'app_id':app.app_id,
+                'hwnd':hwnd, 'already_open':already_open, 'foreground_verified':verified,
+                'verified':verified, 'check':'installed_app_window', 'launch_kind':'native'}
+        if not verified:
+            meta.update(error_code='UNVERIFIED' if owner_still_matches else 'ELEMENT_STALE',
+                        outcome_unknown=focused.meta.get('outcome_unknown', False),
+                        suggestions=['Consulte list_windows para escolher a janela ou um diálogo modal.'])
+            detail = f'{app.name}: janela observada, mas foco não confirmado. ' + (focused.error or 'A identidade da janela mudou.')
+            return ToolResult(owner_still_matches, output=detail, error=focused.error, meta=meta)
+        return ToolResult(True, f'{app.name}: ' + ('já estava aberto; ' if already_open else '')
+                          + 'janela e foco confirmados.', meta=meta)
 
     def list_installed_apps(self, params):
         from tools.installed_apps import installed_apps, normalized_name

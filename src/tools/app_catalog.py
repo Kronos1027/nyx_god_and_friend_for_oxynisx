@@ -101,6 +101,18 @@ def process_app_id(pid):
         kernel.CloseHandle(handle)
 
 
+def window_is_uncloaked(hwnd):
+    """WS_VISIBLE alone also includes UWP surfaces hidden by the compositor."""
+    dwm = ctypes.WinDLL('dwmapi', use_last_error=True)
+    query = dwm.DwmGetWindowAttribute
+    query.argtypes = [wintypes.HWND, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
+    query.restype = wintypes.LONG
+    cloaked = wintypes.DWORD()
+    if query(hwnd, 14, ctypes.byref(cloaked), ctypes.sizeof(cloaked)) != 0:
+        raise OSError('Não foi possível confirmar a visibilidade DWM da janela.')
+    return cloaked.value == 0
+
+
 def matching_package_windows(app_id):
     import psutil
     import pygetwindow
@@ -112,6 +124,8 @@ def matching_package_windows(app_id):
         if not window.visible or not window.title:
             continue
         try:
+            if not window_is_uncloaked(window._hWnd):
+                continue
             _, parent_pid = win32process.GetWindowThreadProcessId(window._hWnd)
             children = [window._hWnd]
             win32gui.EnumChildWindows(window._hWnd, lambda hwnd, _, target=children: target.append(hwnd), None)

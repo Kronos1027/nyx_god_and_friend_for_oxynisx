@@ -62,13 +62,61 @@ def test_alias_does_not_choose_between_distinct_installations(monkeypatch):
 def test_open_installed_app_alias_and_verified_window(key, tmp_path, monkeypatch):
     app = apps.InstalledApp("Steam", tmp_path / "steam.exe", "fixture")
     monkeypatch.setattr(apps, "resolve_app", lambda name: app if name == "Steam" else pytest.fail(name))
-    observations = iter([[], [{"hwnd": 42, "title": "Steam", "pid": 123}]])
+    windows = [{"hwnd": 42, "title": "Steam", "pid": 123}]
+    observations = iter([[], windows, windows])
     monkeypatch.setattr(apps, "matching_windows", lambda path: next(observations))
     opened = []
     monkeypatch.setattr("os.startfile", opened.append, raising=False)
+    monkeypatch.setattr(UITool, 'focus_window', lambda self, params: ToolResult(True, meta={'verified':True}))
     result = UITool(tmp_path / "shots").open_app({key: "Steam"})
     assert opened == [str(app.path)] and result.ok and result.meta["verified"]
     assert ActionVerifier().verify("ui_action", {"action": "open_app"}, result).verified
+
+
+def test_existing_app_must_receive_focus_without_relaunch(tmp_path, monkeypatch):
+    app = apps.InstalledApp('Spotify', tmp_path/'spotify.exe', 'fixture')
+    monkeypatch.setattr(apps, 'resolve_app', lambda name: app)
+    monkeypatch.setattr(apps, 'matching_windows', lambda path: [{'hwnd':42}])
+    monkeypatch.setattr('os.startfile', lambda path: pytest.fail('Existing app relaunched'), raising=False)
+    tool = UITool(tmp_path/'shots')
+    monkeypatch.setattr(tool, 'open_url', lambda params: pytest.fail('Native app replaced by web'))
+    calls = []
+    monkeypatch.setattr(tool, 'focus_window', lambda params: calls.append(params) or ToolResult(True, meta={'verified':True}))
+    result = tool.open_app({'app':'Spotify'})
+    assert result.ok and result.meta['already_open'] and result.meta['foreground_verified']
+    assert calls == [{'hwnd':42}] and result.meta['launch_kind'] == 'native'
+
+
+@pytest.mark.parametrize('stale', [False, True])
+def test_existing_app_focus_failure_is_never_verified(tmp_path, monkeypatch, stale):
+    app = apps.InstalledApp('Steam', tmp_path/'steam.exe', 'fixture')
+    monkeypatch.setattr(apps, 'resolve_app', lambda name: app)
+    observations = iter([[{'hwnd':42}], [] if stale else [{'hwnd':42}]])
+    monkeypatch.setattr(apps, 'matching_windows', lambda path: next(observations))
+    tool = UITool(tmp_path/'shots')
+    monkeypatch.setattr(tool, 'focus_window', lambda params: ToolResult(False, error='real focus error'))
+    result = tool.open_app({'app':'Steam'})
+    assert result.ok == (not stale) and not result.meta['verified']
+    assert result.meta['error_code'] == ('ELEMENT_STALE' if stale else 'UNVERIFIED')
+    assert 'real focus error' in result.error
+
+
+@pytest.mark.parametrize('name', ['Spotify', 'o Spotify', 'WhatsApp', 'zap'])
+@pytest.mark.parametrize('code', ['NOT_FOUND', 'AMBIGUOUS'])
+def test_web_fallback_only_for_missing_native_app(tmp_path, monkeypatch, name, code):
+    def resolve(query):
+        raise apps.AppResolutionError(code, ['candidate'])
+    monkeypatch.setattr(apps, 'resolve_app', resolve)
+    tool = UITool(tmp_path/'shots')
+    calls = []
+    monkeypatch.setattr(tool, 'open_url', lambda params: calls.append(params) or ToolResult(True, 'web observed', meta={'verified':True}))
+    result = tool.open_app({'app':name})
+    if code == 'NOT_FOUND':
+        assert result.ok and len(calls) == 1
+        assert result.meta['launch_kind'] == 'web' and result.meta['fallback_reason'] == 'native_app_not_found'
+        assert 'alternativa web' in result.output
+    else:
+        assert not result.ok and not calls and result.meta['error_code'] == 'AMBIGUOUS'
 
 
 def test_cancel_after_dispatch_preserves_unknown_outcome(tmp_path, monkeypatch):
@@ -127,6 +175,7 @@ def test_steam_helper_requires_installed_path_and_live_client_ancestor(tmp_path)
 
 
 def test_matching_window_rejects_reused_hwnd(tmp_path, monkeypatch):
+    monkeypatch.setattr('tools.app_catalog.window_is_uncloaked', lambda hwnd: True)
     executable = tmp_path / 'steam.exe'
     process = ProcessFixture(2, executable)
     monkeypatch.setitem(sys.modules, 'pygetwindow', SimpleNamespace(

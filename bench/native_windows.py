@@ -21,8 +21,9 @@ def matches(window, expectation):
     process = window['process'].casefold()
     if process in expectation['processes']:
         return True
-    return process == 'applicationframehost.exe' and any(
-        title == fold(window['title']) for title in expectation.get('hosted_titles', ()))
+    return (process == 'applicationframehost.exe'
+            and any(title == fold(window['title']) for title in expectation.get('hosted_titles', ()))
+            and any(name.casefold() in expectation['processes'] for name in window.get('child_processes', ())))
 
 
 def visible_windows():
@@ -36,15 +37,28 @@ def visible_windows():
     user = ctypes.WinDLL('user32', use_last_error=True)
     callback_type = ctypes.WINFUNCTYPE(w.BOOL, w.HWND, w.LPARAM)
     user.EnumWindows.argtypes = [callback_type, w.LPARAM]
+    user.EnumChildWindows.argtypes = [w.HWND, callback_type, w.LPARAM]
     user.IsWindowVisible.argtypes = [w.HWND]
+    user.IsWindow.argtypes = [w.HWND]
     user.GetWindowTextLengthW.argtypes = [w.HWND]
     user.GetWindowTextW.argtypes = [w.HWND, w.LPWSTR, ctypes.c_int]
     user.GetWindowThreadProcessId.argtypes = [w.HWND, ctypes.POINTER(w.DWORD)]
     user.GetForegroundWindow.restype = w.HWND
+    dwm = ctypes.WinDLL('dwmapi', use_last_error=True)
+    dwm.DwmGetWindowAttribute.argtypes = [w.HWND, w.DWORD, ctypes.c_void_p, w.DWORD]
+    dwm.DwmGetWindowAttribute.restype = w.LONG
     foreground = user.GetForegroundWindow()
     rows = []
+    failures = []
     def observe(hwnd, unused):
         if not user.IsWindowVisible(hwnd):
+            return True
+        cloaked = w.DWORD()
+        if dwm.DwmGetWindowAttribute(hwnd, 14, ctypes.byref(cloaked), ctypes.sizeof(cloaked)) != 0:
+            if user.IsWindow(hwnd):
+                failures.append('DWM visibility query failed')
+            return True
+        if cloaked.value:
             return True
         length = min(2048, user.GetWindowTextLengthW(hwnd))
         if length <= 0:
@@ -57,11 +71,24 @@ def visible_windows():
             process = psutil.Process(pid.value).name()
         except psutil.Error:
             process = ''
+        child_processes = set()
+        if process.casefold() == 'applicationframehost.exe':
+            def observe_child(child, unused):
+                child_pid = w.DWORD()
+                user.GetWindowThreadProcessId(child, ctypes.byref(child_pid))
+                try:
+                    child_processes.add(psutil.Process(child_pid.value).name())
+                except psutil.Error:
+                    pass
+                return True
+            user.EnumChildWindows(hwnd, callback_type(observe_child), 0)
         rows.append({'hwnd':int(hwnd), 'pid':pid.value, 'title':title.value,
-                     'process':process, 'foreground':hwnd==foreground})
+                     'process':process, 'child_processes':sorted(child_processes), 'foreground':hwnd==foreground})
         return True
     if not user.EnumWindows(callback_type(observe), 0):
         raise OSError('EnumWindows não concluiu a observação independente.')
+    if failures:
+        raise OSError('A observação independente não confirmou visibilidade DWM de todas as janelas.')
     return rows
 
 
@@ -70,4 +97,4 @@ def verify_app(key):
     return {'ok':bool(windows), 'matching_visible_windows':len(windows),
             'foreground_match':any(window['foreground'] for window in windows),
             'process_signals':sorted({window['process'] for window in windows}),
-            'check':'independent Win32 visible window and process; UWP host also requires app title'}
+            'check':'independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process'}

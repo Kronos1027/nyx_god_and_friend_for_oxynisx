@@ -29,8 +29,10 @@ def run_native_cases(root, selected, runs, model, profile, artifacts):
         for run in range(1,runs+1):
             observed = next((row for row in data['rows'] if row['app']==NATIVE_CASES[case.id] and row['run']==run),None)
             if observed is None:
+                failure = data.get('runtime_failure', {})
                 row = {'status':'BLOCKED_RUNTIME','ok':False,'false_success':False,
-                       'error_code':'NATIVE_UI_HARNESS_'+str(exit_code),'error':'Execução Qt incompleta; diagnóstico local preservado.',
+                       'error_code':failure.get('error_code', 'NATIVE_UI_HARNESS_'+str(exit_code)),
+                       'error':failure.get('error', 'Execução Qt incompleta; diagnóstico local preservado.'),
                        'elapsed_s':0,'trace_path':None,'resources':{}}
             else:
                 row = {**observed,'status':'PASS' if observed['ok'] else 'FAIL',

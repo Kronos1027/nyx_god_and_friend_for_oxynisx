@@ -25,6 +25,48 @@ def make_runner(tmp_path, responses, **kwargs):
     return runner, loop, registry
 
 
+@pytest.mark.parametrize('final_verified', [False, True])
+def test_native_app_focus_is_rechecked_after_final_model_response(tmp_path, monkeypatch, final_verified):
+    runner, loop, registry = make_runner(tmp_path, [reply('ui_action', {'action':'open_app','app':'Fixture'}),
+                                                  reply(speech='Janela aberta e em foco.')])
+    target = {'executable':'C:/Fixture/app.exe', 'app_id':None}
+    registry.register(ToolSpec('ui_action','ui'), lambda params:ToolResult(True, 'foco observado',
+        meta={**target, 'verified':True, 'windows':[{'hwnd':42}], 'launch_kind':'native', 'check':'installed_app_window'}))
+    checks = []
+    def recheck(observed):
+        checks.append(observed)
+        return {'verified':final_verified, 'error_code':None if final_verified else 'UNVERIFIED',
+                'details':'Foco mudou durante a resposta.'}
+    monkeypatch.setattr('tools.installed_apps.native_app_postcondition', recheck)
+    result = runner.start('Abra Fixture.')
+    assert checks == [target] and len(runner.steps) == 1
+    assert runner.steps[-1]['verified'] == final_verified
+    if final_verified:
+        assert result.response.speech_output == 'Janela aberta e em foco.'
+    else:
+        assert 'não posso confirmar' in result.response.speech_output
+        assert 'Foco mudou durante a resposta.' in result.response.speech_output
+    event = next(row for row in reversed(loop.audit.read_all()) if row['event']=='task_finished')
+    assert event['state'] == ('finished' if final_verified else 'stopped')
+
+
+def test_native_app_final_read_error_is_honest_and_never_reopens(tmp_path, monkeypatch):
+    runner, _, registry = make_runner(tmp_path, [reply('ui_action', {'action':'open_app','app':'Fixture'}), reply()])
+    calls = []
+    def open_app(params):
+        calls.append(params)
+        return ToolResult(True, 'janela observada', meta={'executable':'C:/Fixture/app.exe', 'app_id':None,
+            'verified':True, 'windows':[{'hwnd':42}], 'launch_kind':'native', 'check':'installed_app_window'})
+    registry.register(ToolSpec('ui_action','ui'), open_app)
+    def unavailable(target):
+        raise OSError('fixture read denied')
+    monkeypatch.setattr('tools.installed_apps.native_app_postcondition', unavailable)
+    result = runner.start('Abra Fixture.')
+    assert len(calls) == 1 and not runner.steps[-1]['verified']
+    assert 'fixture read denied' in result.response.speech_output
+    assert 'não posso confirmar' in result.response.speech_output
+
+
 def test_new_task_cannot_clear_emergency_latch(tmp_path):
     from core.operation_control import OperationCancelled
     runner, _, registry = make_runner(tmp_path, [reply()])

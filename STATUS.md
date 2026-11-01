@@ -4,6 +4,14 @@
 
 ## M0 — higiene e regressão atual
 
+- Incremento de foco:9/9tarefas reais de três apps confirmaram janela e foco
+  tanto em ensaio isolado quanto no runner integrado, sem divergência final.
+  Filtro DWM e conferência no encerramento corrigem falha UWP/estado desatualizado.
+  Apps permanece20% no manifesto, gate aberto. Falha intermediária preservada em
+  docs/evidence/native_focus_2026-11-01.md; últimas regressões ali registradas.
+- Última regressão completa:949aprovados,27pulados,zero falhas,48,178s;
+  Ruff limpo. Isso substitui a contagem anterior, preservando histórico de falhas.
+
 - Núcleo mínimo sem Qt:820aprovados/13pulados, zero falhas. CI Ubuntu corrigido,
   ainda sem execução Linux real. Scanner offline/hook/CI configurados; nove
   falsos positivos auditados, fixture sintética bloqueada3/3.

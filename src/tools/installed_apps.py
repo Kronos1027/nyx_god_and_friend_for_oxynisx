@@ -21,7 +21,7 @@ ALIASES = {"edge": "msedge", "microsoft edge": "msedge", "google chrome": "chrom
            "paint": "mspaint", "bloco de notas": "notepad", "vscode": "code",
            "vs code": "code", "visual studio code": "code", "obs": "obs64",
            "explorador": "explorer", "explorador de arquivos": "explorer",
-           "terminal": "wt", "gerenciador de tarefas": "taskmgr"}
+           "terminal": "wt", "gerenciador de tarefas": "taskmgr", "zap": "whatsapp"}
 
 
 def normalized_name(value):
@@ -174,6 +174,7 @@ def resolve_app(query):
 
 
 def matching_windows(executable):
+    from tools.app_catalog import window_is_uncloaked
     import psutil
     import pygetwindow as gw
     import pywintypes
@@ -184,6 +185,8 @@ def matching_windows(executable):
         if not window.visible or not window.title:
             continue
         try:
+            if not window_is_uncloaked(window._hWnd):
+                continue
             _, pid = win32process.GetWindowThreadProcessId(window._hWnd)
             process = psutil.Process(pid)
             owner = _matching_owner(process, executable)
@@ -194,6 +197,21 @@ def matching_windows(executable):
         except (OSError, psutil.Error, pywintypes.error):
             continue
     return result
+
+
+def native_app_postcondition(target):
+    """Read-only final check; never reopen or focus an app on the user's behalf."""
+    import win32gui
+    if target.get('app_id'):
+        from tools.app_catalog import matching_package_windows
+        windows = matching_package_windows(target['app_id'])
+    else:
+        windows = matching_windows(Path(target['executable']))
+    foreground = win32gui.GetForegroundWindow()
+    verified = any(window['hwnd'] == foreground for window in windows)
+    return {'verified':verified, 'error_code':None if verified else 'UNVERIFIED',
+            'details':'Janela do aplicativo continua em primeiro plano.' if verified else
+                      'A janela do aplicativo não está em primeiro plano no encerramento.'}
 
 
 def _matching_owner(process, executable):

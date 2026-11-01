@@ -2,6 +2,14 @@
 
 ## Atualização de 01/11/2026
 
+- Defeito crítico de foco corrigido no incremento: uma rodada intermediária da
+  Calculadora divergiu no encerramento; revalidação final adicionada. Dois ensaios
+  posteriores9/9sem divergência. Categoria/marco seguem bloqueados por cobertura.
+  Isso não garante que o foco permaneça após a conclusão ou interferência humana.
+- Spotify/WhatsApp nativos não encontrados neste catálogo; preferência nativa
+  testada unitariamente. Login/mídia real continuam adiados. Perfil Conservador
+  pode recusar4B com pouca RAM mesmo com VRAM livre; não foi afrouxado.
+
 - Regressão completa após higiene encontrou seis falhas de foco;12casos isolados
   posteriores passaram. Isso não elimina a instabilidade e não fecha gate.
 - CI mínimo validado no Windows sem Qt; Ubuntu remoto não executado. Scanner

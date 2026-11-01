@@ -53,3 +53,15 @@ def test_unreset_native_app_state_does_not_close_a_milestone_gate():
              'elapsed_s':1,'gate_eligible':False} for run in range(1,4)]
     result = summarize(rows,3)['apps']
     assert result['median_pass_rate']==1 and not result['category_gate_passed']
+
+
+def test_uwp_independent_verifier_requires_child_process_not_only_frame_title():
+    from bench.native_windows import matches, APPS
+    frame = {'process':'ApplicationFrameHost.exe', 'title':'Calculadora', 'child_processes':[]}
+    assert not matches(frame, APPS['calculator'])
+    frame['child_processes'] = ['Other.exe']
+    assert not matches(frame, APPS['calculator'])
+    frame['child_processes'] = ['CalculatorApp.exe']
+    assert matches(frame, APPS['calculator'])
+    frame['title'] = 'Unrelated'
+    assert not matches(frame, APPS['calculator'])

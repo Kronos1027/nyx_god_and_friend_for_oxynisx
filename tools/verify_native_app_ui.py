@@ -49,13 +49,23 @@ def main():
     from ui.overlay import OverlayWindow
     from ui.permission_dialog import PermissionDialog
 
-    if not ensure_local_ollama().ready:
-        raise RuntimeError('Ollama indisponível; nenhum modelo alternativo ativado.')
-    client = OllamaClient(model=args.model)
-    client.configure_thinking()
     warmup_started = time.monotonic()
-    with resource_profile_scope(args.profile):
-        client.converse('Bom dia, Nyx!')
+    try:
+        if not ensure_local_ollama().ready:
+            raise RuntimeError('Ollama indisponível; nenhum modelo alternativo ativado.')
+        client = OllamaClient(model=args.model)
+        client.configure_thinking()
+        with resource_profile_scope(args.profile):
+            client.converse('Bom dia, Nyx!')
+    except Exception as exc:
+        from core.runtime_budget import InferencePressureError
+        failure = {'error_code':'RESOURCE_PRESSURE' if isinstance(exc, InferencePressureError) else 'RUNTIME_UNAVAILABLE',
+                   'error':str(exc).replace(str(ROOT), '<PROJECT>')[:1000]}
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        atomic_write(args.output, {'environment':environment, 'model':args.model, 'profile':args.profile,
+                     'runs':args.runs, 'rows':[], 'runtime_failure':failure, 'milestone_complete':False})
+        print(failure['error_code'], failure['error'], flush=True)
+        return 1
     warmup_seconds = time.monotonic()-warmup_started
     artifacts = ROOT/'build/diagnostic'
     artifacts.mkdir(parents=True, exist_ok=True)
@@ -141,11 +151,12 @@ def main():
                 finished = next((row['state'] for row in reversed(events) if row['event']=='task_finished'),None)
                 claimed_verified = any(s['tool']=='ui_action' and s['params'].get('action')=='open_app' and s['verified']
                                        for s in loop.task_runner.steps)
-                passed = verdict['ok'] and finished=='finished' and not denials and not timed_out
+                postcondition = verdict['ok'] and verdict['foreground_match']
+                passed = postcondition and finished=='finished' and not denials and not timed_out
                 row = {'app':key,'run':run,'ok':passed,'elapsed_s':round(time.monotonic()-started,3),
                        'already_visible_before':before['ok'],'verifier':verdict,'workflow_state':finished,
                        'confirmations_approved':len(approvals),'confirmations_denied':len(denials),
-                       'false_success':bool(claimed_verified and not verdict['ok']),
+                       'false_success':bool(claimed_verified and not postcondition),
                        'error_code':'TIMEOUT' if timed_out else None if passed else 'UNVERIFIED',
                        'actions':len(loop.task_runner.steps),'resources':sampler.report(),
                        'trace_path':f'logs/traces/{task_id}.jsonl'}
