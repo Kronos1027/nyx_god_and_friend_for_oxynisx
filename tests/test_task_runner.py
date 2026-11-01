@@ -103,6 +103,19 @@ def test_greeting_stream_is_wrapped_as_no_action_without_planner_or_tools(tmp_pa
     assert any(event['phase'] == 'conversation_delta' for event in events)
 
 
+def test_correct_sum_still_replans_when_explicit_calculator_step_was_skipped(tmp_path):
+    from tools.calculator_tool import calculate
+    runner, _, registry = make_runner(tmp_path, [reply('read_file', {'path':'a.txt'}),
+        reply('read_file', {'path':'b.txt'}), reply(speech='Soma total:33.'),
+        reply('calculator', {'operation':'sum','values':[11,22]}), reply(speech='Soma total:33.')])
+    registry.register(ToolSpec('read_file','read'), lambda p:ToolResult(True, '11' if p['path']=='a.txt' else '22'))
+    registry.register(ToolSpec('calculator','math'), calculate)
+    result = runner.start('Leia os arquivos e entregue a soma; use calculator.')
+    assert result.response.speech_output == 'Soma total:33.'
+    assert [step['tool'] for step in runner.steps] == ['read_file','read_file','calculator']
+    assert runner.replans == 1
+
+
 def test_uncertain_external_effect_stops_without_replanning_or_replay(tmp_path):
     runner, _, registry = make_runner(tmp_path, [reply("ui_action", {"action": "click_element"}),
                                                reply("ui_action", {"action": "click_element"})])

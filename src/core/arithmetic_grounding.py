@@ -77,9 +77,15 @@ def source_issue(goal, steps, tool, params):
 def final_sum_issue(goal, steps, response):
     if not file_sum_goal(goal) or response.action.type != 'none':
         return None
+    claims = re.findall(r'\b(?:soma(?:\s+total)?|total|resultado)(?:\s+(?:é|e|foi|de|igual|a))*\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)',
+                        response.speech_output, re.I)
     last_sum = next((s for s in reversed(steps) if s['tool'] == 'calculator'
                      and s['ok'] and s['verified'] and s.get('params', {}).get('operation', 'sum') == 'sum'), None)
     if not last_sum:
+        if (claims and observed_values(steps)
+                and re.search(r'\b(?:use|usar|utiliz\w*)\s+(?:(?:a|o)\s+)?(?:calculator|calculadora)\b', goal, re.I)):
+            return ('O pedido exige usar calculator e ainda não existe soma verificada dessa ferramenta. '
+                    'Execute calculator com os valores lidos antes de entregar o total; não some mentalmente.')
         return None
     issue = calculator_issue(goal, steps, 'calculator', last_sum['params'])
     if issue:
@@ -93,8 +99,6 @@ def final_sum_issue(goal, steps, response):
         return None
     if expected is None:
         return None
-    claims = re.findall(r'\b(?:soma(?:\s+total)?|total|resultado)(?:\s+(?:é|e|foi|de|igual|a))*\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)',
-                        response.speech_output, re.I)
     if any(number(claim.replace(',', '.')) != expected for claim in claims):
         return f'A resposta contradiz a calculadora: a soma observada é {expected}. Corrija a conclusão sem novas ações.'
     return None

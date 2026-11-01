@@ -47,3 +47,12 @@ def test_verified_resolved_paths_deduplicate_absolute_relative_aliases():
     alias = {**read(r'C:\work\a.txt', 11), 'resolved_path': r'C:\work\a.txt'}
     assert calculator_issue(GOAL, [first, alias], 'calculator', {'values': [11]}) is None
     assert calculator_issue(GOAL, [first, alias], 'calculator', {'values': [11, 11]})
+
+
+def test_explicit_calculator_instruction_cannot_be_skipped_for_a_correct_mental_sum():
+    response = SimpleNamespace(action=SimpleNamespace(type='none'), speech_output='Soma total: 33.')
+    steps = [read('a.txt', 11), read('b.txt', 22)]
+    assert final_sum_issue(GOAL + ' Use calculator.', steps, response)
+    assert final_sum_issue(GOAL, steps, response) is None
+    response.speech_output = 'Qual arquivo devo ler em seguida?'
+    assert final_sum_issue(GOAL + ' Use calculator.', steps, response) is None
