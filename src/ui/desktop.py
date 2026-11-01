@@ -202,6 +202,8 @@ class DesktopWindow(QMainWindow):
         self._animation: QPropertyAnimation | None = None
         self._animated_page: QWidget | None = None
         self._typing_row: QWidget | None = None
+        self._streaming_card = None
+        self._streaming_body = None
         self._typing_anim: QPropertyAnimation | None = None
         self._rail_anim: QVariantAnimation | None = None
         self._build_center()
@@ -442,6 +444,7 @@ class DesktopWindow(QMainWindow):
         self.scroll.setWidget(self.feed)
         layout.addWidget(self.scroll, 1)
         self.busy_label = self._muted("A Nyx está trabalhando no seu pedido…")
+        self.busy_label.setTextFormat(Qt.TextFormat.PlainText)
         self.busy_label.hide()
         layout.addWidget(self.busy_label)
         composer_frame = QFrame()
@@ -1613,6 +1616,9 @@ class DesktopWindow(QMainWindow):
             self._add_activity(self._initiative.last_explanation)
 
     def _on_message(self, role: str, text: str) -> None:
+        if role != 'user':
+            self._clear_stream_reply()
+            self._hide_typing()
         if role == "user":
             self._initiative.activity()
             reply = text.strip().lower().rstrip(".!?")
@@ -1696,15 +1702,51 @@ class DesktopWindow(QMainWindow):
             self._typing_anim.stop()
             self._typing_anim.deleteLater()
             self._typing_anim = None
+        self._typing_row.hide()
         self.feed_layout.removeWidget(self._typing_row)
         self._typing_row.deleteLater()
         self._typing_row = None
+
+    def _clear_stream_reply(self):
+        if self._streaming_card is not None:
+            self._streaming_card.hide()
+            self.feed_layout.removeWidget(self._streaming_card)
+            self._streaming_card.deleteLater()
+            self._streaming_card = self._streaming_body = None
+
+    def _show_stream_reply(self, text):
+        if self._streaming_card is None:
+            self._streaming_card = QFrame(self.feed)
+            self._streaming_card.setObjectName('AssistantCard')
+            self._streaming_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
+            layout = QVBoxLayout(self._streaming_card)
+            layout.setContentsMargins(18, 12, 18, 12)
+            role = QLabel('NYX')
+            role.setObjectName('MessageRole')
+            layout.addWidget(role)
+            self._streaming_body = QLabel()
+            self._streaming_body.setTextFormat(Qt.TextFormat.PlainText)
+            self._streaming_body.setWordWrap(True)
+            self._streaming_body.setAccessibleName('Resposta da Nyx em andamento')
+            layout.addWidget(self._streaming_body)
+            self.feed_layout.insertWidget(self.feed_layout.count() - 1, self._streaming_card)
+            self._streaming_card.show()
+        self._streaming_body.setText(text)
+        self._scroll_to_latest()
 
     def _on_task_progress(self, progress: dict) -> None:
         phase = progress["phase"]
         step = progress["step"]
         if phase == "planning":
+            if step == 1:
+                self._streamed_text = ''
+                self._clear_stream_reply()
             self.busy_label.setText(f"Avaliando a próxima etapa · {step}")
+        elif phase == 'conversation_delta':
+            self._hide_typing()
+            self._streamed_text = (getattr(self, '_streamed_text', '') + progress.get('text', ''))[:2000]
+            self._show_stream_reply(self._streamed_text)
+            self.busy_label.setText('Nyx está respondendo…')
         elif phase == "recovering":
             self.busy_label.setText(f"Etapa {step} · gerando novamente a resposta incompleta")
             self._add_activity("Resposta incompleta descartada. Uma nova geração está em andamento; a ação desta etapa não foi executada.")
@@ -1744,6 +1786,7 @@ class DesktopWindow(QMainWindow):
             self._show_typing()
         else:
             self._hide_typing()
+            self._clear_stream_reply()
         self.chat_list.setEnabled(not busy)
         self._add_activity("Pedido em andamento" if busy else "Pedido encerrado")
         self._refresh_status()

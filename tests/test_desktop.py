@@ -47,6 +47,21 @@ def test_resource_profile_is_persisted_and_cannot_change_during_task(desktop):
         select_profile('conservative')
 
 
+def test_conversation_deltas_are_plain_text_and_reset_for_new_request(desktop):
+    window, _, _ = desktop
+    window._on_task_progress({'phase': 'planning', 'step': 1})
+    window._on_task_progress({'phase': 'conversation_delta', 'step': 1, 'text': '<b>Olá</b>'})
+    assert window._streaming_body.textFormat() == Qt.TextFormat.PlainText
+    assert window._streaming_body.text() == '<b>Olá</b>'
+    window._on_task_progress({'phase': 'planning', 'step': 1})
+    window._on_task_progress({'phase': 'conversation_delta', 'step': 1, 'text': 'Bom dia'})
+    assert window._streaming_body.text() == 'Bom dia'
+    count = len(window._cards)
+    window._on_message('assistant', 'Bom dia')
+    assert window._streaming_card is None
+    assert len(window._cards) == count + 1
+
+
 def test_saved_task_returns_to_its_original_conversation(desktop, monkeypatch):
     from types import SimpleNamespace
     from PyQt6.QtWidgets import QListWidgetItem

@@ -290,7 +290,14 @@ class TaskRunner:
                 with inference_scope(WorkPriority.TASK, lambda: self.cancelled.is_set()
                                      or self.clock() >= self.deadline or self.loop.registry.control.is_cancelled()):
                     try:
-                        raw = self.loop.llm.generate(prompt, **kwargs)
+                        from core.conversation import is_simple_conversation
+                        if (not self.steps and is_simple_conversation(self.goal)
+                                and getattr(self.loop.llm, 'supports_conversation', False)):
+                            raw = self.loop.llm.converse(self.goal, history=history, memory_context=context,
+                                on_delta=lambda text: self.on_progress({'phase': 'conversation_delta',
+                                    'step': 1, 'task_id': self.task_id, 'text': text}))
+                        else:
+                            raw = self.loop.llm.generate(prompt, **kwargs)
                     finally:
                         report = getattr(self.loop.llm, "generation_report", None)
                         if report:

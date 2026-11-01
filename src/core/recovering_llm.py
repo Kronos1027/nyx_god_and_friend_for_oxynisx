@@ -25,6 +25,26 @@ class RecoveringLLM:
         return getattr(self._client, "model", None)
 
     @property
+    def supports_conversation(self):
+        return bool(getattr(self._client, 'supports_conversation', False))
+
+    def converse(self, user_input, history=None, memory_context=None, on_delta=None):
+        self._refresh_if_due()
+        client = self._client
+        method = getattr(client, 'converse', None)
+        if method is None:
+            raise BackendUnavailable(self.unavailable_reason or 'Este backend não oferece conversa em fluxo.')
+        try:
+            return method(user_input, history=history, memory_context=memory_context, on_delta=on_delta)
+        except BackendUnavailable as exc:
+            if not isinstance(exc.__cause__, (InferenceBusyError, InferenceCancelledError, InferencePressureError)):
+                with self._refresh_lock:
+                    if self._client is client:
+                        self._client = OfflineLLM(unavailable_reason='O fluxo local ficou indisponível; vou reavaliar em um próximo pedido.')
+                        self._next_retry = self._clock() + self._retry_seconds
+            raise
+
+    @property
     def generation_report(self):
         return getattr(self._client, "generation_report", [])
 

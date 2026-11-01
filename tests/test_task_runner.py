@@ -86,6 +86,23 @@ def test_file_sum_rejects_an_extra_file_before_execution_and_delivers_answer(tmp
     assert runner.replans == 1
 
 
+def test_greeting_stream_is_wrapped_as_no_action_without_planner_or_tools(tmp_path):
+    from core.conversation import conversation_response
+    runner, loop, registry = make_runner(tmp_path, [])
+    loop.llm.supports_conversation = True
+    registry.register(ToolSpec('shell', 'shell'), lambda p: pytest.fail('Conversa não executa ferramentas.'))
+    loop.llm.generate = lambda *args, **kwargs: pytest.fail('Cumprimento não passa pelo planejador JSON.')
+    def converse(prompt, history=None, memory_context=None, on_delta=None):
+        on_delta('Bom dia!')
+        return conversation_response('Bom dia!')
+    loop.llm.converse = converse
+    events = []
+    result = runner.start('Bom dia, Nyx!', events.append)
+    assert not result.executed and not runner.steps and not result.needs_confirmation
+    assert result.response.action.type == 'none' and result.response.speech_output == 'Bom dia!'
+    assert any(event['phase'] == 'conversation_delta' for event in events)
+
+
 def test_uncertain_external_effect_stops_without_replanning_or_replay(tmp_path):
     runner, _, registry = make_runner(tmp_path, [reply("ui_action", {"action": "click_element"}),
                                                reply("ui_action", {"action": "click_element"})])
