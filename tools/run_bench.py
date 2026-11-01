@@ -17,6 +17,7 @@ from bench.environment import desktop_probe, ResourceSampler  # noqa: E402
 from bench import verifiers  # noqa: E402
 from bench.reporting import summarize, markdown_report  # noqa: E402
 from bench.checkpoint import atomic_write, load_resume, runtime_fingerprint  # noqa: E402
+from bench.native_suite import run_native_cases  # noqa: E402
 
 
 def execute(case, run, client, profile, base):
@@ -119,7 +120,7 @@ def main():
     report = {'schema_version': 1, 'scope': 'production TaskRunner with independent verifiers; personal UI not operated',
               'model': args.model, 'profile': args.profile, 'runs': args.runs, 'milestone_complete': False,
               'environment': desktop_probe(), 'manifest': [case.to_dict() for case in selected], 'rows': [],
-              'limitations': ['Only conversation and numeric file fixtures currently have safe runner routes.',
+              'limitations': ['Safe routes currently cover conversation, numeric files and three native apps through an owned production Qt UI.',
                               'Blocked harness coverage is not proof that Nyx lacks the capability.',
                               'No M0-M8 milestone is completed by this partial runner alone.',
                               'GPU peaks are system samples, not exclusive Nyx allocation.']}
@@ -131,8 +132,17 @@ def main():
             'previous_inflight': report.get('inflight'), 'timestamp': datetime.now(timezone.utc).isoformat()})
     report.update(runtime_fingerprint=fingerprint, run_state='RUNNING', inflight=None)
     atomic_write(output, report)
+    native = [case for case in selected if case.route=='native_app_ui'
+              and any((case.id,run) not in done for run in range(1,args.runs+1))]
+    if native:
+        report['inflight'] = {'route':'native_app_ui','risk':'R1','cases':[case.id for case in native]}
+        atomic_write(output,report)
+        report['rows'].extend(run_native_cases(ROOT,native,args.runs,args.model,args.profile,base))
+        done.update((row['id'],row['run']) for row in report['rows'])
+        report['inflight'] = None
+        atomic_write(output,report)
     client = None
-    if any(case.route and any((case.id, run) not in done for run in range(1,args.runs+1)) for case in selected):
+    if any(case.route and case.route!='native_app_ui' and any((case.id, run) not in done for run in range(1,args.runs+1)) for case in selected):
         from core.llm_client import OllamaClient
         from core.ollama_service import ensure_local_ollama
         from core.resource_profiles import resource_profile_scope

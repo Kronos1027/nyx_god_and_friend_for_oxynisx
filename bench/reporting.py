@@ -11,6 +11,7 @@ def summarize(rows, repetitions):
                  len([row for row in group if row['run'] == run]) for run in range(1, repetitions+1)]
         executed = [row for row in group if row['status'] not in {'BLOCKED_HARNESS', 'BLOCKED_RUNTIME'}]
         complete = len(executed) == len(group)
+        eligible = all(row.get('gate_eligible',True) for row in group)
         median = statistics.median(rates)
         false_successes = sum(row['false_success'] for row in group)
         summary[category] = {'cases': len(group)//repetitions, 'attempts': len(group), 'executed': len(executed),
@@ -20,7 +21,8 @@ def summarize(rows, repetitions):
                              'median_pass_rate': median, 'pass_rate_variance': statistics.pvariance(rates),
                              'false_successes': false_successes, 'threshold': THRESHOLDS[category],
                              'median_seconds_executed': statistics.median([r['elapsed_s'] for r in executed]) if executed else None,
-                             'category_gate_passed': complete and not false_successes and median >= THRESHOLDS[category]}
+                             'gate_eligible':eligible,
+                             'category_gate_passed': complete and eligible and not false_successes and median >= THRESHOLDS[category]}
     return summary
 
 

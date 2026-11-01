@@ -15,7 +15,7 @@ $nyxGate = Join-Path $nyxRepoRoot "docs\evidence\gate_${nyxStamp}_M0.json"
 $nyxCodes = [ordered]@{}
 Push-Location -LiteralPath $nyxRepoRoot
 try {
-    & $nyxPython -m ruff check src tests tools
+    & $nyxPython -m ruff check src tests tools bench
     $nyxCodes.ruff = $LASTEXITCODE
     & $nyxPython -m pytest -q -m 'not windows_live' --junitxml=build/diagnostic/m0-unit.xml
     $nyxCodes.unit = $LASTEXITCODE

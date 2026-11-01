@@ -46,3 +46,10 @@ def test_blocked_cases_remain_in_denominator_and_block_category_gate():
     result = summarize(rows, 3)['apps']
     assert result['median_pass_rate'] == .5 and not result['category_gate_passed']
     assert result['blocked_harness'] == 3 and result['executed'] == 3
+
+
+def test_unreset_native_app_state_does_not_close_a_milestone_gate():
+    rows = [{'category':'apps','run':run,'status':'PASS','ok':True,'false_success':False,
+             'elapsed_s':1,'gate_eligible':False} for run in range(1,4)]
+    result = summarize(rows,3)['apps']
+    assert result['median_pass_rate']==1 and not result['category_gate_passed']

@@ -9,7 +9,7 @@ import time
 
 def runtime_fingerprint(root):
     digest = hashlib.sha256()
-    for path in [*sorted((root / 'src').rglob('*.py')), root / 'bench/verifiers.py']:
+    for path in [*sorted((root / 'src').rglob('*.py')), root / 'bench/verifiers.py', root / 'bench/native_windows.py']:
         digest.update(path.relative_to(root).as_posix().encode())
         digest.update(path.read_bytes())
     return digest.hexdigest()

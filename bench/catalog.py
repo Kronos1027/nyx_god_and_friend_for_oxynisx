@@ -1,5 +1,5 @@
 """Complete required inventory. Unsupported harness routes remain explicit."""
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 
 
 @dataclass(frozen=True)
@@ -54,8 +54,10 @@ def cases():
                         'resident_local_model', 'independent_first_delta_and_no_action', 120, 'R0', 'greeting'),
                    Case('conversation-02', 'conversation', 'Quem é você?',
                         'resident_local_model', 'independent_identity_text', 120, 'R0', 'identity')])
-    return result
+    return [replace(case,route='native_app_ui') if case.id in NATIVE_CASES else case for case in result]
 
 
 THRESHOLDS = {'apps': .95, 'desktop': .90, 'browser': .85, 'multi_step': .80,
               'research': .85, 'presence_memory': .90, 'conversation': 1.0}
+
+NATIVE_CASES = {'apps-01':'calculator', 'apps-02':'notepad', 'apps-12':'paint'}
