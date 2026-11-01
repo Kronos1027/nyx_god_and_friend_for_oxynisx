@@ -2,6 +2,28 @@
 
 Última atualização: 2026-10-31
 
+## Memória liberada — perfis e execução real
+
+- Retomada real 4B: nove ações, oito leituras, soma 396 em 45,74 s. Steam:
+  consulta real e escolha de Stardew Valley observada, sem iniciar o jogo.
+- Perfis manuais persistentes em Personalizar → Modelo local: Conservador
+  (padrão preservado), Normal 8K, Jogo/Live 4K com descarga por resposta e fundo
+  suspenso, Foco 16K. Novas cargas GPU exigem 2,5 GiB RAM livres; piso de 1 GiB
+  mantido. Modelo fixado não foi alterado. Seleção automática de perfil pendente.
+- Conversa medida em 4B/9B com 8K, e 4B com 16K. Não é medida de primeiro token
+  ou voz. Jogo/Live libera residência e tem maior latência por recarga.
+- Comparação encontrou falso total 484 no 9B. Corrigida transferência de valores
+  para soma, replanejamento de conclusão divergente e de arquivo fora do intervalo
+  explícito. Verificação estreita, sem alegar compreensão universal do objetivo.
+- Após correção: **6/6 tarefas reais aprovadas**, três por modelo, oito leituras,
+  cálculo e entrega de 396, nove ações cada. Medianas: 4B 25,86 s, 9B 41,20 s.
+  O 4B corrigiu automaticamente uma proposta extra por rodada. Não se promoveu
+  o 9B automaticamente nem se concluiu a bateria variada de aceitação.
+- **883 aprovados, 27 pulados, zero falhas em 59,237 s**, saída 0; Ruff aprovado.
+  Navegador/Windows reais habilitados, LPAC opt-in pulado. Pet preservado.
+  Novos passos preservam caminhos resolvidos e resultado estruturado de cálculo.
+- Evidências, falhas anteriores e limites: docs/evidence/resource_profiles_2026-10-31.md.
+
 ## Núcleo de desktop — diagnóstico e primeira correção
 
 - Validação mais recente, após sessão CDP e observação R0: **868 aprovados, 27

@@ -54,5 +54,40 @@
     "errors": "0",
     "skipped": "27",
     "time": "54.087"
+  },
+  "profiles-final": {
+    "tests": "900",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "27",
+    "time": "53.962"
+  },
+  "profile-selection-final": {
+    "tests": "903",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "27",
+    "time": "93.736"
+  },
+  "grounding-profile-final": {
+    "tests": "907",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "27",
+    "time": "54.494"
+  },
+  "interval-profile-final": {
+    "tests": "909",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "27",
+    "time": "54.715"
+  },
+  "canonical-sum-final": {
+    "tests": "910",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "27",
+    "time": "59.237"
   }
 }

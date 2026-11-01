@@ -1,0 +1,91 @@
+{
+  "model": "qwen3.5:9b",
+  "ui_used": false,
+  "scope": "production planner with read-only fixture and arithmetic guard",
+  "elapsed_seconds": 13.58,
+  "actions": 2,
+  "verified_reads": 2,
+  "response": "Não consegui continuar o pedido: Ensaio restrito às oito leituras preparadas; outra ação não foi executada.",
+  "values": [
+    "11",
+    "22"
+  ],
+  "extended": false,
+  "generations": [
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 279,
+        "token_limit": 512,
+        "eval_count": 94,
+        "prompt_eval_count": 2077,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 2728,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 2728
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 351,
+        "token_limit": 512,
+        "eval_count": 119,
+        "prompt_eval_count": 2235,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 2954,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 2954
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 761,
+        "token_limit": 512,
+        "eval_count": 239,
+        "prompt_eval_count": 2282,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 3010,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 3010
+      }
+    ]
+  ],
+  "pending_confirmation": false,
+  "rejected_actions": [
+    {
+      "type": "agent_team",
+      "params": {
+        "tasks": [
+          {
+            "id": "ler-3",
+            "role": "arquivos",
+            "task": "read_file com path numero-3.txt"
+          },
+          {
+            "id": "ler-4",
+            "role": "arquivos",
+            "task": "read_file com path numero-4.txt"
+          },
+          {
+            "id": "ler-5",
+            "role": "arquivos",
+            "task": "read_file com path numero-5.txt"
+          }
+        ]
+      }
+    }
+  ],
+  "direct_method_requested": true,
+  "passed": false
+}

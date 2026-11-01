@@ -1,0 +1,31 @@
+{
+  "model": "qwen3.5:9b",
+  "ui_used": false,
+  "scope": "production planner with read-only fixture and arithmetic guard",
+  "elapsed_seconds": 30.27,
+  "actions": 0,
+  "verified_reads": 0,
+  "response": "Não consegui continuar o pedido: Ensaio restrito às oito leituras preparadas; outra ação não foi executada.",
+  "values": [],
+  "extended": false,
+  "generations": [
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 1069,
+        "token_limit": 512,
+        "eval_count": 324,
+        "prompt_eval_count": 2054,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 2691,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 2691
+      }
+    ]
+  ],
+  "pending_confirmation": false,
+  "passed": false
+}

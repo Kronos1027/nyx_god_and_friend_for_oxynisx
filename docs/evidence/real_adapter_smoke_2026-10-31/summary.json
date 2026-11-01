@@ -1,0 +1,16 @@
+{
+  "profile": "normal",
+  "direct_method_requested": true,
+  "results": [
+    {
+      "model": "qwen3.5:4b",
+      "iteration": 1,
+      "passed": true,
+      "elapsed_s": 35.76,
+      "actions": 9,
+      "verified_reads": 8,
+      "goal_delivered": true,
+      "redundant_reads": 0
+    }
+  ]
+}

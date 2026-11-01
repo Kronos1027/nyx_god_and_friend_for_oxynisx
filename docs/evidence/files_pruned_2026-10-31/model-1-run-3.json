@@ -1,0 +1,186 @@
+{
+  "model": "qwen3.5:4b",
+  "ui_used": false,
+  "scope": "production planner with read-only fixture and arithmetic guard",
+  "elapsed_seconds": 22.41,
+  "actions": 9,
+  "verified_reads": 8,
+  "response": "Os valores são: 11, 22, 33, 44, 55, 66, 77, 88. A soma total é 396.",
+  "values": [
+    "11",
+    "22",
+    "33",
+    "44",
+    "55",
+    "66",
+    "77",
+    "88"
+  ],
+  "extended": true,
+  "generations": [
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 351,
+        "token_limit": 512,
+        "eval_count": 112,
+        "prompt_eval_count": 404,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 616,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 616
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 357,
+        "token_limit": 512,
+        "eval_count": 113,
+        "prompt_eval_count": 562,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 842,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 842
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 368,
+        "token_limit": 512,
+        "eval_count": 116,
+        "prompt_eval_count": 609,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 898,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 898
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 348,
+        "token_limit": 512,
+        "eval_count": 110,
+        "prompt_eval_count": 656,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 953,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 953
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 350,
+        "token_limit": 512,
+        "eval_count": 110,
+        "prompt_eval_count": 703,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 1009,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 1009
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 361,
+        "token_limit": 512,
+        "eval_count": 112,
+        "prompt_eval_count": 750,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 1065,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 1065
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 389,
+        "token_limit": 512,
+        "eval_count": 127,
+        "prompt_eval_count": 797,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 1120,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 1120
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 400,
+        "token_limit": 512,
+        "eval_count": 128,
+        "prompt_eval_count": 844,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 1176,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 1176
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 421,
+        "token_limit": 512,
+        "eval_count": 151,
+        "prompt_eval_count": 891,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 1232,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 1232
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 354,
+        "token_limit": 512,
+        "eval_count": 137,
+        "prompt_eval_count": 1008,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 1349,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 1349
+      }
+    ]
+  ],
+  "pending_confirmation": false,
+  "rejected_actions": [],
+  "direct_method_requested": true,
+  "passed": true
+}

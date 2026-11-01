@@ -1,0 +1,66 @@
+{
+  "profile": "normal",
+  "direct_method_requested": true,
+  "results": [
+    {
+      "model": "qwen3.5:4b",
+      "iteration": 1,
+      "passed": true,
+      "elapsed_s": 38.84,
+      "actions": 9,
+      "verified_reads": 8,
+      "goal_delivered": true,
+      "redundant_reads": 0
+    },
+    {
+      "model": "qwen3.5:4b",
+      "iteration": 2,
+      "passed": true,
+      "elapsed_s": 25.86,
+      "actions": 9,
+      "verified_reads": 8,
+      "goal_delivered": true,
+      "redundant_reads": 0
+    },
+    {
+      "model": "qwen3.5:4b",
+      "iteration": 3,
+      "passed": true,
+      "elapsed_s": 24.72,
+      "actions": 9,
+      "verified_reads": 8,
+      "goal_delivered": true,
+      "redundant_reads": 0
+    },
+    {
+      "model": "qwen3.5:9b",
+      "iteration": 1,
+      "passed": true,
+      "elapsed_s": 59.58,
+      "actions": 9,
+      "verified_reads": 8,
+      "goal_delivered": true,
+      "redundant_reads": 0
+    },
+    {
+      "model": "qwen3.5:9b",
+      "iteration": 2,
+      "passed": true,
+      "elapsed_s": 33.59,
+      "actions": 9,
+      "verified_reads": 8,
+      "goal_delivered": true,
+      "redundant_reads": 0
+    },
+    {
+      "model": "qwen3.5:9b",
+      "iteration": 3,
+      "passed": true,
+      "elapsed_s": 41.2,
+      "actions": 9,
+      "verified_reads": 8,
+      "goal_delivered": true,
+      "redundant_reads": 0
+    }
+  ]
+}

@@ -8,6 +8,10 @@ Nyx é um projeto Python para um assistente desktop que usa modelos locais por O
 - Conversa local por Ollama ou modelo GGUF via llama.cpp; modo `--offline` para desenvolvimento.
 - Se já estiverem instalados, Nyx prioriza Qwen 3.5 e Gemma 4. Ela não baixa modelos automaticamente.
 - Antes de escolher um modelo Ollama, Nyx compara o tamanho instalado com RAM e VRAM livres, reservando espaço para Windows e tela. Cada requisição reduz o contexto entre 1k e 4k conforme a memória disponível.
+- Personalizar → Modelo local oferece perfis manuais persistentes: Conservador
+  (padrão), Normal até 8K, Foco até 16K e Jogo/Live até 4K com descarga por resposta
+  e tarefas de fundo suspensas. Não altera o modelo principal fixado. [Medições e
+  limites dos perfis](docs/evidence/resource_profiles_2026-10-31.md).
 - Voz local com faster-whisper e Kokoro, com fallback SAPI5 no Windows.
 - Agenda local de lembretes únicos com persistência, listagem, cancelamento e aviso no overlay.
 - Equipe inicial de microagentes: até duas investigações simultâneas, com inferência serializada e papéis somente de leitura para web, arquivos ou estado do sistema. Escritas, shell e automação de interface continuam no agente principal, com confirmação.

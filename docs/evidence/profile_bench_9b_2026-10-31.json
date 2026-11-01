@@ -1,0 +1,178 @@
+{
+  "model": "qwen3.5:9b",
+  "ui_used": false,
+  "streaming": false,
+  "rows": [
+    {
+      "profile": "normal",
+      "iteration": 1,
+      "resources_before": {
+        "ram_available_bytes": 4981833728,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 11630493696,
+        "cpu_percent": 0.0,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 15177515008,
+        "commit_limit_bytes": 33205702656
+      },
+      "passed": true,
+      "response": "Bom dia! Estou bem, pronta para ajudar. Como posso ser útil hoje?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 332,
+          "token_limit": 512,
+          "eval_count": 107,
+          "prompt_eval_count": 234,
+          "context_tokens": 8192,
+          "input_tokens_estimated": 380,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 380
+        }
+      ],
+      "resident": [
+        {
+          "name": "qwen3.5:9b",
+          "model": "qwen3.5:9b",
+          "size": 5862210928,
+          "digest": "56671c2ab9385f9cfcb404638e32cd62d88e3501d44822208363c010179a3c90",
+          "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "qwen35",
+            "families": [
+              "qwen35"
+            ],
+            "parameter_size": "9.0B",
+            "quantization_level": "Q4_K_M"
+          },
+          "expires_at": "2026-10-31T20:44:50.6419768-03:00",
+          "size_vram": 5862210928,
+          "context_length": 8192,
+          "runner": "llamacpp"
+        }
+      ],
+      "elapsed_s": 22.274,
+      "ram_min_free_bytes": 3719127040,
+      "gpu_peak_used_bytes_system": 8172429312,
+      "sample_count": 86
+    },
+    {
+      "profile": "normal",
+      "iteration": 2,
+      "resources_before": {
+        "ram_available_bytes": 3807322112,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 4713783296,
+        "cpu_percent": 0.0,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 24477929472,
+        "commit_limit_bytes": 33205702656
+      },
+      "passed": true,
+      "response": "Bom dia! Estou bem, obrigada. Como posso ajudar você hoje?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 371,
+          "token_limit": 512,
+          "eval_count": 116,
+          "prompt_eval_count": 234,
+          "context_tokens": 8192,
+          "input_tokens_estimated": 380,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 380
+        }
+      ],
+      "resident": [
+        {
+          "name": "qwen3.5:9b",
+          "model": "qwen3.5:9b",
+          "size": 5862210928,
+          "digest": "56671c2ab9385f9cfcb404638e32cd62d88e3501d44822208363c010179a3c90",
+          "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "qwen35",
+            "families": [
+              "qwen35"
+            ],
+            "parameter_size": "9.0B",
+            "quantization_level": "Q4_K_M"
+          },
+          "expires_at": "2026-10-31T20:44:53.3997946-03:00",
+          "size_vram": 5862210928,
+          "context_length": 8192,
+          "runner": "llamacpp"
+        }
+      ],
+      "elapsed_s": 2.756,
+      "ram_min_free_bytes": 3790454784,
+      "gpu_peak_used_bytes_system": 8174731264,
+      "sample_count": 12
+    },
+    {
+      "profile": "normal",
+      "iteration": 3,
+      "resources_before": {
+        "ram_available_bytes": 3791384576,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 4710563840,
+        "cpu_percent": 0.0,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 24498298880,
+        "commit_limit_bytes": 33205702656
+      },
+      "passed": true,
+      "response": "Bom dia! Estou bem, pronta para ajudar. Como posso fazer seu dia hoje?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 404,
+          "token_limit": 512,
+          "eval_count": 121,
+          "prompt_eval_count": 234,
+          "context_tokens": 8192,
+          "input_tokens_estimated": 380,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 380
+        }
+      ],
+      "resident": [
+        {
+          "name": "qwen3.5:9b",
+          "model": "qwen3.5:9b",
+          "size": 5862210928,
+          "digest": "56671c2ab9385f9cfcb404638e32cd62d88e3501d44822208363c010179a3c90",
+          "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "qwen35",
+            "families": [
+              "qwen35"
+            ],
+            "parameter_size": "9.0B",
+            "quantization_level": "Q4_K_M"
+          },
+          "expires_at": "2026-10-31T20:44:56.2851487-03:00",
+          "size_vram": 5862210928,
+          "context_length": 8192,
+          "runner": "llamacpp"
+        }
+      ],
+      "elapsed_s": 2.883,
+      "ram_min_free_bytes": 3780231168,
+      "gpu_peak_used_bytes_system": 8174862336,
+      "sample_count": 12
+    }
+  ]
+}

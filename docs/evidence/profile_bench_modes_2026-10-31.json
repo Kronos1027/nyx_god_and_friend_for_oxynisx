@@ -1,0 +1,286 @@
+{
+  "model": "qwen3.5:4b",
+  "ui_used": false,
+  "streaming": false,
+  "rows": [
+    {
+      "profile": "game",
+      "iteration": 1,
+      "resources_before": {
+        "ram_available_bytes": 5077299200,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 11632001024,
+        "cpu_percent": 0.0,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 15120936960,
+        "commit_limit_bytes": 33205702656
+      },
+      "passed": true,
+      "response": "Bom dia! Estou bem, obrigado. E com você?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 312,
+          "token_limit": 512,
+          "eval_count": 96,
+          "prompt_eval_count": 234,
+          "context_tokens": 4096,
+          "input_tokens_estimated": 380,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 380
+        }
+      ],
+      "resident": [],
+      "elapsed_s": 15.978,
+      "ram_min_free_bytes": 3803971584,
+      "gpu_peak_used_bytes_system": 5211250688,
+      "sample_count": 63
+    },
+    {
+      "profile": "game",
+      "iteration": 2,
+      "resources_before": {
+        "ram_available_bytes": 4901179392,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 11613421568,
+        "cpu_percent": 0.0,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 15285886976,
+        "commit_limit_bytes": 33205702656
+      },
+      "passed": true,
+      "response": "Bom dia! Estou bem, obrigado. E com você?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 297,
+          "token_limit": 512,
+          "eval_count": 95,
+          "prompt_eval_count": 234,
+          "context_tokens": 4096,
+          "input_tokens_estimated": 380,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 380
+        }
+      ],
+      "resident": [],
+      "elapsed_s": 5.756,
+      "ram_min_free_bytes": 3425767424,
+      "gpu_peak_used_bytes_system": 5232467968,
+      "sample_count": 23
+    },
+    {
+      "profile": "game",
+      "iteration": 3,
+      "resources_before": {
+        "ram_available_bytes": 4531572736,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 11599970304,
+        "cpu_percent": 0.0,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 15650258944,
+        "commit_limit_bytes": 33205702656
+      },
+      "passed": true,
+      "response": "Bom dia! Estou ótima, obrigada. E com você?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 296,
+          "token_limit": 512,
+          "eval_count": 95,
+          "prompt_eval_count": 234,
+          "context_tokens": 4096,
+          "input_tokens_estimated": 380,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 380
+        }
+      ],
+      "resident": [],
+      "elapsed_s": 7.141,
+      "ram_min_free_bytes": 3296862208,
+      "gpu_peak_used_bytes_system": 5358632960,
+      "sample_count": 29
+    },
+    {
+      "profile": "focus",
+      "iteration": 1,
+      "resources_before": {
+        "ram_available_bytes": 4423073792,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 11563069440,
+        "cpu_percent": 46.7,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 15777480704,
+        "commit_limit_bytes": 33205702656
+      },
+      "passed": true,
+      "response": "Bom dia! Estou ótima, obrigada. E com você?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 301,
+          "token_limit": 512,
+          "eval_count": 97,
+          "prompt_eval_count": 234,
+          "context_tokens": 16384,
+          "input_tokens_estimated": 380,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 380
+        }
+      ],
+      "resident": [
+        {
+          "name": "qwen3.5:4b",
+          "model": "qwen3.5:4b",
+          "size": 3650124512,
+          "digest": "d8b0f5e9760cd1682034f292d7ef72ec46f432149be0df7574bf2d6e92e38c04",
+          "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "qwen35",
+            "families": [
+              "qwen35"
+            ],
+            "parameter_size": "4.2B",
+            "quantization_level": "Q4_K_M"
+          },
+          "expires_at": "2026-10-31T20:51:05.8063747-03:00",
+          "size_vram": 3650124512,
+          "context_length": 16384,
+          "runner": "llamacpp"
+        }
+      ],
+      "elapsed_s": 15.807,
+      "ram_min_free_bytes": 2389319680,
+      "gpu_peak_used_bytes_system": 5819068416,
+      "sample_count": 62
+    },
+    {
+      "profile": "focus",
+      "iteration": 2,
+      "resources_before": {
+        "ram_available_bytes": 2441887744,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 7067209728,
+        "cpu_percent": 0.0,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 23441649664,
+        "commit_limit_bytes": 33205702656
+      },
+      "passed": true,
+      "response": "Bom dia! Estou bem, obrigado. E com você?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 298,
+          "token_limit": 512,
+          "eval_count": 96,
+          "prompt_eval_count": 234,
+          "context_tokens": 16384,
+          "input_tokens_estimated": 380,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 380
+        }
+      ],
+      "resident": [
+        {
+          "name": "qwen3.5:4b",
+          "model": "qwen3.5:4b",
+          "size": 3650124512,
+          "digest": "d8b0f5e9760cd1682034f292d7ef72ec46f432149be0df7574bf2d6e92e38c04",
+          "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "qwen35",
+            "families": [
+              "qwen35"
+            ],
+            "parameter_size": "4.2B",
+            "quantization_level": "Q4_K_M"
+          },
+          "expires_at": "2026-10-31T20:51:07.6362575-03:00",
+          "size_vram": 3650124512,
+          "context_length": 16384,
+          "runner": "llamacpp"
+        }
+      ],
+      "elapsed_s": 1.826,
+      "ram_min_free_bytes": 2428547072,
+      "gpu_peak_used_bytes_system": 5818085376,
+      "sample_count": 9
+    },
+    {
+      "profile": "focus",
+      "iteration": 3,
+      "resources_before": {
+        "ram_available_bytes": 2459680768,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 7071764480,
+        "cpu_percent": 31.2,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 23411306496,
+        "commit_limit_bytes": 33205702656
+      },
+      "passed": true,
+      "response": "Bom dia! Estou bem, obrigado. E com você?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 319,
+          "token_limit": 512,
+          "eval_count": 97,
+          "prompt_eval_count": 234,
+          "context_tokens": 16384,
+          "input_tokens_estimated": 380,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 380
+        }
+      ],
+      "resident": [
+        {
+          "name": "qwen3.5:4b",
+          "model": "qwen3.5:4b",
+          "size": 3650124512,
+          "digest": "d8b0f5e9760cd1682034f292d7ef72ec46f432149be0df7574bf2d6e92e38c04",
+          "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "qwen35",
+            "families": [
+              "qwen35"
+            ],
+            "parameter_size": "4.2B",
+            "quantization_level": "Q4_K_M"
+          },
+          "expires_at": "2026-10-31T20:51:09.3174466-03:00",
+          "size_vram": 3650124512,
+          "context_length": 16384,
+          "runner": "llamacpp"
+        }
+      ],
+      "elapsed_s": 1.678,
+      "ram_min_free_bytes": 2459680768,
+      "gpu_peak_used_bytes_system": 5814960128,
+      "sample_count": 8
+    }
+  ]
+}

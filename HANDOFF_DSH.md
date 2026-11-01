@@ -151,3 +151,29 @@ Se outra sessão (ChatGPT/Codex) voltar a editar este repositório, ela deve ler
   Onze testes reais passaram após a correção. Regressão final: 868 aprovados,
   27 pulados, zero falhas, 54,087 s; Ruff aprovado, saída 0. Observação R0
   conectada por allowlist estrita; entrada/abertura/clipboard continuam sensíveis.
+
+## Retomada Codex — 31/10/2026, 20:59 (America/Sao_Paulo)
+
+- Usuário liberou RAM. Qwen4 real completou nove ações/oito arquivos/soma396;
+  Steam consultada e jogo observado escolhido. Novos perfis manuais persistentes
+  carregados antes da admissão de modelo: Normal8K, Jogo4K, Foco16K, Conservador
+  preservado por padrão. Não alterada preferência de modelo nem reiniciada a Nyx.
+- Benchmarks reais por perfil/modelo, três chamadas. Encontrados erros reais
+  de delegação contra pedido, arquivo extra e total484. Catálogo reduzido para
+  leitura+cálculo; restrição explícita de delegação na guarda; conferência estreita
+  de operandos/total/intervalo e até duas correções antes de encerrar com erro.
+- Rodada final: 6/6 tarefas reais, três por modelo, nove ações e soma396.
+  883 testes aprovados, 27 pulados, zero falhas, 59,237 s; Ruff limpo. LPAC pulado.
+  Evidências completas e falhas preservadas em docs/evidence. Pet intacto.
+- Benchmark agora usa adaptadores reais para todo catálogo; somente leituras dos
+  oito fixtures e cálculo podem ser executados. Fixtures ficam em build, não docs.
+- Fase2 ainda parcial: sem streaming/primeirotoken, voz, auto-perfil de jogo/OBS,
+  KVq8 e teste de saúde de flash attention; gates amplos não concluídos.
+
+### Fechamento da rodada — 21:04
+
+Metadados canônicos preservam identidade de caminho e resultado de cálculo nos
+novos checkpoints; legados têm limites. Um smoke com adaptadores reais passou
+em 35,76 s. Outro, em paralelo à suíte, foi recusado por RAM livre de 1,70 GiB,
+abaixo do piso de carga fria do Normal; não tratado como falha semântica nem sucesso.
+Corrigido o código de saída do driver comparativo: falha registrada retorna 1.

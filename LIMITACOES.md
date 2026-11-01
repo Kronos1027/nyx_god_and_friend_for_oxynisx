@@ -2,6 +2,17 @@
 
 ## Estado atual — núcleo de desktop (31/10/2026)
 
+- Atualização após liberação de RAM: o ensaio real de arquivos e a escolha Steam
+  passaram. Perfis manuais adicionados; padrão Conservador preservado. Normal/Foco
+  foram medidos em contexto 8K/16K, sem forçar flash attention ou cache q8_0.
+  Automação de perfil por jogo/OBS, limites globais de toda a Nyx e latência de
+  voz/primeiro token ainda não foram validados. Reservas de KV são estimativas.
+- A conferência de soma cobre pedidos estreitos de arquivos numéricos: operandos,
+  subtotal duplicado, total declarado e intervalo explícito de nomes simples.
+  Não é verificador universal. Texto por extenso, operações compostas, caminhos
+  equivalentes absoluto/relativo e intervalos ambíguos ainda têm limites.
+  Seis tarefas reais finais passaram; isso não conclui o gate de tarefas variadas.
+
 - Descoberta agora inclui aliases, pastas fixas, atalhos do Menu Iniciar sem
   argumentos e UWP registrado. Atalhos com argumentos arbitrários e portáteis
   continuam sem suporte geral; fuzzy retorna candidatos, não escolhe por conta.
@@ -15,7 +26,7 @@
   verificador de produção; faltam verificadores independentes, 40+ tarefas, picos
   e sessões prolongadas. Traces locais podem conter pedidos/resultados privados;
   não devem ser publicados. A captura ainda não inclui prompt/ToolResult completos.
-- Inferência real desta revisão não passou: serviço indisponível inicialmente,
+- Histórico anterior à liberação de RAM: inferência não passou, serviço indisponível inicialmente,
   depois recusa de orçamento. A sondagem final encontrou menos de 1 GiB RAM livre
   e orçamento de pesos zero, com mais de 10 GiB VRAM livres. Erros agora informam
   tamanho/orçamento/recursos e distinguem inventário ausente. Reservas preservadas.

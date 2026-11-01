@@ -1,0 +1,16 @@
+{
+  "model": "qwen3.5:4b",
+  "ui_used": false,
+  "scope": "production planner with read-only fixture and arithmetic guard",
+  "elapsed_seconds": 0.16,
+  "actions": 0,
+  "verified_reads": 0,
+  "response": "Não consegui continuar o pedido: Falha no runtime local: O modelo não cabe no orçamento atual. Modelo: qwen3.5:4b; pesos: 3.10 GiB; orçamento de pesos: 0.79 GiB; RAM livre: 2.85 GiB; VRAM livre: 4.29 GiB. Nenhuma geração foi enviada. Confira o inventário e os recursos em Desempenho antes de tentar novamente.",
+  "values": [],
+  "extended": false,
+  "generations": [],
+  "pending_confirmation": false,
+  "rejected_actions": [],
+  "direct_method_requested": true,
+  "passed": false
+}

@@ -1,0 +1,64 @@
+{
+  "model": "qwen3.5:9b",
+  "ui_used": false,
+  "scope": "production planner with read-only fixture and arithmetic guard",
+  "elapsed_seconds": 7.67,
+  "actions": 0,
+  "verified_reads": 0,
+  "response": "Não consegui continuar o pedido: Ensaio restrito às oito leituras preparadas; outra ação não foi executada.",
+  "values": [],
+  "extended": false,
+  "generations": [
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 1138,
+        "token_limit": 512,
+        "eval_count": 339,
+        "prompt_eval_count": 2054,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 2691,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 2691
+      }
+    ]
+  ],
+  "pending_confirmation": false,
+  "rejected_actions": [
+    {
+      "type": "agent_team",
+      "params": {
+        "tasks": [
+          {
+            "id": "leitura-1",
+            "role": "arquivos",
+            "task": "Leia o arquivo numero-1.txt e extraia seu valor numérico.",
+            "depends_on": []
+          },
+          {
+            "id": "leitura-2",
+            "role": "arquivos",
+            "task": "Leia o arquivo numero-2.txt e extraia seu valor numérico.",
+            "depends_on": []
+          },
+          {
+            "id": "leitura-3",
+            "role": "arquivos",
+            "task": "Leia o arquivo numero-3.txt e extraia seu valor numérico.",
+            "depends_on": []
+          },
+          {
+            "id": "leitura-4",
+            "role": "arquivos",
+            "task": "Leia o arquivo numero-4.txt e extraia seu valor numérico.",
+            "depends_on": []
+          }
+        ]
+      }
+    }
+  ],
+  "passed": false
+}

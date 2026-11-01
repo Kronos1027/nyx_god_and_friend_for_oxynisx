@@ -1,0 +1,47 @@
+{
+  "ui_used": false,
+  "model": "qwen3.5:4b",
+  "input": "escolhe um jogo da steam para jogarmos",
+  "first_generation": [
+    {
+      "attempt": 1,
+      "valid_json": true,
+      "done_reason": "stop",
+      "output_characters": 375,
+      "token_limit": 512,
+      "eval_count": 125,
+      "prompt_eval_count": 877,
+      "context_tokens": 2048,
+      "input_tokens_estimated": 1246,
+      "output_tokens_reserved": 512,
+      "compaction_level": 2,
+      "original_input_tokens_estimated": 2142
+    }
+  ],
+  "proposed_action": {
+    "type": "ui_action",
+    "params": {
+      "action": "list_steam_games"
+    }
+  },
+  "passed": true,
+  "catalog_ok": true,
+  "game_count": 20,
+  "final_generation": [
+    {
+      "attempt": 1,
+      "valid_json": true,
+      "done_reason": "stop",
+      "output_characters": 311,
+      "token_limit": 512,
+      "eval_count": 100,
+      "prompt_eval_count": 765,
+      "context_tokens": 2048,
+      "input_tokens_estimated": 939,
+      "output_tokens_reserved": 512,
+      "compaction_level": 0,
+      "original_input_tokens_estimated": 939
+    }
+  ],
+  "response": "Escolhi Stardew Valley para jogarmos. Gosta?"
+}

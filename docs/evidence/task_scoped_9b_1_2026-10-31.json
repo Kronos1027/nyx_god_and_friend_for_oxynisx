@@ -1,0 +1,193 @@
+{
+  "model": "qwen3.5:9b",
+  "ui_used": false,
+  "scope": "production planner with read-only fixture and arithmetic guard",
+  "elapsed_seconds": 60.62,
+  "actions": 9,
+  "verified_reads": 8,
+  "response": "Não consegui continuar o pedido: Ensaio restrito às oito leituras preparadas; outra ação não foi executada.",
+  "values": [
+    "11",
+    "22",
+    "33",
+    "44",
+    "55",
+    "66",
+    "77",
+    "88"
+  ],
+  "extended": true,
+  "generations": [
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 313,
+        "token_limit": 512,
+        "eval_count": 108,
+        "prompt_eval_count": 1671,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 2237,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 2237
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 351,
+        "token_limit": 512,
+        "eval_count": 116,
+        "prompt_eval_count": 1829,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 2463,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 2463
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 325,
+        "token_limit": 512,
+        "eval_count": 113,
+        "prompt_eval_count": 1876,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 2519,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 2519
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 325,
+        "token_limit": 512,
+        "eval_count": 113,
+        "prompt_eval_count": 1923,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 2574,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 2574
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 349,
+        "token_limit": 512,
+        "eval_count": 116,
+        "prompt_eval_count": 1970,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 2630,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 2630
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 369,
+        "token_limit": 512,
+        "eval_count": 120,
+        "prompt_eval_count": 2017,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 2686,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 2686
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 378,
+        "token_limit": 512,
+        "eval_count": 122,
+        "prompt_eval_count": 2064,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 2741,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 2741
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 367,
+        "token_limit": 512,
+        "eval_count": 117,
+        "prompt_eval_count": 2111,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 2797,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 2797
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 488,
+        "token_limit": 512,
+        "eval_count": 222,
+        "prompt_eval_count": 2158,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 2853,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 2853
+      }
+    ],
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 398,
+        "token_limit": 512,
+        "eval_count": 138,
+        "prompt_eval_count": 2275,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 2970,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 2970
+      }
+    ]
+  ],
+  "pending_confirmation": false,
+  "rejected_actions": [
+    {
+      "type": "read_file",
+      "params": {
+        "path": "numero-9.txt"
+      }
+    }
+  ],
+  "direct_method_requested": true,
+  "passed": false
+}
