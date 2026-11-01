@@ -1,0 +1,216 @@
+{
+  "scope": "owned production Qt UI, real permission-dialog clicks, real model, independent Win32",
+  "environment": {
+    "windows": true,
+    "foreground_available": true,
+    "clipboard_accessible": true,
+    "clipboard_error_code": 0,
+    "interactive_probe_passed": true
+  },
+  "model": "qwen3.5:4b",
+  "profile": "normal",
+  "runs": 3,
+  "warmup_excluded_s": 0.7039999999999509,
+  "milestone_complete": false,
+  "rows": [
+    {
+      "app": "notepad",
+      "run": 1,
+      "ok": true,
+      "elapsed_s": 7.797,
+      "already_visible_before": false,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "Notepad.exe"
+        ],
+        "check": "independent Win32 visible window and process; UWP host also requires app title"
+      },
+      "workflow_state": "finished",
+      "confirmations_approved": 1,
+      "confirmations_denied": 0,
+      "false_success": false,
+      "error_code": null,
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 272.1484375,
+        "vram_peak_mib": 5108.40625,
+        "samples": 32,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793554754.3711035
+      },
+      "trace_path": "logs/traces/d2d5acb41a0946c8a9f3ca5c0d29c123.jsonl"
+    },
+    {
+      "app": "paint",
+      "run": 1,
+      "ok": true,
+      "elapsed_s": 5.25,
+      "already_visible_before": false,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "mspaint.exe"
+        ],
+        "check": "independent Win32 visible window and process; UWP host also requires app title"
+      },
+      "workflow_state": "finished",
+      "confirmations_approved": 1,
+      "confirmations_denied": 0,
+      "false_success": false,
+      "error_code": null,
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 336.27734375,
+        "vram_peak_mib": 5164.60546875,
+        "samples": 22,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793554759.6404202
+      },
+      "trace_path": "logs/traces/f62eefbed04c4b2a926b77317c493c18.jsonl"
+    },
+    {
+      "app": "notepad",
+      "run": 2,
+      "ok": true,
+      "elapsed_s": 4.797,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "Notepad.exe"
+        ],
+        "check": "independent Win32 visible window and process; UWP host also requires app title"
+      },
+      "workflow_state": "finished",
+      "confirmations_approved": 1,
+      "confirmations_denied": 0,
+      "false_success": false,
+      "error_code": null,
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 337.9921875,
+        "vram_peak_mib": 5165.10546875,
+        "samples": 20,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793554764.4605882
+      },
+      "trace_path": "logs/traces/1d81139976414d8cb459f93a9a6efe43.jsonl"
+    },
+    {
+      "app": "paint",
+      "run": 2,
+      "ok": true,
+      "elapsed_s": 4.5,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "mspaint.exe"
+        ],
+        "check": "independent Win32 visible window and process; UWP host also requires app title"
+      },
+      "workflow_state": "finished",
+      "confirmations_approved": 1,
+      "confirmations_denied": 0,
+      "false_success": false,
+      "error_code": null,
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 337.921875,
+        "vram_peak_mib": 5165.91796875,
+        "samples": 19,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793554768.9866736
+      },
+      "trace_path": "logs/traces/dbffa92cf0a84f91b5c88141d1a4cc33.jsonl"
+    },
+    {
+      "app": "notepad",
+      "run": 3,
+      "ok": true,
+      "elapsed_s": 4.64,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "Notepad.exe"
+        ],
+        "check": "independent Win32 visible window and process; UWP host also requires app title"
+      },
+      "workflow_state": "finished",
+      "confirmations_approved": 1,
+      "confirmations_denied": 0,
+      "false_success": false,
+      "error_code": null,
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 338.33203125,
+        "vram_peak_mib": 5164.85546875,
+        "samples": 19,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793554773.6499486
+      },
+      "trace_path": "logs/traces/ef203d8cfc634058a1077c675cabf192.jsonl"
+    },
+    {
+      "app": "paint",
+      "run": 3,
+      "ok": true,
+      "elapsed_s": 4.531,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "mspaint.exe"
+        ],
+        "check": "independent Win32 visible window and process; UWP host also requires app title"
+      },
+      "workflow_state": "finished",
+      "confirmations_approved": 1,
+      "confirmations_denied": 0,
+      "false_success": false,
+      "error_code": null,
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 338.4921875,
+        "vram_peak_mib": 5164.04296875,
+        "samples": 19,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793554778.2130585
+      },
+      "trace_path": "logs/traces/146bd00a9765442a83e27ecb58ae8a51.jsonl"
+    }
+  ],
+  "limitations": [
+    "No personal apps are closed; state is not reset between repetitions.",
+    "Personal window titles and model text remain only in local ignored traces.",
+    "This does not validate logged-in app functionality, voice, or all 15 apps."
+  ],
+  "permission_dialog_exercised": true,
+  "passed": true
+}

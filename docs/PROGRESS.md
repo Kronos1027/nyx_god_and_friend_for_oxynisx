@@ -1,9 +1,9 @@
 # PROGRESS — memória externa do trabalho (atualize ao fim de cada passo relevante)
 
 **Marco atual:** M0 (integração e baseline ampliado) · **Branch:** nyx-2 · **Base preservada:** 5fc8ee5
-**Próximo passo exato:** ampliar o runner M0 com fixture Qt de produção para aprovação R1 e verificador Win32 independente de abertura de apps; ler a skill desktop e app-launch-ladder antes de editar. Não reexecutar o relatório legado como se o método estivesse aprovado.
+**Próximo passo exato:** higiene M0 de CI/segredos: auditar CI Linux versus dependências/marcadores, escolher scanner leve e medir pacote/startup antes de instalar no ambiente de desenvolvimento; depois ampliar os 12 apps restantes com verificadores seguros. Não reexecutar o relatório legado como se o método estivesse aprovado.
 **Como retomar:** `git switch nyx-2` · ler AGENTS.md, este arquivo e docs/DECISOES.md · rodar `python -m pytest -q`
-**Bloqueios:**47setups/verificadores do harness pendentes, sem inferir incapacidade da Nyx. Login Spotify adiado pelo usuário. Migração privada/remoção remota fora do escopo aprovado. Requalificação atual de arquivos passou3/3; antigas recusas de RAM permanecem como histórico.
+**Bloqueios:**44cenários do harness sem setup/verificador seguro, sem inferir incapacidade da Nyx. Apps não são fechados/resetados, então a bateria nativa parcial não fecha gate. Login Spotify adiado pelo usuário. Migração privada/remoção remota fora do escopo aprovado. Requalificação atual de arquivos passou3/3; antigas recusas de RAM permanecem como histórico.
 
 ## Marcos
 | Marco | Status | Evidência | Gate (limiares) | Notas |
@@ -19,6 +19,13 @@
 | M8 Aceitação final | pendente | | bench 3× completo · soak 2 h · falso sucesso = 0 | |
 
 ## Log (mais recente primeiro)
+- 01/11/2026 14:56 — UI de produção temporária→QTest no PermissionDialog real→
+  ferramenta real→Win32 independente: Calculadora/Bloco de notas/Paint3× cada,
+  9/9 no ensaio integrado, uma confirmação/uma ação por tarefa, sem divergências.
+  Runner Apps agora executa9/45tentativas;36bloqueadas. Gate continua falso por
+  cobertura e ausência de reset. Sem fechar apps pessoais ou operar a Nyx pessoal.
+  929aprovados,27pulados,0falhas,50,637s,saída0; Ruff incl.bench limpo. Evidência:
+  evidence/native_app_ui_2026-11-01.md. Próximo: higiene M0 CI/segredos.
 - 01/11/2026 14:27 — Runner50casos, script run_live, marcadores Windows e
   verificadores independentes iniciais implementados.150linhas finalizadas;
   141BLOCKED_HARNESS. Retomada R0 explícita e gravação atômica sobreviveram a

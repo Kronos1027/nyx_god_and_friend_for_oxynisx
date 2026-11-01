@@ -247,3 +247,18 @@ Corrigido o código de saída do driver comparativo: falha registrada retorna 1.
 - Caminhos pessoais de três docs substituídos por placeholders, sem mover arquivos.
   Próximo: fixture Qt de produção/aprovação R1 e verificador Win32 independente
   para Apps; higiene CI/scanner de segredos segue pendente. Marcos continuam parciais.
+
+## Continuação Codex — 01/11/2026, 14:56 (America/Sao_Paulo)
+
+- Novo harness atravessa composer da DesktopWindow, controlador/TaskRunner,
+  PermissionDialog real clicado viaQTest e ferramenta de abertura. Assistida,
+  modelo4Breal, perfilNormal, voz/estudos desligados só nas preferências temporárias.
+  Guardas permitem somente listagens/abertura do app escolhido. Nenhuma instância
+  pessoal da Nyx ou app pessoal encerrado. Pet/overlay/fontes preservados.
+- Calc/Notepad/Paint9/9 e nova rodada integrada9/9, com uma confirmação/uma ação
+  por tarefa. Verificador independente usaWin32/processo e título exato para
+  hostUWP. Nada de títulos pessoais/modeltext nos JSONs públicos; só traces locais.
+- Apps:3/15casos executáveis no runner,nove/45tentativas; gatefalse por cobertura
+  e falta de reset entre rodadas. O manifesto todo tem6/50casos prontos,44pendentes.
+- 929aprovados,27pulados,zero falhas,50,637s,saída0;Ruff incl.bench limpo.
+  Evidências native_app_ui_2026-11-01.md. PróximoCI/segredos M0 e demais apps.

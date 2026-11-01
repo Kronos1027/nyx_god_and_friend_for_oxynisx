@@ -28,3 +28,20 @@ preservar timer local, backups, chave e branch remota. Motivo: autorização cob
 suspensão de novos envios, sem migração/remoção. Reversão: requer decisão futura
 e destino privado verificado; nenhuma opção de UI contorna a suspensão atual.
 Instâncias antigas já abertas não foram reiniciadas ou atualizadas à força.
+
+## D-004 · Aprovação de ensaio só no diálogo de produção · 01/11/2026
+
+Contexto: adapters isolados não exercitam a experiência completa. Escolha:
+DesktopWindow/OverlayWindow temporários, modelo real, QTest clicando o botão
+do PermissionDialog real e observação Win32 em módulo independente. Motivo:
+9/9aberturas de três apps observadas, com uma confirmação cada. Guardas negam
+outras ações; não se liga Autônoma nem se opera a Nyx pessoal. Reversão: remover
+o harness/rota de bench, sem modificar comportamento ou dados do produto.
+
+## D-005 · Não fechar apps pessoais para melhorar o gate · 01/11/2026
+
+Contexto: repetições observaram apps já abertos; fechamento poderia afetar o
+uso do PC. Escolha: preservar os apps e marcar gate_eligible=false, mostrando
+already_visible_before e cobertura faltante. Motivo: nove passes parciais não
+são o gate de15apps com reset. Reversão: acrescentar depois cleanup de fixtures
+cuja propriedade e segurança possam ser comprovadas, mantendo confirmações R3.

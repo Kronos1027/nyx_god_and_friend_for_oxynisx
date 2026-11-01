@@ -2,8 +2,9 @@
 
 `catalog.py` declara os 50 cenários enumerados no pacote, com pedido, categoria,
 setup, verificador, prazo e risco. `tools/run_bench.py --list` mostra o inventário.
-Somente leitura de oito arquivos e os dois casos de conversa possuem rotas
-seguras completas neste primeiro incremento. Casos restantes são
+Leitura de oito arquivos, os dois casos de conversa e Calculadora/Bloco de notas/
+Paint pela interface Qt de produção possuem rotas seguras neste incremento.
+Casos restantes são
 `BLOCKED_HARNESS`, não passes e não prova de incapacidade da Nyx.
 
 ```powershell

@@ -2,10 +2,14 @@
 
 ## Atualização de 01/11/2026
 
-- Runner M0 cobre inicialmente3tipos de caso;47setups seguros ainda pendentes.
+- Runner M0 cobre seis dos50casos;44cenários seguros ainda pendentes.
   Um PASS antigo de arquivos omitiu calculator; foi reavaliado como método
   incompleto. Checker/guarda apertados;3/3 posteriores cumpriram o método.
   Conferência de total por texto e ledger não é auditoria universal ou de syscall.
+- Calculadora/Bloco de notas/Paint passaram pela UI real e verificador Win32,
+  mas os aplicativos não são fechados/resetados entre rodadas. Gate Apps segue
+  inelegível; não testadas as outras12entradas, funcionalidades internas, login,
+  DPI distintos ou a distribuição congelada. Nenhum app pessoal foi encerrado.
 - Retomada automática da bateria somente para rotas de leitura/conversa.
   Relatório legado sem fingerprint é marcado como diagnóstico; não promove marco.
   Escrita atômica pode falhar se o Windows mantiver o arquivo ocupado além das

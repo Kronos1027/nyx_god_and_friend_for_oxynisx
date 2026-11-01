@@ -4,9 +4,18 @@
 
 ## M0 parcial — bateria e cumprimento do método
 
+- Atualização da interface real: Calculadora, Bloco de notas e Paint passaram
+  três vezes cada, com clique QTest no diálogo de produção e janela confirmada
+  por Win32 independente.9/9 no ensaio integrado, uma confirmação por abertura.
+  Não fechados aplicativos pessoais; estado não reiniciado entre rodadas.
+- Runner agora tem rotas para seis dos50cenários;44 ainda pendentes. Apps:
+  nove tentativas executadas de45declaradas,20% no manifesto; gate não passou.
+  **929aprovados,27pulados,0falhas,50,637s**, saída0;Ruff incl.bench limpo.
+  Evidências e limites em docs/evidence/native_app_ui_2026-11-01.md.
+
 - Manifesto50casos e runner real com verificador independente inicial; script
   run_live e marcadores Windows live.47setups ainda não prontos, identificados
-  como bloqueados; não contam como aprovação nem ausência de capacidade da Nyx.
+  como bloqueados no incremento inicial; não contam como aprovação nem ausência de capacidade da Nyx.
 - Auditoria encontrou soma correta sem usar calculator explicitamente pedido.
   Checker inicial incompleto foi apertado; guarda agora exige a etapa antes de
   concluir. Método2/3→3/3, oito leituras+calculator,396 em26,468/28,640/26,375s.
