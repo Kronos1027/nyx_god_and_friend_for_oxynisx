@@ -1,5 +1,15 @@
 # LIMITACOES.md — limitações reais, sem contorno silencioso
 
+## Atualização de 01/11/2026
+
+- Envios de backups ao GitHub foram suspensos após aprovação explícita; cópias
+  locais/chave preservadas e branch remota não apagada. Preferências locais
+  desativadas. Código antigo já carregado ou executável instalado anterior à
+  correção não foi substituído/reiniciado: não há garantia de bloqueio nesse
+  processo até usar a versão atualizada. Não auditado todo o histórico público.
+- Plano M0–M8 adotado na branch nyx-2. Os números anteriores são evidências
+  parciais; não substituem bateria independente50tarefas/3execuções ou soak2h.
+
 ## Estado atual — núcleo de desktop (31/10/2026)
 
 - Diagnóstico sob demanda lista grupos por nome e working set com consulta

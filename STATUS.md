@@ -1,6 +1,23 @@
 # Nyx — estado verificado
 
-Última atualização: 2026-10-31
+Última atualização: 2026-11-01
+
+## Nyx 2 — roteiro e suspensão autorizada de backups
+
+- Pacote AGENTS/skills/SPEC integrado sem sobrescrever fontes; branch nyx-2
+  preserva commits anteriores. Plano e estado em docs/PLANO_EXECUCAO.md e
+  docs/PROGRESS.md. Nenhum marco M0–M8 promovido sem o gate completo.
+- Repositório público confirmado. Usuário aprovou suspender novos envios;
+  upload bloqueado no código e checkbox desabilitado. Preferência false nos INIs
+  de fonte e instalação, sem mudar outras preferências ou metadados de backup/chave.
+- Três snapshots locais reais: 3/3 envios bloqueados antes de preparar cópia
+  de nuvem, bytes de snapshot/chave intactos. Histórico remoto preservado.
+  Não reiniciada a Nyx pessoal nem atualizada uma build congelada: versões antigas
+  carregadas podem manter comportamento antigo até reinício/atualização.
+- docs/PROPOSTA_BACKUPS.md registra autorização, evidências e limites. Migração
+  privada ou remoção de histórico continua exigindo decisão separada.
+- Regressão após suspensão: **915 aprovados,27 pulados,zero falhas,56,581s**,
+  saída0; Ruff limpo, navegador/Windows reais habilitados, LPAC opt-in pulado.
 
 ## Diagnóstico de memória sob demanda
 

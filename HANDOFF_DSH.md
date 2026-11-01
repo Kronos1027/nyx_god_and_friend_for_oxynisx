@@ -211,3 +211,21 @@ Corrigido o código de saída do driver comparativo: falha registrada retorna 1.
   guarda de recursos ou pontuação do driver de arquivos. Sem novo modelo/dependência.
 - 913 aprovados, 27 pulados, zero falhas, 52,136 s, saída0; Ruff limpo. Evidências
   docs/evidence/resource_diagnostic_2026-10-31.md. Pet/overlay intactos.
+
+## Continuação Codex — 01/11/2026, 13:03 (America/Sao_Paulo)
+
+- Pacote fornecido pelo usuário lido, AGENTS/skills/SPEC instalados somente em
+  caminhos inexistentes. Branch nyx-2 preserva commits até5fc8ee5; plano/progresso
+  novos refletem gates parciais e não reiniciam trabalho validado.
+- Foreground visível e clipboard acessível por probe Win32, sem ler clipboard.
+- Repositório público e branch nyx-backups confirmados. Usuário aprovou suspensão
+  dos novos envios públicos. CloudBackup bloqueia antes de qualquer preparo/git;
+  UI desabilita nuvem mas mantém timer local. INIs fonte/instalação true→false,
+  demais preferências e metadados dos backups/chave iguais. Sem mover/apagar dados.
+- Três snapshots Fernet reais descartáveis: envios negados, bytes locais/chaves
+  intactos, sem pasta cloud-backup. Não tocado/reiniciado app pessoal ou build antiga;
+  instâncias já carregadas têm limite documentado. Migração privada não autorizada.
+- Baseline Shadow DOM0/3 foi commitado antes da correção; implementação fica
+  em fila M3 enquanto o runner/verificador independente M0 é estruturado.
+- Regressão da suspensão:915 aprovados,27 pulados,zero falhas,56,581s,saída0;
+  Ruff limpo. Windows/browser reais habilitados,LPAC opt-in pulado.

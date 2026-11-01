@@ -1,0 +1,33 @@
+{
+  "scope": "three disposable real BackupVault snapshots; no personal data, real Git or mocks",
+  "rows": [
+    {
+      "run": 1,
+      "upload_blocked": true,
+      "error": "Envios de backup suspensos por autorização do usuário: o destino GitHub está público. Backups locais, chave e histórico remoto foram preservados.",
+      "elapsed_ms": 0.0,
+      "local_snapshot_and_key_unchanged": true,
+      "no_cloud_work_directory": true,
+      "passed": true
+    },
+    {
+      "run": 2,
+      "upload_blocked": true,
+      "error": "Envios de backup suspensos por autorização do usuário: o destino GitHub está público. Backups locais, chave e histórico remoto foram preservados.",
+      "elapsed_ms": 0.0,
+      "local_snapshot_and_key_unchanged": true,
+      "no_cloud_work_directory": true,
+      "passed": true
+    },
+    {
+      "run": 3,
+      "upload_blocked": true,
+      "error": "Envios de backup suspensos por autorização do usuário: o destino GitHub está público. Backups locais, chave e histórico remoto foram preservados.",
+      "elapsed_ms": 0.0,
+      "local_snapshot_and_key_unchanged": true,
+      "no_cloud_work_directory": true,
+      "passed": true
+    }
+  ],
+  "passed": true
+}

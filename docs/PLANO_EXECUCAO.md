@@ -53,7 +53,8 @@ separados de passes. Um verificador de produção não conta como independente.
    padrão. Completar baseline M0 antes de promover qualquer marco.
 4. Retomar M1 pelas lacunas medidas. A correção Shadow DOM iniciada antes do pacote
    fica explicitamente em fila M3; não será apresentada como fechamento antecipado.
-5. Aguardar decisão só para backups (AGENTS§10); trabalho independente continua.
+5. Backups: suspensão aprovada e aplicada; migração privada/remoção remota exigem
+   decisão separada. Trabalho independente continua.
 
 Não estimar horas de aceite sem conhecer o baseline completo. O número de testes
 unitários não substitui os gates. `docs/PROGRESS.md` registra o próximo comando

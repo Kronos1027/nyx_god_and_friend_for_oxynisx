@@ -19,9 +19,12 @@ continuam evidência diagnóstica, sem promovê-los a aceite completo do planeja
 Motivo: não reduzir cobertura/afrouxar gate. Reversão: alteração explícita da
 especificação pelo usuário; métricas antigas permanecem identificadas.
 
-## D-003 · Backups aguardam decisão, demais frentes continuam · 01/11/2026
+## D-003 · Suspender envios públicos após aprovação · 01/11/2026
 
-Contexto: GitHub confirmou público e branch de backup existente. Escolha: proposta
-revisável em PROPOSTA_BACKUPS.md e nenhuma alteração em backup/credenciais enquanto
-aguarda resposta, conforme AGENTS§10. Motivo: não há autorização nova para migrar,
-suspender ou apagar o backup. Reversão: executar somente a opção que for aprovada.
+Contexto: GitHub confirmou público e branch de backup existente. Proposta em
+PROPOSTA_BACKUPS.md aprovada explicitamente pelo usuário. Escolha: suspender
+uploads no código e desativar a preferência nos INIs de fonte/instalação;
+preservar timer local, backups, chave e branch remota. Motivo: autorização cobre
+suspensão de novos envios, sem migração/remoção. Reversão: requer decisão futura
+e destino privado verificado; nenhuma opção de UI contorna a suspensão atual.
+Instâncias antigas já abertas não foram reiniciadas ou atualizadas à força.

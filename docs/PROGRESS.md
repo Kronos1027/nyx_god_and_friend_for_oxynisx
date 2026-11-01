@@ -3,7 +3,7 @@
 **Marco atual:** M0 (integração e baseline ampliado) · **Branch:** nyx-2 · **Base preservada:** 5fc8ee5
 **Próximo passo exato:** verificar acesso real a foreground/clipboard sem ler conteúdo; implementar manifesto50/runner independente e tools/run_live.ps1 antes de fechar M0.
 **Como retomar:** `git switch nyx-2` · ler AGENTS.md, este arquivo e docs/DECISOES.md · rodar `python -m pytest -q`
-**Bloqueios:** decisão sobre proposta de backups pendente; não bloqueia runner/correções. Fluxo de oito arquivos parou por RAM0,86/0,90GiB nas últimas repetições. Login Spotify continua adiado pelo usuário.
+**Bloqueios:** migração privada/remoção de backups remotos fora do escopo; suspensão dos novos envios já aprovada/aplicada no código e preferências. Fluxo de oito arquivos parou por RAM0,86/0,90GiB nas últimas repetições. Login Spotify continua adiado pelo usuário.
 
 ## Marcos
 | Marco | Status | Evidência | Gate (limiares) | Notas |
@@ -19,6 +19,13 @@
 | M8 Aceitação final | pendente | | bench 3× completo · soak 2 h · falso sucesso = 0 | |
 
 ## Log (mais recente primeiro)
+- 01/11/2026 13:03 — Usuário aprovou suspensão pública. Guarda antes de upload,
+  nuvem desabilitada na UI, preferências false em fonte/instalação; backups,
+  chave e outras preferências preservados. Ensaio real3/3 bloqueados, snapshots e
+  chaves intactos. Instância pessoal não reiniciada; executáveis antigos têm limite.
+  Regressão:915 aprovados,27pulados,zero falhas,56,581s,saída0; Ruff limpo.
+- 01/11/2026 12:58 — Win32 confirmou janela foreground visível e OpenClipboard
+  acessível; nenhum conteúdo do clipboard lido. Probe interativo passou nesta sessão.
 - 01/11/2026 12:59 — Pacote lido e instalado sem sobrescrever arquivos existentes;
   branch nyx-2 preserva todos os commits. Plano em PLANO_EXECUCAO.md. Repositório
   público/branch backup confirmados por metadados; proposta ainda não executada.

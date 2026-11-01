@@ -1,0 +1,25 @@
+{
+  "applied": true,
+  "targets": [
+    {
+      "scope": "source",
+      "settings_existed": true,
+      "cloud_enabled_before": true,
+      "cloud_enabled_after": false,
+      "other_preferences_unchanged": true,
+      "backup_and_key_metadata_unchanged": true
+    },
+    {
+      "scope": "installed",
+      "settings_existed": true,
+      "cloud_enabled_before": true,
+      "cloud_enabled_after": false,
+      "other_preferences_unchanged": true,
+      "backup_and_key_metadata_unchanged": true
+    }
+  ],
+  "remote_history_changed": false,
+  "running_instances_restarted": false,
+  "note": "Instâncias antigas já abertas podem precisar ser reiniciadas pelo usuário.",
+  "passed": true
+}

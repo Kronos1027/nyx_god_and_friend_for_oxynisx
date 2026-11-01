@@ -36,7 +36,10 @@ Nyx é um projeto Python para um assistente desktop que usa modelos locais por O
 - Companheira Oxynisx animada usando o pet criado pelo usuário; nove ciclos, reações ao clique e efeitos leves, pausados quando ocultos.
 - Laboratório de aprendizado: notas com URLs, busca persistente e propostas de habilidades com simulação estrutural. Simular não executa ações nem comprova funcionamento.
 - Estudo em intervalos: fila persistente, cancelamento e prévia de trechos de documentação Python/Windows/Ollama. Até quatro leituras por dia, uma a cada 15 minutos, quando não há pedidos ativos e há recursos disponíveis. A coleta não treina o modelo e pode ser pausada no painel Aprendizado.
-- Backup local criptografado dos bancos a cada 30 minutos com o app aberto; cópia na branch `nyx-backups` do [repositório privado autorizado](https://github.com/Kronos1027/nyx_god_and_friend_for_oxynisx). Requer Git e credenciais previamente configuradas. A chave de recuperação fica separada; exporte-a pelo painel Aprendizado e guarde-a em local privado.
+- Backup local criptografado dos bancos a cada 30 minutos com o app aberto.
+  Novos envios ao GitHub foram suspensos por autorização do usuário após confirmar
+  o destino público; a branch antiga foi preservada. A chave fica separada e deve
+  ser guardada em local privado. [Aplicação e limites](docs/PROPOSTA_BACKUPS.md).
 
 A [arquitetura adaptativa](docs/EVOLUTION_ARCHITECTURE.md) separa o que está implementado das próximas etapas de pesquisa ociosa, testes isolados, promoção de código e aprendizado de modelos. A [meta completa](docs/PRODUCT_GOAL.md) permanece ativa.
 
