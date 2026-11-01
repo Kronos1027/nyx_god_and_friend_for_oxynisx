@@ -1,0 +1,17 @@
+{
+  "milestone": "M0",
+  "runs": 3,
+  "categories": [
+    "conversation"
+  ],
+  "model": "qwen3.5:4b",
+  "profile": "normal",
+  "exit_codes": {
+    "ruff": 0,
+    "unit": 0,
+    "windows_live": 0,
+    "bench": 0
+  },
+  "evidence": "bench_2026-11-01_14-19-13_M0.json",
+  "note": "Nenhum marco é concluído por testes verdes isolados; confira cobertura bloqueada e verificadores no relatório."
+}

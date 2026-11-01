@@ -1,7 +1,7 @@
 # Dependências locais e espaço no Windows
 
 Nesta máquina, o ambiente `.venv` e os modelos de voz da Nyx já ficam no projeto,
-no disco E. O Ollama usa `E:\OllamaModelos`, fora do projeto.
+no disco E. O Ollama usa uma pasta de modelos configurada à parte, fora do projeto.
 
 A pasta `.local-deps/`, ignorada pelo Git, armazena componentes realocados do C:
 
@@ -20,7 +20,7 @@ O destino físico está no E, mesmo quando uma ferramenta exibe o caminho do C.
 O uv 0.11.32 falhou ao consultar o interpretador usando a junction como raiz
 do cache (`too many temporary files exist`). Por isso, foi criado
 `%APPDATA%\uv\uv.toml` com `cache-dir` apontando diretamente para
-`E:\projeto\Nova pasta\.local-deps\uv-cache`, conforme a
+`<RAIZ_DO_PROJETO>\.local-deps\uv-cache`, conforme a
 [configuração oficial do uv](https://docs.astral.sh/uv/configuration/files/).
 Após esse ajuste, `uv pip check` validou os 72 pacotes instalados. Essa configuração
 vale para o usuário, não apenas para a Nyx; ao desfazer a migração, ajuste também
@@ -52,14 +52,14 @@ para seus temporários por padrão. `tests/conftest.py` configura
 do usuário. `--basetemp` ou um `PYTEST_DEBUG_TEMPROOT` explícito continuam sendo
 respeitados, e o pytest mantém sua retenção normal dos diretórios numerados.
 Na verificação inicial, 69 testes de LPAC/snapshots/aprovação passaram no E.
-Os três diretórios anteriores em `%LOCALAPPDATA%\Temp\pytest-of-darlan`
+Os três diretórios anteriores em `%LOCALAPPDATA%\Temp\pytest-of-<usuario>`
 (`pytest-272`, `pytest-273`, `pytest-274`) somavam aproximadamente 208 MiB e
 foram preservados para diagnóstico; não houve limpeza geral do disco.
 Regressão completa no novo caminho: 762 aprovados, 1 pulado em 52,21 s, saída 0;
 `build/sandbox-probes/project-temp-regression.xml` e `.log`.
 
 Na operação de 25/10/2026, parte da cópia antiga do Python permaneceu em
-`%APPDATA%\uv\python\cpython-3.11.15-windows-x86_64-none.nyx-migration-be9f1c1f7e3e471f907bf43390115669`:
+`%APPDATA%\uv\python\cpython-3.11.15-windows-x86_64-none.nyx-migration-<id>`:
 algumas DLLs estavam abertas por outro processo. O novo interpretador e o Qt
 foram iniciados pelo destino no E. O registro `python311.json` informa o resíduo
 preservado; sua remoção deve ocorrer somente depois de liberar esses arquivos

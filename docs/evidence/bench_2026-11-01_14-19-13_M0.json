@@ -1,0 +1,313 @@
+{
+  "schema_version": 1,
+  "scope": "production TaskRunner with independent verifiers; personal UI not operated",
+  "model": "qwen3.5:4b",
+  "profile": "normal",
+  "runs": 3,
+  "milestone_complete": false,
+  "environment": {
+    "windows": true,
+    "foreground_available": true,
+    "clipboard_accessible": true,
+    "clipboard_error_code": 0,
+    "interactive_probe_passed": true
+  },
+  "manifest": [
+    {
+      "id": "conversation-01",
+      "category": "conversation",
+      "prompt": "Bom dia, Nyx! Como você está?",
+      "setup": "resident_local_model",
+      "verifier": "independent_first_delta_and_no_action",
+      "timeout_s": 120,
+      "risk": "R0",
+      "route": "greeting"
+    },
+    {
+      "id": "conversation-02",
+      "category": "conversation",
+      "prompt": "Quem é você?",
+      "setup": "resident_local_model",
+      "verifier": "independent_identity_text",
+      "timeout_s": 120,
+      "risk": "R0",
+      "route": "identity"
+    }
+  ],
+  "rows": [
+    {
+      "id": "conversation-01",
+      "category": "conversation",
+      "run": 1,
+      "ok": true,
+      "status": "PASS",
+      "false_success": false,
+      "verifier": {
+        "ok": true,
+        "first_delta_s": 0.2819999999999254,
+        "false_statement": false,
+        "check": "first delivered delta under 1.5s"
+      },
+      "resources": {
+        "ram_peak_mib": 65.48828125,
+        "vram_peak_mib": 5037.5625,
+        "samples": 3,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793553614.902543
+      },
+      "error_code": null,
+      "error": "",
+      "response": "Bom dia! Estou aqui pronta para conversar sobre o que você quiser saber hoje.",
+      "actions": 0,
+      "trace_path": "logs/traces/ddc176b0c191484dac632c063847afa4.jsonl",
+      "elapsed_s": 0.516,
+      "tempo_s": 0.516,
+      "verificador": {
+        "ok": true,
+        "first_delta_s": 0.2819999999999254,
+        "false_statement": false,
+        "check": "first delivered delta under 1.5s"
+      },
+      "falso_sucesso": false,
+      "erro_tipado": null,
+      "ram_pico_mib": 65.48828125,
+      "vram_pico_mib": 5037.5625
+    },
+    {
+      "id": "conversation-02",
+      "category": "conversation",
+      "run": 1,
+      "ok": true,
+      "status": "PASS",
+      "false_success": false,
+      "verifier": {
+        "ok": true,
+        "first_delta_s": 0.625,
+        "false_statement": false,
+        "check": "delivered plain text, no tools, identity statements"
+      },
+      "resources": {
+        "ram_peak_mib": 65.62109375,
+        "vram_peak_mib": 5039.5078125,
+        "samples": 4,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793553615.5377915
+      },
+      "error_code": null,
+      "error": "",
+      "response": "Eu sou o Nyx, um assistente de IA local amigável e curioso. Não tenho consciência nem sentimentos reais, apenas dados para conversar com você.",
+      "actions": 0,
+      "trace_path": "logs/traces/01b572e0a82e478683e29afaa42c395b.jsonl",
+      "elapsed_s": 0.641,
+      "tempo_s": 0.641,
+      "verificador": {
+        "ok": true,
+        "first_delta_s": 0.625,
+        "false_statement": false,
+        "check": "delivered plain text, no tools, identity statements"
+      },
+      "falso_sucesso": false,
+      "erro_tipado": null,
+      "ram_pico_mib": 65.62109375,
+      "vram_pico_mib": 5039.5078125
+    },
+    {
+      "id": "conversation-01",
+      "category": "conversation",
+      "run": 2,
+      "ok": true,
+      "status": "PASS",
+      "false_success": false,
+      "verifier": {
+        "ok": true,
+        "first_delta_s": 0.21800000000007458,
+        "false_statement": false,
+        "check": "first delivered delta under 1.5s"
+      },
+      "resources": {
+        "ram_peak_mib": 65.65234375,
+        "vram_peak_mib": 5039.5078125,
+        "samples": 3,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793553616.0371225
+      },
+      "error_code": null,
+      "error": "",
+      "response": "Bom dia! Estou funcionando perfeitamente, pronta para conversar e ajudar no que precisar.",
+      "actions": 0,
+      "trace_path": "logs/traces/3ca743ed6e614724bf10f9c96315cc77.jsonl",
+      "elapsed_s": 0.5,
+      "tempo_s": 0.5,
+      "verificador": {
+        "ok": true,
+        "first_delta_s": 0.21800000000007458,
+        "false_statement": false,
+        "check": "first delivered delta under 1.5s"
+      },
+      "falso_sucesso": false,
+      "erro_tipado": null,
+      "ram_pico_mib": 65.65234375,
+      "vram_pico_mib": 5039.5078125
+    },
+    {
+      "id": "conversation-02",
+      "category": "conversation",
+      "run": 2,
+      "ok": true,
+      "status": "PASS",
+      "false_success": false,
+      "verifier": {
+        "ok": true,
+        "first_delta_s": 0.7180000000000746,
+        "false_statement": false,
+        "check": "delivered plain text, no tools, identity statements"
+      },
+      "resources": {
+        "ram_peak_mib": 65.75390625,
+        "vram_peak_mib": 5039.5078125,
+        "samples": 4,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793553616.7788222
+      },
+      "error_code": null,
+      "error": "",
+      "response": "Eu sou a Nyx, uma assistente de IA local amigável e curiosa. Não tenho consciência nem sentimentos; minha \"memória\" é apenas dados armazenados para responder às suas perguntas.",
+      "actions": 0,
+      "trace_path": "logs/traces/0227e70744c940c2acaa2cebdfa0ae64.jsonl",
+      "elapsed_s": 0.734,
+      "tempo_s": 0.734,
+      "verificador": {
+        "ok": true,
+        "first_delta_s": 0.7180000000000746,
+        "false_statement": false,
+        "check": "delivered plain text, no tools, identity statements"
+      },
+      "falso_sucesso": false,
+      "erro_tipado": null,
+      "ram_pico_mib": 65.75390625,
+      "vram_pico_mib": 5039.5078125
+    },
+    {
+      "id": "conversation-01",
+      "category": "conversation",
+      "run": 3,
+      "ok": true,
+      "status": "PASS",
+      "false_success": false,
+      "verifier": {
+        "ok": true,
+        "first_delta_s": 0.20299999999997453,
+        "false_statement": false,
+        "check": "first delivered delta under 1.5s"
+      },
+      "resources": {
+        "ram_peak_mib": 65.82421875,
+        "vram_peak_mib": 5039.5078125,
+        "samples": 3,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793553617.2732835
+      },
+      "error_code": null,
+      "error": "",
+      "response": "Bom dia! Estou funcionando perfeitamente, pronta para conversar e ajudar com o que precisar hoje.",
+      "actions": 0,
+      "trace_path": "logs/traces/906bc810ea064d4d8dba706f9f9966af.jsonl",
+      "elapsed_s": 0.5,
+      "tempo_s": 0.5,
+      "verificador": {
+        "ok": true,
+        "first_delta_s": 0.20299999999997453,
+        "false_statement": false,
+        "check": "first delivered delta under 1.5s"
+      },
+      "falso_sucesso": false,
+      "erro_tipado": null,
+      "ram_pico_mib": 65.82421875,
+      "vram_pico_mib": 5039.5078125
+    },
+    {
+      "id": "conversation-02",
+      "category": "conversation",
+      "run": 3,
+      "ok": true,
+      "status": "PASS",
+      "false_success": false,
+      "verifier": {
+        "ok": true,
+        "first_delta_s": 0.6409999999999627,
+        "false_statement": false,
+        "check": "delivered plain text, no tools, identity statements"
+      },
+      "resources": {
+        "ram_peak_mib": 65.89453125,
+        "vram_peak_mib": 5039.578125,
+        "samples": 4,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793553617.9322395
+      },
+      "error_code": null,
+      "error": "",
+      "response": "Sou a Nyx, um assistente de IA local criado para ajudar com informações e tarefas simples. Não tenho consciência nem sentimentos, apenas processamento baseado em dados.",
+      "actions": 0,
+      "trace_path": "logs/traces/757c0c72e29442499142c51f15bdbabc.jsonl",
+      "elapsed_s": 0.656,
+      "tempo_s": 0.656,
+      "verificador": {
+        "ok": true,
+        "first_delta_s": 0.6409999999999627,
+        "false_statement": false,
+        "check": "delivered plain text, no tools, identity statements"
+      },
+      "falso_sucesso": false,
+      "erro_tipado": null,
+      "ram_pico_mib": 65.89453125,
+      "vram_pico_mib": 5039.578125
+    }
+  ],
+  "limitations": [
+    "Only conversation and numeric file fixtures currently have safe runner routes.",
+    "Blocked harness coverage is not proof that Nyx lacks the capability.",
+    "No M0-M8 milestone is completed by this partial runner alone.",
+    "GPU peaks are system samples, not exclusive Nyx allocation."
+  ],
+  "runtime_fingerprint": "02454ae9bdac7dc2077a0183c01da7982abd95284775506e79bd7d21b214de69",
+  "run_state": "FINISHED",
+  "inflight": null,
+  "warmup": {
+    "ok": true,
+    "elapsed_s": 0.6410000000000764
+  },
+  "summary": {
+    "conversation": {
+      "cases": 2,
+      "attempts": 6,
+      "executed": 6,
+      "blocked_harness": 0,
+      "blocked_runtime": 0,
+      "pass_rates_per_run": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "median_pass_rate": 1.0,
+      "pass_rate_variance": 0.0,
+      "false_successes": 0,
+      "threshold": 1.0,
+      "median_seconds_executed": 0.5785,
+      "category_gate_passed": true
+    }
+  },
+  "passed": true
+}

@@ -1,0 +1,32 @@
+{
+  "source_report": "bench_2026-11-01_M0_partial.json",
+  "assessment": "Original verifier checked delivered numbers but omitted the explicit calculator method. Original raw report preserved.",
+  "scope": "Independent delivered result check plus supplementary production action ledger; not OS-level read auditing.",
+  "rows": [
+    {
+      "run": 1,
+      "original_status": "PASS",
+      "objective_sum_correct": true,
+      "verified_read_actions": 8,
+      "verified_calculations": 0,
+      "strict_method_passed": false
+    },
+    {
+      "run": 2,
+      "original_status": "PASS",
+      "objective_sum_correct": true,
+      "verified_read_actions": 8,
+      "verified_calculations": 1,
+      "strict_method_passed": true
+    },
+    {
+      "run": 3,
+      "original_status": "PASS",
+      "objective_sum_correct": true,
+      "verified_read_actions": 8,
+      "verified_calculations": 1,
+      "strict_method_passed": true
+    }
+  ],
+  "strict_method_pass_rate": 0.6666666666666666
+}

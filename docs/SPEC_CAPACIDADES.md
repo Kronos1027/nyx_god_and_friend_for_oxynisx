@@ -102,7 +102,7 @@
 
 ### P12 — Esforço desbalanceado e higiene do repositório
 - ~35 mil linhas; grande parte em LPAC/sandbox, MCP com aprovação de lançamento, updater, histórico de skills, evolution lab, empacotamento — enquanto o núcleo (abrir app, navegador, controle de desktop) está fraco. As bases de testes (800+) são em grande parte mocks; o ensaio real do `LIVE_ACCEPTANCE` ficou pendente de clique humano.
-- Repositório agora **público** e contém `logs/self_check_latest.json` e `logs/update-check.json` (caminhos locais `<PROJETO>`, versão do Windows, mensagem de repo privado) e JSONs de bench em `tests/evals/`. `.gitignore` ignora só `logs/*.jsonl` e `logs/*.log`.
+- Repositório agora **público** e contém `logs/self_check_latest.json` e `logs/update-check.json` (caminhos locais da máquina, versão do Windows, mensagem de repo privado) e JSONs de bench em `tests/evals/`. `.gitignore` ignora só `logs/*.jsonl` e `logs/*.log`. Este é o diagnóstico histórico recebido; higiene e correções atuais estão em STATUS.md.
 - Limitação já registrada: auxiliar UIA separado "ainda falta distribuí-lo no pacote congelado"; conflito COM STA/Qt (aviso do pywinauto).
 
 ---

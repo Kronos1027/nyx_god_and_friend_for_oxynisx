@@ -229,3 +229,21 @@ Corrigido o código de saída do driver comparativo: falha registrada retorna 1.
   em fila M3 enquanto o runner/verificador independente M0 é estruturado.
 - Regressão da suspensão:915 aprovados,27 pulados,zero falhas,56,581s,saída0;
   Ruff limpo. Windows/browser reais habilitados,LPAC opt-in pulado.
+
+## Continuação Codex — 01/11/2026, 14:27 (America/Sao_Paulo)
+
+- Manifesto50, runner parcial com modelo/TaskRunner reais, verificador independente
+  de resultado de arquivo/conversa, script run_live e marcadores Windows.
+  Requisições3×,150linhas no relatório;141bloqueadas por setup ainda ausente.
+- Processo interrompido em leitura e cauda de trace NUL preservada localmente;
+  retomada explícita R0 mantém linhas prontas. WinError5 ao trocar JSON tratado
+  por gravação atômica+até10tentativas, sem apagar resultado anterior.
+- Checker numérico perdeu omissão de calculator no primeiro run: oito leituras,
+  soma certa mas método explícito não cumprido. Original preservado com avaliação
+  posterior; guarda nova exige ferramenta antes de entregar total.3/3 finais,
+  9ações cada,396,correções1/2/1. Não confundir ledger com auditoria OS independente.
+- Regressão927aprovados,27pulados,0falhas,48,889s,saída0;Ruff incl.bench limpo.
+  Evidências bench_method_2026-11-01.md. Não tocados pet/overlay/instância pessoal.
+- Caminhos pessoais de três docs substituídos por placeholders, sem mover arquivos.
+  Próximo: fixture Qt de produção/aprovação R1 e verificador Win32 independente
+  para Apps; higiene CI/scanner de segredos segue pendente. Marcos continuam parciais.

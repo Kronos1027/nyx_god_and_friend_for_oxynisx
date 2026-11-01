@@ -2,7 +2,9 @@
 
 ## Material integrado
 
-Origem autorizada: `C:/Users/darlan/Documents/Codex/2026-10-20/pets-plugin-work-pets-openai-curated-4/work/oxynisx/final/spritesheet-extended.png`.
+Origem autorizada: `spritesheet-extended.png`, no diretório privado de criação do
+pet do usuário. Caminho pessoal omitido na documentação pública; material
+integrado em `assets/oxynisx/` sem modificar os desenhos.
 
 O arquivo copiado é idêntico à origem (SHA256 `a140dcfabff911bc2cceae323f63e32c16af721119a9870e13acf3927631c8a9`). Nenhum desenho da origem foi alterado. O atlas possui 1536 × 2288 pixels e transparência. As direções seguem `qa/direction-semantics.json`: zero para cima, 90 para a direita, 180 para baixo e 270 para a esquerda. Avisos visuais da origem: 135, 157.5, 202.5 e 337.5 graus.
 

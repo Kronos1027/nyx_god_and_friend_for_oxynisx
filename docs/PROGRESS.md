@@ -1,9 +1,9 @@
 # PROGRESS — memória externa do trabalho (atualize ao fim de cada passo relevante)
 
 **Marco atual:** M0 (integração e baseline ampliado) · **Branch:** nyx-2 · **Base preservada:** 5fc8ee5
-**Próximo passo exato:** verificar acesso real a foreground/clipboard sem ler conteúdo; implementar manifesto50/runner independente e tools/run_live.ps1 antes de fechar M0.
+**Próximo passo exato:** ampliar o runner M0 com fixture Qt de produção para aprovação R1 e verificador Win32 independente de abertura de apps; ler a skill desktop e app-launch-ladder antes de editar. Não reexecutar o relatório legado como se o método estivesse aprovado.
 **Como retomar:** `git switch nyx-2` · ler AGENTS.md, este arquivo e docs/DECISOES.md · rodar `python -m pytest -q`
-**Bloqueios:** migração privada/remoção de backups remotos fora do escopo; suspensão dos novos envios já aprovada/aplicada no código e preferências. Fluxo de oito arquivos parou por RAM0,86/0,90GiB nas últimas repetições. Login Spotify continua adiado pelo usuário.
+**Bloqueios:**47setups/verificadores do harness pendentes, sem inferir incapacidade da Nyx. Login Spotify adiado pelo usuário. Migração privada/remoção remota fora do escopo aprovado. Requalificação atual de arquivos passou3/3; antigas recusas de RAM permanecem como histórico.
 
 ## Marcos
 | Marco | Status | Evidência | Gate (limiares) | Notas |
@@ -19,6 +19,16 @@
 | M8 Aceitação final | pendente | | bench 3× completo · soak 2 h · falso sucesso = 0 | |
 
 ## Log (mais recente primeiro)
+- 01/11/2026 14:27 — Runner50casos, script run_live, marcadores Windows e
+  verificadores independentes iniciais implementados.150linhas finalizadas;
+  141BLOCKED_HARNESS. Retomada R0 explícita e gravação atômica sobreviveram a
+  interrupção/WinError5, sem repetir linhas prontas. Gate M0 continua parcial.
+- 01/11/2026 14:27 — Checker inicial perdeu omissão de calculator em uma rodada:
+  método2/3, embora números3/3corretos. Artifact original preservado com avaliação
+  posterior. Guarda do planejador exige cálculo quando explicitamente pedido;
+  nova rodada3/3, oito leituras+calculator,396,26,468/28,640/26,375s.
+  Regressão final927aprovados,27pulados,0falhas,48,889s; Ruff limpo incl.bench.
+  Próximo: ampliar Apps/Desktop e higiene CI/segredos; não publicar ou reiniciar Nyx pessoal.
 - 01/11/2026 13:03 — Usuário aprovou suspensão pública. Guarda antes de upload,
   nuvem desabilitada na UI, preferências false em fonte/instalação; backups,
   chave e outras preferências preservados. Ensaio real3/3 bloqueados, snapshots e

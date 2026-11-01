@@ -2,6 +2,15 @@
 
 ## Atualização de 01/11/2026
 
+- Runner M0 cobre inicialmente3tipos de caso;47setups seguros ainda pendentes.
+  Um PASS antigo de arquivos omitiu calculator; foi reavaliado como método
+  incompleto. Checker/guarda apertados;3/3 posteriores cumpriram o método.
+  Conferência de total por texto e ledger não é auditoria universal ou de syscall.
+- Retomada automática da bateria somente para rotas de leitura/conversa.
+  Relatório legado sem fingerprint é marcado como diagnóstico; não promove marco.
+  Escrita atômica pode falhar se o Windows mantiver o arquivo ocupado além das
+  dez tentativas; conserva relatório anterior e temporário, sem alegar conclusão.
+
 - Envios de backups ao GitHub foram suspensos após aprovação explícita; cópias
   locais/chave preservadas e branch remota não apagada. Preferências locais
   desativadas. Código antigo já carregado ou executável instalado anterior à

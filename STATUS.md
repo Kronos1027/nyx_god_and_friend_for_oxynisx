@@ -2,6 +2,20 @@
 
 Última atualização: 2026-11-01
 
+## M0 parcial — bateria e cumprimento do método
+
+- Manifesto50casos e runner real com verificador independente inicial; script
+  run_live e marcadores Windows live.47setups ainda não prontos, identificados
+  como bloqueados; não contam como aprovação nem ausência de capacidade da Nyx.
+- Auditoria encontrou soma correta sem usar calculator explicitamente pedido.
+  Checker inicial incompleto foi apertado; guarda agora exige a etapa antes de
+  concluir. Método2/3→3/3, oito leituras+calculator,396 em26,468/28,640/26,375s.
+- **927 aprovados,27 pulados,zero falhas em48,889s**, saída0; Ruff limpo incl.bench.
+  Windows/browser habilitados,LPAC opt-in pulado. Pet/overlay preservados.
+- Retomada explícita só para leitura/conversa e gravação atômica do diagnóstico.
+  Artefatos antigos preservados e reavaliados; detalhes em
+  docs/evidence/bench_method_2026-11-01.md. M0–M8 não estão concluídos.
+
 ## Nyx 2 — roteiro e suspensão autorizada de backups
 
 - Pacote AGENTS/skills/SPEC integrado sem sobrescrever fontes; branch nyx-2
