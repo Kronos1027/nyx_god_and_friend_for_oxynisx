@@ -198,3 +198,16 @@ Corrigido o código de saída do driver comparativo: falha registrada retorna 1.
   repetição sequencial parou após uma leitura por RAM0,90GiB. Fluxo completo
   não requalificado após compactação mais recente. Evidências e limites no relatório
   docs/evidence/conversation_stream_2026-10-31.md. Fase2 continua parcial.
+
+## Continuação Codex — 31/10/2026, 21:47 (America/Sao_Paulo)
+
+- Repetidas recusas por RAM motivaram diagnóstico sob demanda em Modelo local.
+  Abertura consulta recursos gerais; nomes/working sets somente após clique
+  explícito, sem Presença contínua, sem auditoria de nomes, sem encerrar apps.
+- Worker Qt real isolado consultou 317 processos em 391 ms e exibiu seis grupos
+  em 500 ms. Limite inicial250ms foi parcial; limite final1s concluiu na amostra.
+  Listas parciais são identificadas. RSS agrupado não é memória privada exclusiva.
+- Corrigida impressão CLI cp1252; JSON em disco continua UTF-8. Não alterada a
+  guarda de recursos ou pontuação do driver de arquivos. Sem novo modelo/dependência.
+- 913 aprovados, 27 pulados, zero falhas, 52,136 s, saída0; Ruff limpo. Evidências
+  docs/evidence/resource_diagnostic_2026-10-31.md. Pet/overlay intactos.

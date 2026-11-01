@@ -1,0 +1,56 @@
+{
+  "profile": "conservative",
+  "resources": {
+    "ram_available_bytes": 1268207616,
+    "vram_total_bytes": 12884901888,
+    "vram_free_bytes": 7856467968,
+    "cpu_percent": 0.0,
+    "ram_total_bytes": 17099575296,
+    "committed_bytes": 23853240320,
+    "commit_limit_bytes": 33205702656
+  },
+  "critical_pressure": false,
+  "reason": "Pisos críticos preservados; o modelo ainda depende do orçamento de carga e contexto.",
+  "processes_requested": true,
+  "consumers": {
+    "rows": [
+      {
+        "name": "svchost.exe",
+        "processes": 64,
+        "rss_bytes": 1243774976
+      },
+      {
+        "name": "Discord.exe",
+        "processes": 2,
+        "rss_bytes": 1023905792
+      },
+      {
+        "name": "opera.exe",
+        "processes": 5,
+        "rss_bytes": 807555072
+      },
+      {
+        "name": "ChatGPT.exe",
+        "processes": 2,
+        "rss_bytes": 653123584
+      },
+      {
+        "name": "MsMpEng.exe",
+        "processes": 1,
+        "rss_bytes": 577155072
+      },
+      {
+        "name": "ProtonVPN.Client.exe",
+        "processes": 1,
+        "rss_bytes": 461385728
+      }
+    ],
+    "scanned": 131,
+    "unavailable": 1,
+    "truncated": true,
+    "elapsed_ms": 250.0,
+    "metric": "RSS / working set"
+  },
+  "errors": [],
+  "elapsed_ms": 328.0
+}

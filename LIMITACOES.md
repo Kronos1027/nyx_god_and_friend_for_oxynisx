@@ -2,6 +2,11 @@
 
 ## Estado atual — núcleo de desktop (31/10/2026)
 
+- Diagnóstico sob demanda lista grupos por nome e working set com consulta
+  explícita. Memória compartilhada pode ser contada duas vezes; não representa
+  liberação garantida. Limite cooperativo de 1 s pode produzir lista parcial.
+  A medição não fecha programas, libera RAM ou habilita observação contínua.
+
 - Primeiro trecho de saudações simples foi medido em 0,125–0,281 s com Qwen4
   aquecido; cartão Qt isolado em 0,219 s. Não comprova voz ou conversa geral.
   Roteador em fluxo é deliberadamente estreito: saudações e identidade exata,

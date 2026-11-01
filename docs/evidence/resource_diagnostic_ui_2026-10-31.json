@@ -1,0 +1,62 @@
+{
+  "profile": "conservative",
+  "resources": {
+    "ram_available_bytes": 1243312128,
+    "vram_total_bytes": 12884901888,
+    "vram_free_bytes": 7866363904,
+    "cpu_percent": 0.0,
+    "ram_total_bytes": 17099575296,
+    "committed_bytes": 23874105344,
+    "commit_limit_bytes": 33205702656
+  },
+  "critical_pressure": false,
+  "reason": "Pisos críticos preservados; o modelo ainda depende do orçamento de carga e contexto.",
+  "processes_requested": true,
+  "consumers": {
+    "rows": [
+      {
+        "name": "opera.exe",
+        "processes": 23,
+        "rss_bytes": 4913848320
+      },
+      {
+        "name": "ChatGPT.exe",
+        "processes": 17,
+        "rss_bytes": 2805575680
+      },
+      {
+        "name": "llama-server.exe",
+        "processes": 1,
+        "rss_bytes": 2225315840
+      },
+      {
+        "name": "svchost.exe",
+        "processes": 90,
+        "rss_bytes": 1820102656
+      },
+      {
+        "name": "Discord.exe",
+        "processes": 6,
+        "rss_bytes": 1436045312
+      },
+      {
+        "name": "steamwebhelper.exe",
+        "processes": 7,
+        "rss_bytes": 822689792
+      }
+    ],
+    "scanned": 317,
+    "unavailable": 1,
+    "truncated": false,
+    "elapsed_ms": 391.0,
+    "metric": "RSS / working set"
+  },
+  "errors": [],
+  "elapsed_ms": 484.0,
+  "ui": {
+    "isolated_window": true,
+    "elapsed_ms": 500.0,
+    "rows": 6,
+    "passed": true
+  }
+}

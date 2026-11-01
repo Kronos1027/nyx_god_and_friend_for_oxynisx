@@ -1,0 +1,56 @@
+{
+  "profile": "conservative",
+  "resources": {
+    "ram_available_bytes": 1028653056,
+    "vram_total_bytes": 12884901888,
+    "vram_free_bytes": 7860072448,
+    "cpu_percent": 0.0,
+    "ram_total_bytes": 17099575296,
+    "committed_bytes": 23966552064,
+    "commit_limit_bytes": 33205702656
+  },
+  "critical_pressure": true,
+  "reason": "RAM livre abaixo de 1 GiB (0.96 GiB livres); Nenhuma geração foi enviada. Consulte Personalizar → Modelo local → Diagnosticar memória para ver o consumo e escolher o que liberar.",
+  "processes_requested": true,
+  "consumers": {
+    "rows": [
+      {
+        "name": "svchost.exe",
+        "processes": 50,
+        "rss_bytes": 985780224
+      },
+      {
+        "name": "Discord.exe",
+        "processes": 1,
+        "rss_bytes": 835067904
+      },
+      {
+        "name": "ChatGPT.exe",
+        "processes": 2,
+        "rss_bytes": 668262400
+      },
+      {
+        "name": "opera.exe",
+        "processes": 3,
+        "rss_bytes": 543444992
+      },
+      {
+        "name": "nvcontainer.exe",
+        "processes": 3,
+        "rss_bytes": 133742592
+      },
+      {
+        "name": "dwm.exe",
+        "processes": 1,
+        "rss_bytes": 130334720
+      }
+    ],
+    "scanned": 90,
+    "unavailable": 1,
+    "truncated": true,
+    "elapsed_ms": 250.0,
+    "metric": "RSS / working set"
+  },
+  "errors": [],
+  "elapsed_ms": 344.0
+}

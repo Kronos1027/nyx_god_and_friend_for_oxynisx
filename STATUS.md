@@ -2,6 +2,18 @@
 
 Última atualização: 2026-10-31
 
+## Diagnóstico de memória sob demanda
+
+- Avisos críticos apontam para Personalizar → Modelo local → Diagnosticar memória.
+  Consulta única de RAM/VRAM e botão explícito para nomes/working sets dos processos,
+  fora da thread visual, sem inferência ou encerramento de aplicativos.
+- Diálogo real isolado: 317 processos, seis grupos exibidos, 500 ms até a UI;
+  limites e comparação em docs/evidence/resource_diagnostic_2026-10-31.md.
+  Lista parcial é identificada; nomes não são coletados automaticamente ao abrir.
+- Regressão mais recente: **913 aprovados, 27 pulados, zero falhas em 52,136 s**,
+  saída 0; Ruff limpo, Windows/navegador reais habilitados, LPAC opt-in pulado.
+  Este diagnóstico não elimina a falta de RAM nem requalifica o fluxo de arquivos.
+
 ## Conversa em fluxo — validação real
 
 - Saudações inequívocas e pergunta exata de identidade passam por texto livre

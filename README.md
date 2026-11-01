@@ -15,6 +15,9 @@ Nyx é um projeto Python para um assistente desktop que usa modelos locais por O
   (padrão), Normal até 8K, Foco até 16K e Jogo/Live até 4K com descarga por resposta
   e tarefas de fundo suspensas. Não altera o modelo principal fixado. [Medições e
   limites dos perfis](docs/evidence/resource_profiles_2026-10-31.md).
+- Nessa aba, **Diagnosticar memória** consulta RAM/VRAM e permite consultar uma
+  vez o consumo por nome de processo, sem inferência ou encerramento de programas.
+  [Método e limites](docs/evidence/resource_diagnostic_2026-10-31.md).
 - Voz local com faster-whisper e Kokoro, com fallback SAPI5 no Windows.
 - Agenda local de lembretes únicos com persistência, listagem, cancelamento e aviso no overlay.
 - Equipe inicial de microagentes: até duas investigações simultâneas, com inferência serializada e papéis somente de leitura para web, arquivos ou estado do sistema. Escritas, shell e automação de interface continuam no agente principal, com confirmação.
