@@ -1,0 +1,38 @@
+{
+  "model": "qwen3.5:4b",
+  "ui_used": false,
+  "scope": "production planner with read-only fixture and arithmetic guard",
+  "elapsed_seconds": 2.44,
+  "actions": 1,
+  "verified_reads": 1,
+  "response": "Não consegui continuar o pedido: Falha no runtime local: RAM livre abaixo de 1 GiB (0.90 GiB livres); aguarde o sistema liberar memória. Nenhuma geração foi enviada.",
+  "values": [
+    "11"
+  ],
+  "extended": false,
+  "generations": [
+    [
+      {
+        "attempt": 1,
+        "valid_json": true,
+        "done_reason": "stop",
+        "output_characters": 361,
+        "token_limit": 512,
+        "eval_count": 113,
+        "prompt_eval_count": 394,
+        "context_tokens": 2048,
+        "input_tokens_estimated": 592,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 592
+      }
+    ]
+  ],
+  "pending_confirmation": false,
+  "rejected_actions": [],
+  "direct_method_requested": true,
+  "replans": 0,
+  "redundant_reads": 0,
+  "goal_delivered": false,
+  "passed": false
+}

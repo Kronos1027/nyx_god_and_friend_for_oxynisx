@@ -1,0 +1,31 @@
+{
+  "ui": "isolated production Qt window, not physical display",
+  "real_model": "qwen3.5:4b",
+  "voice_enabled": false,
+  "first_delta": {
+    "elapsed_s": 0.2039999999997235,
+    "label": "B"
+  },
+  "elapsed_s": 0.4220000000004802,
+  "response": "Bom dia! Estou aqui conversando com você, como sempre.",
+  "actions": 0,
+  "generations": [
+    [
+      {
+        "route": "conversation",
+        "streaming": true,
+        "first_token_seconds": 0.15600000000085856,
+        "elapsed_seconds": 0.35900000000037835,
+        "output_characters": 54,
+        "eval_count": 15,
+        "prompt_eval_count": 145,
+        "context_tokens": 2048,
+        "input_tokens_estimated": 210,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 210
+      }
+    ]
+  ],
+  "passed": true
+}

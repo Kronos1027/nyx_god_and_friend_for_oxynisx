@@ -1,0 +1,178 @@
+{
+  "model": "qwen3.5:4b",
+  "profile": "conservative",
+  "ui_used": false,
+  "inputs": [
+    "Bom dia, Nyx! Como você está?",
+    "Boa noite, Nyx!",
+    "Quem é você?"
+  ],
+  "rows": [
+    {
+      "protocol": "structured",
+      "iteration": 1,
+      "input": "Bom dia, Nyx! Como você está?",
+      "elapsed_s": 1.7810000000008586,
+      "first_delta_s": null,
+      "passed": true,
+      "known_false_identity_claim": false,
+      "response": "Bom dia! Tudo certo por aqui. Como posso ajudar você hoje?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 337,
+          "token_limit": 512,
+          "eval_count": 103,
+          "prompt_eval_count": 215,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 346,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 346
+        }
+      ]
+    },
+    {
+      "protocol": "structured",
+      "iteration": 2,
+      "input": "Boa noite, Nyx!",
+      "elapsed_s": 1.639999999999418,
+      "first_delta_s": null,
+      "passed": true,
+      "known_false_identity_claim": false,
+      "response": "Boa noite! Como posso ajudar você hoje?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 287,
+          "token_limit": 512,
+          "eval_count": 91,
+          "prompt_eval_count": 211,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 340,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 340
+        }
+      ]
+    },
+    {
+      "protocol": "structured",
+      "iteration": 3,
+      "input": "Quem é você?",
+      "elapsed_s": 1.8439999999991414,
+      "first_delta_s": null,
+      "passed": true,
+      "known_false_identity_claim": false,
+      "response": "Olá! Sou o Nyx, um assistente local amigável. Como posso ajudar você hoje?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 329,
+          "token_limit": 512,
+          "eval_count": 103,
+          "prompt_eval_count": 209,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 340,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 340
+        }
+      ]
+    },
+    {
+      "protocol": "stream",
+      "iteration": 1,
+      "input": "Bom dia, Nyx! Como você está?",
+      "elapsed_s": 0.4220000000004802,
+      "first_delta_s": 0.20300000000133878,
+      "passed": true,
+      "known_false_identity_claim": false,
+      "response": "Bom dia! Estou funcionando bem, pronta para ajudar no que precisar.",
+      "generations": [
+        {
+          "route": "conversation",
+          "streaming": true,
+          "first_token_seconds": 0.18699999999989814,
+          "elapsed_seconds": 0.3899999999994179,
+          "output_characters": 67,
+          "eval_count": 16,
+          "prompt_eval_count": 140,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 205,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 205,
+          "identity_buffered": false,
+          "identity_claim_rejected": false,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "protocol": "stream",
+      "iteration": 2,
+      "input": "Boa noite, Nyx!",
+      "elapsed_s": 0.2970000000004802,
+      "first_delta_s": 0.15600000000085856,
+      "passed": true,
+      "known_false_identity_claim": false,
+      "response": "Boa noite! Como posso ajudar você hoje?",
+      "generations": [
+        {
+          "route": "conversation",
+          "streaming": true,
+          "first_token_seconds": 0.15600000000085856,
+          "elapsed_seconds": 0.2970000000004802,
+          "output_characters": 39,
+          "eval_count": 11,
+          "prompt_eval_count": 136,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 199,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 199,
+          "identity_buffered": false,
+          "identity_claim_rejected": false,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "protocol": "stream",
+      "iteration": 3,
+      "input": "Quem é você?",
+      "elapsed_s": 0.7029999999995198,
+      "first_delta_s": 0.7029999999995198,
+      "passed": true,
+      "known_false_identity_claim": false,
+      "response": "Sou a Nyx, uma assistente de IA local feita para conversar com você sobre o que você quiser. Lembre-se que sou apenas um software e não tenho consciência nem sentimentos reais.",
+      "generations": [
+        {
+          "route": "conversation",
+          "streaming": true,
+          "first_token_seconds": 0.1720000000004802,
+          "elapsed_seconds": 0.7029999999995198,
+          "output_characters": 176,
+          "eval_count": 39,
+          "prompt_eval_count": 164,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 246,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 246,
+          "identity_buffered": true,
+          "identity_claim_rejected": false,
+          "attempt": 1
+        }
+      ]
+    }
+  ],
+  "warmup_s": 2.360000000000582
+}

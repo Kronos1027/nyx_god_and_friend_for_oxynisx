@@ -1,0 +1,152 @@
+{
+  "model": "qwen3.5:4b",
+  "profile": "conservative",
+  "ui_used": false,
+  "rows": [
+    {
+      "protocol": "structured",
+      "iteration": 1,
+      "elapsed_s": 1.8130000000001019,
+      "first_delta_s": null,
+      "passed": true,
+      "response": "Bom dia! Estou bem, obrigado. E com você?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 293,
+          "token_limit": 512,
+          "eval_count": 95,
+          "prompt_eval_count": 225,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 369,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 369
+        }
+      ]
+    },
+    {
+      "protocol": "structured",
+      "iteration": 2,
+      "elapsed_s": 1.8589999999985594,
+      "first_delta_s": null,
+      "passed": true,
+      "response": "Bom dia! Estou ótima, tudo bem com você?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 292,
+          "token_limit": 512,
+          "eval_count": 94,
+          "prompt_eval_count": 225,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 369,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 369
+        }
+      ]
+    },
+    {
+      "protocol": "structured",
+      "iteration": 3,
+      "elapsed_s": 1.7970000000004802,
+      "first_delta_s": null,
+      "passed": true,
+      "response": "Bom dia! Tudo por aqui, como você?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 301,
+          "token_limit": 512,
+          "eval_count": 95,
+          "prompt_eval_count": 225,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 369,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 369
+        }
+      ]
+    },
+    {
+      "protocol": "stream",
+      "iteration": 1,
+      "elapsed_s": 0.6560000000008586,
+      "first_delta_s": 0.28100000000085856,
+      "passed": true,
+      "response": "Bom dia! Estou aqui conversando com você, como sempre. O que tem de novo por aí?",
+      "generations": [
+        {
+          "route": "conversation",
+          "streaming": true,
+          "first_token_seconds": 0.2650000000012369,
+          "elapsed_seconds": 0.625,
+          "output_characters": 80,
+          "eval_count": 23,
+          "prompt_eval_count": 145,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 210,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 210
+        }
+      ]
+    },
+    {
+      "protocol": "stream",
+      "iteration": 2,
+      "elapsed_s": 0.46899999999914144,
+      "first_delta_s": 0.17199999999866122,
+      "passed": true,
+      "response": "Bom dia! Estou aqui conversando com você, como sempre. Tudo bem por aí?",
+      "generations": [
+        {
+          "route": "conversation",
+          "streaming": true,
+          "first_token_seconds": 0.17199999999866122,
+          "elapsed_seconds": 0.46899999999914144,
+          "output_characters": 71,
+          "eval_count": 20,
+          "prompt_eval_count": 145,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 210,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 210
+        }
+      ]
+    },
+    {
+      "protocol": "stream",
+      "iteration": 3,
+      "elapsed_s": 0.35900000000037835,
+      "first_delta_s": 0.125,
+      "passed": true,
+      "response": "Bom dia! Tudo por aqui, só conversando com você hoje.",
+      "generations": [
+        {
+          "route": "conversation",
+          "streaming": true,
+          "first_token_seconds": 0.125,
+          "elapsed_seconds": 0.35900000000037835,
+          "output_characters": 53,
+          "eval_count": 16,
+          "prompt_eval_count": 145,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 210,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 210
+        }
+      ]
+    }
+  ],
+  "warmup_s": 15.968000000000757
+}

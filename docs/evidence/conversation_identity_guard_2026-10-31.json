@@ -1,0 +1,12 @@
+{
+  "model": "qwen3.5:4b",
+  "profile": "conservative",
+  "ui_used": false,
+  "inputs": [
+    "Bom dia, Nyx! Como você está?",
+    "Boa noite, Nyx!",
+    "Quem é você?"
+  ],
+  "rows": [],
+  "error": "Falha no runtime local: O pedido e as observações precisam de mais contexto (419 tokens estimados; 416 disponíveis após reservar a resposta). As etapas foram preservadas; divida o pedido ou use um modelo com contexto suficiente."
+}

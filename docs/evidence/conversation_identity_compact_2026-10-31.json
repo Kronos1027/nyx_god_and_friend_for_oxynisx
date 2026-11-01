@@ -1,0 +1,172 @@
+{
+  "model": "qwen3.5:4b",
+  "profile": "conservative",
+  "ui_used": false,
+  "inputs": [
+    "Bom dia, Nyx! Como você está?",
+    "Boa noite, Nyx!",
+    "Quem é você?"
+  ],
+  "rows": [
+    {
+      "protocol": "structured",
+      "iteration": 1,
+      "input": "Bom dia, Nyx! Como você está?",
+      "elapsed_s": 1.7340000000003783,
+      "first_delta_s": null,
+      "passed": true,
+      "response": "Bom dia! Tudo certo por aqui. Como posso ajudar?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 300,
+          "token_limit": 512,
+          "eval_count": 95,
+          "prompt_eval_count": 255,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 416,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 416
+        }
+      ]
+    },
+    {
+      "protocol": "structured",
+      "iteration": 2,
+      "input": "Boa noite, Nyx!",
+      "elapsed_s": 1.7659999999996217,
+      "first_delta_s": null,
+      "passed": true,
+      "response": "Boa noite! Como posso ajudar hoje?",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 283,
+          "token_limit": 512,
+          "eval_count": 90,
+          "prompt_eval_count": 251,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 410,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 410
+        }
+      ]
+    },
+    {
+      "protocol": "structured",
+      "iteration": 3,
+      "input": "Quem é você?",
+      "elapsed_s": 1.8909999999996217,
+      "first_delta_s": null,
+      "passed": true,
+      "response": "Eu sou o Nyx, um software de IA local. Não tenho sentimentos reais, apenas processamento de dados.",
+      "generations": [
+        {
+          "attempt": 1,
+          "valid_json": true,
+          "done_reason": "stop",
+          "output_characters": 352,
+          "token_limit": 512,
+          "eval_count": 101,
+          "prompt_eval_count": 249,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 410,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 410
+        }
+      ]
+    },
+    {
+      "protocol": "stream",
+      "iteration": 1,
+      "input": "Bom dia, Nyx! Como você está?",
+      "elapsed_s": 0.6090000000003783,
+      "first_delta_s": 0.2180000000007567,
+      "passed": true,
+      "response": "Bom dia! Estou aqui com a Oxynisx, pronta para ouvir suas perguntas e conversar sobre o que estiver na sua cabeça.",
+      "generations": [
+        {
+          "route": "conversation",
+          "streaming": true,
+          "first_token_seconds": 0.20300000000133878,
+          "elapsed_seconds": 0.5940000000009604,
+          "output_characters": 114,
+          "eval_count": 29,
+          "prompt_eval_count": 145,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 210,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 210,
+          "identity_buffered": false,
+          "identity_claim_rejected": false,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "protocol": "stream",
+      "iteration": 2,
+      "input": "Boa noite, Nyx!",
+      "elapsed_s": 0.2809999999990396,
+      "first_delta_s": 0.15599999999903957,
+      "passed": true,
+      "response": "Boa noite! Tudo bem por aqui?",
+      "generations": [
+        {
+          "route": "conversation",
+          "streaming": true,
+          "first_token_seconds": 0.15599999999903957,
+          "elapsed_seconds": 0.2809999999990396,
+          "output_characters": 29,
+          "eval_count": 10,
+          "prompt_eval_count": 141,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 204,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 204,
+          "identity_buffered": false,
+          "identity_claim_rejected": false,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "protocol": "stream",
+      "iteration": 3,
+      "input": "Quem é você?",
+      "elapsed_s": 0.6880000000001019,
+      "first_delta_s": 0.6880000000001019,
+      "passed": true,
+      "response": "Eu sou a Nyx, uma companheira amigável e curiosa chamada Oxynisx. Sou apenas um software de IA local, sem consciência nem sentimentos reais.",
+      "generations": [
+        {
+          "route": "conversation",
+          "streaming": true,
+          "first_token_seconds": 0.17199999999866122,
+          "elapsed_seconds": 0.6719999999986612,
+          "output_characters": 140,
+          "eval_count": 37,
+          "prompt_eval_count": 169,
+          "context_tokens": 2048,
+          "input_tokens_estimated": 251,
+          "output_tokens_reserved": 512,
+          "compaction_level": 0,
+          "original_input_tokens_estimated": 251,
+          "identity_buffered": true,
+          "identity_claim_rejected": false,
+          "attempt": 1
+        }
+      ]
+    }
+  ],
+  "warmup_s": 17.07799999999952
+}

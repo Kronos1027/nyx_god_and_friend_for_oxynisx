@@ -2,6 +2,25 @@
 
 Última atualização: 2026-10-31
 
+## Conversa em fluxo — validação real
+
+- Saudações inequívocas e pergunta exata de identidade passam por texto livre
+  Ollama, sem schema ou ferramentas. Pedidos mistos continuam no planejador.
+  Cartão parcial em texto simples; histórico recebe somente a resposta final.
+- Qwen4 aquecido: três primeiros trechos em 0,281/0,172/0,125 s; respostas
+  completas em 0,656/0,469/0,359 s, comparadas a 1,813/1,859/1,797 s no JSON.
+  Janela Qt isolada: cartão atualizado em 0,219 s, resposta em 0,453 s.
+- Ensaio encontrou alegação falsa de humanidade. Identidade agora tem instruções
+  factuais, conferência de padrões conhecidos e uma repetição máxima; texto
+  inválido não é exibido. Ensaio final de identidade real: 0,734 s até o cartão,
+  sem ferramentas. A conferência não é um detector universal de falsidade.
+- **906 aprovados, 27 pulados, zero falhas em 50,337 s**, saída 0; Ruff aprovado.
+  Windows/navegador reais habilitados, LPAC opt-in pulado. Fixture Qt aguarda
+  workers e DeferredDelete antes de destruir a aplicação. Pet preservado.
+- Falhas intermediárias, comparação, método e limites em
+  docs/evidence/conversation_stream_2026-10-31.md. Voz, conversas gerais e
+  cancelamento instantâneo de leitura HTTP continuam sem aceite. Fase 2 parcial.
+
 ## Memória liberada — perfis e execução real
 
 - Retomada real 4B: nove ações, oito leituras, soma 396 em 45,74 s. Steam:

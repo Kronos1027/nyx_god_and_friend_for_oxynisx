@@ -2,11 +2,19 @@
 
 ## Estado atual — núcleo de desktop (31/10/2026)
 
+- Primeiro trecho de saudações simples foi medido em 0,125–0,281 s com Qwen4
+  aquecido; cartão Qt isolado em 0,219 s. Não comprova voz ou conversa geral.
+  Roteador em fluxo é deliberadamente estreito: saudações e identidade exata,
+  somente Ollama. Identidade é retida para conferência de padrões conhecidos
+  após uma alegação falsa real; outras formulações ainda podem escapar.
+  Cancelamento é cooperativo e leitura HTTP pode esperar timeout. Não há TTS
+  por frase, tool calling nativo ou fluxo llama.cpp nessa mudança.
+
 - Atualização após liberação de RAM: o ensaio real de arquivos e a escolha Steam
   passaram. Perfis manuais adicionados; padrão Conservador preservado. Normal/Foco
   foram medidos em contexto 8K/16K, sem forçar flash attention ou cache q8_0.
   Automação de perfil por jogo/OBS, limites globais de toda a Nyx e latência de
-  voz/primeiro token ainda não foram validados. Reservas de KV são estimativas.
+  voz ainda não foi validada. Reservas de KV são estimativas.
 - A conferência de soma cobre pedidos estreitos de arquivos numéricos: operandos,
   subtotal duplicado, total declarado e intervalo explícito de nomes simples.
   Não é verificador universal. Texto por extenso, operações compostas, caminhos

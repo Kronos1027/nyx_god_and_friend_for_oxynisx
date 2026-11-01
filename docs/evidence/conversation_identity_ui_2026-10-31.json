@@ -1,0 +1,35 @@
+{
+  "ui": "isolated production Qt window, not physical display",
+  "real_model": "qwen3.5:4b",
+  "input": "Quem é você?",
+  "voice_enabled": false,
+  "first_delta": {
+    "elapsed_s": 0.7340000000003783,
+    "label": "Eu sou a Nyx, um assistente de IA local criado para conversar e ajudar com informações. Não tenho consciência nem sentimentos, apenas processando dados conforme solicitado."
+  },
+  "elapsed_s": 0.7970000000004802,
+  "response": "Eu sou a Nyx, um assistente de IA local criado para conversar e ajudar com informações. Não tenho consciência nem sentimentos, apenas processando dados conforme solicitado.",
+  "actions": 0,
+  "generations": [
+    [
+      {
+        "route": "conversation",
+        "streaming": true,
+        "first_token_seconds": 0.2180000000007567,
+        "elapsed_seconds": 0.6710000000002765,
+        "output_characters": 172,
+        "eval_count": 34,
+        "prompt_eval_count": 164,
+        "context_tokens": 2048,
+        "input_tokens_estimated": 246,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 246,
+        "identity_buffered": true,
+        "identity_claim_rejected": false,
+        "attempt": 1
+      }
+    ]
+  ],
+  "passed": true
+}

@@ -177,3 +177,24 @@ novos checkpoints; legados têm limites. Um smoke com adaptadores reais passou
 em 35,76 s. Outro, em paralelo à suíte, foi recusado por RAM livre de 1,70 GiB,
 abaixo do piso de carga fria do Normal; não tratado como falha semântica nem sucesso.
 Corrigido o código de saída do driver comparativo: falha registrada retorna 1.
+
+## Continuação Codex — 31/10/2026, 21:41 (America/Sao_Paulo)
+
+- Texto livre em fluxo Ollama para saudações inequívocas/identidade, usando
+  admissão e perfil existentes, sem schema/ferramentas. Cartão parcial com
+  PlainText e persistência somente ao final; pet/overlay/CompanionStage intactos.
+- Comparação Qwen4 real aquecido: primeiro trecho 0,125–0,281 s, resposta completa
+  0,359–0,656 s; JSON anterior 1,797–1,859 s. Janela Qt de produção isolada:
+  cartão em 0,219 s, conclusão em 0,453 s. Não operada a Nyx pessoal.
+- Achado real de identidade humana falsa: instruções compactadas, conferência
+  estreita e retenção antes de exibir identidade, no máximo uma regeneração.
+  Identidade final Qt real em 0,734 s. Artefato antigo tecnicamente passed=true
+  está explicitamente marcado como falha semântica no relatório, sem ser apagado.
+- Erro de contexto 1K e prompt acima de 1000 caracteres tratados por compactação,
+  sem ampliar reservas ou afrouxar o teste. Fixture Qt aguarda workers/deletes.
+- Regressão final: 906 aprovados, 27 pulados, zero falhas, 50,337 s, saída 0;
+  Ruff limpo. Fonte build/diagnostic/conversation-final-regression.xml.
+- Ensaio de arquivos chegou a sete leituras e parou por RAM0,86GiB, sem soma;
+  repetição sequencial parou após uma leitura por RAM0,90GiB. Fluxo completo
+  não requalificado após compactação mais recente. Evidências e limites no relatório
+  docs/evidence/conversation_stream_2026-10-31.md. Fase2 continua parcial.
