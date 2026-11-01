@@ -5,6 +5,7 @@ from core.cloud_backup import BRANCH, REMOTE, CloudBackup
 
 
 def test_cloud_stages_only_encrypted_snapshot_and_no_force(tmp_path, monkeypatch):
+    monkeypatch.setattr('core.cloud_backup.UPLOADS_SUSPENDED', False)  # legacy transport unit test only
     snapshot = tmp_path / "latest.nyxbackup"
     snapshot.write_bytes(Fernet(Fernet.generate_key()).encrypt(b"private"))
     backup = CloudBackup(tmp_path)
@@ -30,6 +31,7 @@ def test_cloud_stages_only_encrypted_snapshot_and_no_force(tmp_path, monkeypatch
 
 
 def test_cloud_rejects_plaintext_wrong_remote_and_unrelated_files(tmp_path, monkeypatch):
+    monkeypatch.setattr('core.cloud_backup.UPLOADS_SUSPENDED', False)  # no real Git calls
     snapshot = tmp_path / "latest.nyxbackup"
     snapshot.write_text("plaintext")
     backup = CloudBackup(tmp_path)
@@ -48,3 +50,11 @@ def test_cloud_rejects_plaintext_wrong_remote_and_unrelated_files(tmp_path, monk
     monkeypatch.setattr(backup, "_git", git)
     with pytest.raises(ValueError):
         backup.upload(snapshot)
+
+
+def test_suspension_blocks_even_stale_or_direct_requests_before_touching_disk(tmp_path, monkeypatch):
+    backup = CloudBackup(tmp_path)
+    monkeypatch.setattr(backup, '_git', lambda *args: pytest.fail('No Git allowed while suspended'))
+    with pytest.raises(PermissionError, match='destino GitHub está público'):
+        backup.upload(tmp_path / 'not-even-created.nyxbackup')
+    assert not backup.work.exists()

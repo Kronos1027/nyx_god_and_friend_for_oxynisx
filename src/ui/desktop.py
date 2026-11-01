@@ -622,10 +622,14 @@ class DesktopWindow(QMainWindow):
         research.clicked.connect(lambda: self._prefill("Quero estudar um assunto. Pergunte qual tema; pesquise fontes reais, leia e registre notas com URLs usando evolution. Separe fatos de hipóteses."))
         layout.addWidget(research)
         layout = self._tab_section(self.learning_tabs, "Backups")
-        self.backup_status = self._muted("Backup criptografado a cada 30 minutos enquanto a Nyx estiver aberta. GitHub usa as credenciais do Git deste computador.")
+        self.backup_status = self._muted("Backup local criptografado a cada 30 minutos enquanto a Nyx estiver aberta. Envios ao GitHub estão suspensos; cópias locais e chave são preservadas.")
         layout.addWidget(self.backup_status)
-        self.cloud_backup_check = QCheckBox("Copiar backup criptografado ao repositório privado autorizado")
-        self.cloud_backup_check.setChecked(self.settings.value("cloud_backup", True, type=bool))
+        from core.cloud_backup import UPLOADS_SUSPENDED
+        self.cloud_backup_check = QCheckBox("Envios ao GitHub suspensos — destino público")
+        if UPLOADS_SUSPENDED:
+            self.settings.setValue('cloud_backup', False)
+        self.cloud_backup_check.setChecked(False if UPLOADS_SUSPENDED else self.settings.value("cloud_backup", False, type=bool))
+        self.cloud_backup_check.setEnabled(not UPLOADS_SUSPENDED)
         self.cloud_backup_check.toggled.connect(lambda checked: self.settings.setValue("cloud_backup", checked))
         layout.addWidget(self.cloud_backup_check)
         backup = QPushButton("Criar backup criptografado agora")

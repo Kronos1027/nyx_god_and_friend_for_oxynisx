@@ -1,4 +1,4 @@
-"""Push only an encrypted snapshot to the authorized private backup branch.
+"""Encrypted backup transport; uploads suspended by the user on 2026-11-01.
 
 Uses Git's existing credential manager. Does not read/export credentials or
 stage the development tree. Divergent remote history fails without force push.
@@ -13,6 +13,11 @@ from pathlib import Path
 
 REMOTE = "https://github.com/Kronos1027/nyx_god_and_friend_for_oxynisx.git"
 BRANCH = "nyx-backups"
+# The destination is now public. A private migration requires separate approval;
+# this guard cannot be overridden by a stale UI preference or scheduled upload.
+UPLOADS_SUSPENDED = True
+SUSPENSION_REASON = ('Envios de backup suspensos por autorização do usuário: o destino GitHub está público. '
+                     'Backups locais, chave e histórico remoto foram preservados.')
 
 
 class CloudBackup:
@@ -31,6 +36,8 @@ class CloudBackup:
         return result.stdout.strip()
 
     def upload(self, snapshot: Path) -> str:
+        if UPLOADS_SUSPENDED:
+            raise PermissionError(SUSPENSION_REASON)
         if snapshot.suffix != ".nyxbackup" or snapshot.stat().st_size > 5 * 1024 * 1024:
             raise ValueError("Nuvem aceita somente backup .nyxbackup criptografado de até 5 MiB")
         # Fernet is ASCII and starts with a version byte encoded in base64.

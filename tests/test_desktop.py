@@ -72,6 +72,14 @@ def test_memory_diagnostics_opens_without_process_enumeration(desktop, monkeypat
     assert requests == [False]
 
 
+def test_public_cloud_backup_is_disabled_but_local_timer_remains(desktop):
+    window, _, _ = desktop
+    assert not window.cloud_backup_check.isChecked()
+    assert not window.cloud_backup_check.isEnabled()
+    assert not window.settings.value('cloud_backup', True, type=bool)
+    assert window.backup_timer.isActive()
+
+
 def test_saved_task_returns_to_its_original_conversation(desktop, monkeypatch):
     from types import SimpleNamespace
     from PyQt6.QtWidgets import QListWidgetItem
