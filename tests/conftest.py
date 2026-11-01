@@ -20,6 +20,7 @@ def pytest_configure(config):
 
 @pytest.fixture(scope="session")
 def qapp():
+    pytest.importorskip('PyQt6', reason='GUI opcional; os testes completos rodam no ambiente Windows da Nyx.')
     from PyQt6 import sip
     from PyQt6.QtCore import QCoreApplication, QEvent, QThreadPool
     from PyQt6.QtWidgets import QApplication

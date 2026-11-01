@@ -1,9 +1,11 @@
 import threading
 import time
+import pytest
+pytest.importorskip('PyQt6')
 
-from PyQt6.QtCore import QEventLoop, QThreadPool, QTimer
+from PyQt6.QtCore import QEventLoop, QThreadPool, QTimer  # noqa: E402
 
-from ui.overlay import _ConfirmationWorker, _PromptWorker
+from ui.overlay import _ConfirmationWorker, _PromptWorker  # noqa: E402
 
 
 def test_prompt_worker_runs_off_the_calling_thread(qapp):

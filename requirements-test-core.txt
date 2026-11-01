@@ -1,0 +1,6 @@
+# Testes de lógica e arrays em CPU, sem Qt, modelos, áudio ou GPU.
+-r requirements.txt
+numpy==2.4.6
+websocket-client==1.9.2
+# Somente para testes de filesystem/erros Win32 executados no Windows.
+pywin32==312; sys_platform == 'win32'

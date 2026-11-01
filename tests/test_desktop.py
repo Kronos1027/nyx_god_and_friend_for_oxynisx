@@ -2,16 +2,17 @@ import json
 import time
 
 import pytest
-from PyQt6.QtCore import QSettings, Qt
+pytest.importorskip('PyQt6')
+from PyQt6.QtCore import QSettings, Qt  # noqa: E402
 
-from audit.logger import AuditLogger
-from core.agent_loop import AgentLoop
-from core.llm_client import OfflineLLM
-from core.scheduler import ReminderScheduler
-from tools.registry import ToolRegistry
-from ui.chat_store import ChatStore
-from ui.desktop import DesktopWindow
-from ui.overlay import OverlayWindow
+from audit.logger import AuditLogger  # noqa: E402
+from core.agent_loop import AgentLoop  # noqa: E402
+from core.llm_client import OfflineLLM  # noqa: E402
+from core.scheduler import ReminderScheduler  # noqa: E402
+from tools.registry import ToolRegistry  # noqa: E402
+from ui.chat_store import ChatStore  # noqa: E402
+from ui.desktop import DesktopWindow  # noqa: E402
+from ui.overlay import OverlayWindow  # noqa: E402
 
 
 def test_control_center_routes_to_existing_panels(desktop):

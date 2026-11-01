@@ -6,12 +6,13 @@ import threading
 import time
 
 import pytest
-from PyQt6.QtCore import QThread, QTimer
+pytest.importorskip('PyQt6')
+from PyQt6.QtCore import QThread, QTimer  # noqa: E402
 
-from core.operation_control import OperationControl, operation_scope
-from tools.registry import ToolResult
-from tools.workspace_tool import WorkspaceTool
-from ui.workspace_window import WorkspaceWindow
+from core.operation_control import OperationControl, operation_scope  # noqa: E402
+from tools.registry import ToolResult  # noqa: E402
+from tools.workspace_tool import WorkspaceTool  # noqa: E402
+from ui.workspace_window import WorkspaceWindow  # noqa: E402
 
 
 @pytest.fixture

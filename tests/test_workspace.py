@@ -1,9 +1,11 @@
 """Testes para o subsistema de Workspace do Grande Sábio (Nyx)"""
 
 import time
+import pytest
+pytest.importorskip('PyQt6')
 
-from tools.workspace_tool import WorkspaceTool
-from ui.workspace_window import WorkspaceWindow
+from tools.workspace_tool import WorkspaceTool  # noqa: E402
+from ui.workspace_window import WorkspaceWindow  # noqa: E402
 
 
 def test_workspace_window_creation(qapp):

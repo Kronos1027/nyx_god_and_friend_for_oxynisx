@@ -1,7 +1,7 @@
 # PROGRESS — memória externa do trabalho (atualize ao fim de cada passo relevante)
 
 **Marco atual:** M0 (integração e baseline ampliado) · **Branch:** nyx-2 · **Base preservada:** 5fc8ee5
-**Próximo passo exato:** higiene M0 de CI/segredos: auditar CI Linux versus dependências/marcadores, escolher scanner leve e medir pacote/startup antes de instalar no ambiente de desenvolvimento; depois ampliar os 12 apps restantes com verificadores seguros. Não reexecutar o relatório legado como se o método estivesse aprovado.
+**Próximo passo exato:** corrigir abertura de apps: preferir nativo ao web e focar janela já aberta, com regressão e UI real3×. Investigar seis falhas de foco da suíte completa (isolado12/12). Não reexecutar o relatório legado como método aprovado.
 **Como retomar:** `git switch nyx-2` · ler AGENTS.md, este arquivo e docs/DECISOES.md · rodar `python -m pytest -q`
 **Bloqueios:**44cenários do harness sem setup/verificador seguro, sem inferir incapacidade da Nyx. Apps não são fechados/resetados, então a bateria nativa parcial não fecha gate. Login Spotify adiado pelo usuário. Migração privada/remoção remota fora do escopo aprovado. Requalificação atual de arquivos passou3/3; antigas recusas de RAM permanecem como histórico.
 
@@ -19,6 +19,24 @@
 | M8 Aceitação final | pendente | | bench 3× completo · soak 2 h · falso sucesso = 0 | |
 
 ## Log (mais recente primeiro)
+- 01/11/2026 — Higiene M0:820passes/13skips no núcleo mínimo sem Qt;
+  scanner offline/hook serial/CI configurados, nove falsos positivos auditados,
+  sintético bloqueado3/3. Ambiente/cache no E. Regressão completa923passes,
+  27skips,6falhas de foco/70,008s; isolado12/12 posterior. Não declarar gate
+  verde. Evidência: evidence/ci_hygiene_2026-11-01.md. Linux/histórico pendentes.
+- 01/11/2026 15:26 — Higiene M0 em andamento: ambiente mínimo separado no E
+  reproduziu11erros de coleção por Qt/NumPy. Imports GUI passaram a ser opcionais
+  somente nos testes, com mocks unitários de APIs Windows independentes de libs
+  reais. psutil7.2.2 declarado no núcleo; requisitos de teste CPU separados.
+  Ambiente mínimo Windows sem Qt terminou verde; Linux/WSL não disponível, não
+  declarar CI Linux executado. Logs/XML em build/diagnostic/ci-core-final.*.
+- 01/11/2026 15:26 — detect-secrets1.5.0 instalado só em .local-deps/security-env,
+  wheel120341bytes, ambiente4,85MB, startup0,610–0,644s, RSS~50MiB incluindo
+  launcher/filhos, nenhum PID GPU observado. Scan --no-verify local encontrou9
+  candidatos:4fingerprints de código,3digests Ollama confirmados,1literal de
+  teste de redação e1nome de variável apiKeyEnv. Nenhuma verificação de chave
+  na rede executada; baseline auditado/hook/CI e histórico ainda pendentes.
+  Arquivo privado build/diagnostic/secrets-working-tree.json contém só hashes.
 - 01/11/2026 14:56 — UI de produção temporária→QTest no PermissionDialog real→
   ferramenta real→Win32 independente: Calculadora/Bloco de notas/Paint3× cada,
   9/9 no ensaio integrado, uma confirmação/uma ação por tarefa, sem divergências.

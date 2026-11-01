@@ -1,5 +1,15 @@
 # DECISOES — registro de decisões reversíveis (uma entrada por decisão)
 
+## D-006 · Scanner offline isolado e serial · 01/11/2026
+
+Contexto: CI não colecionava sem Qt e não havia barreira de segredos no commit.
+Escolha: requisitos CPU/testes GUI opcionais e detect-secrets/pre-commit isolados
+no volume do projeto; todos os plugins, baseline auditado por candidato,
+verificação de credenciais na rede desativada. Scan serial limita concorrência
+de memória. Medição de startup até0,779s/~55MiB RSS por CLI. Reversão: reverter
+arquivos/configuração e retirar somente o hook local instalado nesta sessão;
+não remover dados do usuário nem alterar backups/credenciais.
+
 Formato: `## D-NNN · título · data` → Contexto · Opções · Escolha · Motivo (com dado medido) · Como reverter.
 
 ## D-001 · Adotar o pacote sem reiniciar o trabalho · 01/11/2026

@@ -1,0 +1,90 @@
+{
+  "purpose": "development-only isolated environment on project volume; not imported by Nyx",
+  "detect_secrets_wheel_bytes": 120341,
+  "pre_commit_wheel_bytes": 226261,
+  "installed_environment_bytes": 16555067,
+  "versions": {
+    "certifi": "2026.10.23",
+    "cfgv": "3.5.0",
+    "charset-normalizer": "3.5.2",
+    "detect-secrets": "1.5.0",
+    "distlib": "0.4.4",
+    "filelock": "4.2.6",
+    "identify": "2.6.20",
+    "idna": "3.20",
+    "nodeenv": "1.12.0",
+    "packaging": "26.3",
+    "platformdirs": "4.14.3",
+    "pre_commit": "4.7.0",
+    "python-discovery": "1.9.0",
+    "PyYAML": "6.0.3",
+    "requests": "2.34.2",
+    "urllib3": "2.8.0",
+    "virtualenv": "21.15.2"
+  },
+  "rows": [
+    {
+      "tool": "detect-secrets",
+      "run": 1,
+      "startup_s": 0.7212,
+      "peak_rss_mib": 49.49,
+      "gpu_process_query_available": true,
+      "scanner_gpu_process_observed": false,
+      "exit_code": 0,
+      "version": "1.5.0"
+    },
+    {
+      "tool": "detect-secrets",
+      "run": 2,
+      "startup_s": 0.6695,
+      "peak_rss_mib": 50.11,
+      "gpu_process_query_available": true,
+      "scanner_gpu_process_observed": false,
+      "exit_code": 0,
+      "version": "1.5.0"
+    },
+    {
+      "tool": "detect-secrets",
+      "run": 3,
+      "startup_s": 0.6513,
+      "peak_rss_mib": 50.23,
+      "gpu_process_query_available": true,
+      "scanner_gpu_process_observed": false,
+      "exit_code": 0,
+      "version": "1.5.0"
+    },
+    {
+      "tool": "pre-commit",
+      "run": 1,
+      "startup_s": 0.7789,
+      "peak_rss_mib": 51.29,
+      "gpu_process_query_available": true,
+      "scanner_gpu_process_observed": false,
+      "exit_code": 0,
+      "version": "pre-commit 4.7.0"
+    },
+    {
+      "tool": "pre-commit",
+      "run": 2,
+      "startup_s": 0.7049,
+      "peak_rss_mib": 54.85,
+      "gpu_process_query_available": true,
+      "scanner_gpu_process_observed": false,
+      "exit_code": 0,
+      "version": "pre-commit 4.7.0"
+    },
+    {
+      "tool": "pre-commit",
+      "run": 3,
+      "startup_s": 0.7552,
+      "peak_rss_mib": 49.87,
+      "gpu_process_query_available": true,
+      "scanner_gpu_process_observed": false,
+      "exit_code": 0,
+      "version": "pre-commit 4.7.0"
+    }
+  ],
+  "sampling_interval_s": 0.005,
+  "rss_scope": "launcher plus descendants; shared working-set pages may repeat",
+  "limits": "Startup only; GPU PID visibility is not a precise VRAM allocation measurement."
+}

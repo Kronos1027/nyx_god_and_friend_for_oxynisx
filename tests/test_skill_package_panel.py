@@ -3,9 +3,10 @@ import time
 import zipfile
 
 import pytest
-from PyQt6.QtWidgets import QFileDialog
+pytest.importorskip('PyQt6')
+from PyQt6.QtWidgets import QFileDialog  # noqa: E402
 
-from ui.workspace_window import WorkspaceWindow
+from ui.workspace_window import WorkspaceWindow  # noqa: E402
 
 pytestmark = pytest.mark.skipif(os.name != "nt", reason="Windows package snapshots")
 

@@ -1,7 +1,6 @@
 """Testes da FASE 3: UI Generativa e WindowManager (O Grande Sábio)"""
 
 from ui.tokens import THEMES, get_theme, generate_stylesheet
-from ui.window_manager import WindowManager
 from tools.ui_tool import UITool
 
 
@@ -24,6 +23,7 @@ def test_theme_tokens():
 
 
 def test_window_manager_lifecycle(qapp):
+    from ui.window_manager import WindowManager
     wm = WindowManager.get_instance()
 
     spec = {

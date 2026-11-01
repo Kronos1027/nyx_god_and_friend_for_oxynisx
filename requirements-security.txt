@@ -1,0 +1,4 @@
+# Ferramenta de desenvolvimento; não faz parte do runtime da Nyx.
+# Executar em .local-deps/security-env com verificação de rede desativada.
+detect-secrets==1.5.0
+pre-commit==4.7.0

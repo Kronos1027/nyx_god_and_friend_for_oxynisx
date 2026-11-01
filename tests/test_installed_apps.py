@@ -1,6 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace
 import json
+import sys
 
 import pytest
 
@@ -64,7 +65,7 @@ def test_open_installed_app_alias_and_verified_window(key, tmp_path, monkeypatch
     observations = iter([[], [{"hwnd": 42, "title": "Steam", "pid": 123}]])
     monkeypatch.setattr(apps, "matching_windows", lambda path: next(observations))
     opened = []
-    monkeypatch.setattr("os.startfile", opened.append)
+    monkeypatch.setattr("os.startfile", opened.append, raising=False)
     result = UITool(tmp_path / "shots").open_app({key: "Steam"})
     assert opened == [str(app.path)] and result.ok and result.meta["verified"]
     assert ActionVerifier().verify("ui_action", {"action": "open_app"}, result).verified
@@ -75,13 +76,13 @@ def test_cancel_after_dispatch_preserves_unknown_outcome(tmp_path, monkeypatch):
     tool = UITool(tmp_path / "shots")
     monkeypatch.setattr(apps, "resolve_app", lambda name: app)
     monkeypatch.setattr(apps, "matching_windows", lambda path: [])
-    monkeypatch.setattr("os.startfile", lambda path: tool.control.stop())
+    monkeypatch.setattr("os.startfile", lambda path: tool.control.stop(), raising=False)
     result = tool.open_app({"app": "Steam"})
     assert not result.ok and result.meta["outcome_unknown"]
 
 
 def test_installed_app_verification_never_uses_unrelated_title(monkeypatch):
-    monkeypatch.setattr("pygetwindow.getAllTitles", lambda: ["Steam — unrelated document"])
+    monkeypatch.setitem(sys.modules, 'pygetwindow', SimpleNamespace(getAllTitles=lambda: ["Steam — unrelated document"]))
     result = ToolResult(True, "abertura solicitada", meta={"check": "installed_app_window", "verified": False, "windows": []})
     assert not ActionVerifier().verify("ui_action", {"action": "open_app", "app": "Steam"}, result).verified
 
@@ -128,10 +129,12 @@ def test_steam_helper_requires_installed_path_and_live_client_ancestor(tmp_path)
 def test_matching_window_rejects_reused_hwnd(tmp_path, monkeypatch):
     executable = tmp_path / 'steam.exe'
     process = ProcessFixture(2, executable)
-    monkeypatch.setattr('pygetwindow.getAllWindows', lambda: [SimpleNamespace(visible=True, title='Steam', _hWnd=1)])
+    monkeypatch.setitem(sys.modules, 'pygetwindow', SimpleNamespace(
+        getAllWindows=lambda: [SimpleNamespace(visible=True, title='Steam', _hWnd=1)]))
+    monkeypatch.setitem(sys.modules, 'pywintypes', SimpleNamespace(error=OSError))
     monkeypatch.setattr('psutil.Process', lambda pid: process)
     pids = iter([(0, 2), (0, 3)])
-    monkeypatch.setattr('win32process.GetWindowThreadProcessId', lambda hwnd: next(pids))
+    monkeypatch.setitem(sys.modules, 'win32process', SimpleNamespace(GetWindowThreadProcessId=lambda hwnd: next(pids)))
     assert apps.matching_windows(executable) == []
 
 

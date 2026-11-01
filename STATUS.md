@@ -2,6 +2,15 @@
 
 Última atualização: 2026-11-01
 
+## M0 — higiene e regressão atual
+
+- Núcleo mínimo sem Qt:820aprovados/13pulados, zero falhas. CI Ubuntu corrigido,
+  ainda sem execução Linux real. Scanner offline/hook/CI configurados; nove
+  falsos positivos auditados, fixture sintética bloqueada3/3.
+- Regressão completa atual:923aprovados,27pulados,6falhas de foco em70,008s.
+  Desktop isolado passou12/12 depois; instabilidade em investigação, gate aberto.
+  Detalhes: docs/evidence/ci_hygiene_2026-11-01.md. Histórico Git não auditado.
+
 ## M0 parcial — bateria e cumprimento do método
 
 - Atualização da interface real: Calculadora, Bloco de notas e Paint passaram

@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+nyx_root=$(git rev-parse --show-toplevel)
+export PRE_COMMIT_HOME="$nyx_root/.local-deps/pre-commit-cache"
+export PIP_CACHE_DIR="$nyx_root/.local-deps/pip-cache"
+if [ -x "$nyx_root/.local-deps/security-env/Scripts/python.exe" ]; then
+    exec "$nyx_root/.local-deps/security-env/Scripts/python.exe" -m pre_commit run --hook-stage pre-commit
+elif [ -x "$nyx_root/.local-deps/security-env/bin/python" ]; then
+    exec "$nyx_root/.local-deps/security-env/bin/python" -m pre_commit run --hook-stage pre-commit
+else
+    printf '%s\n' 'Prepare .local-deps/security-env com requirements-security.txt antes de commitar.' >&2
+    exit 1
+fi

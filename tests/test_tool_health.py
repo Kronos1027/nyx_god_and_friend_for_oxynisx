@@ -1,6 +1,8 @@
-from audit.logger import AuditLogger
-from tools.registry import ToolRegistry
-from ui.tool_health import ToolHealthDialog
+import pytest
+pytest.importorskip('PyQt6')
+from audit.logger import AuditLogger  # noqa: E402
+from tools.registry import ToolRegistry  # noqa: E402
+from ui.tool_health import ToolHealthDialog  # noqa: E402
 
 
 def test_health_reset_preserves_manual_disables_and_emergency(qapp, tmp_path):

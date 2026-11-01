@@ -2,6 +2,11 @@
 
 ## Atualização de 01/11/2026
 
+- Regressão completa após higiene encontrou seis falhas de foco;12casos isolados
+  posteriores passaram. Isso não elimina a instabilidade e não fecha gate.
+- CI mínimo validado no Windows sem Qt; Ubuntu remoto não executado. Scanner
+  offline cobre working tree/arquivos do commit, não todo histórico/refs/backups.
+
 - Runner M0 cobre seis dos50casos;44cenários seguros ainda pendentes.
   Um PASS antigo de arquivos omitiu calculator; foi reavaliado como método
   incompleto. Checker/guarda apertados;3/3 posteriores cumpriram o método.

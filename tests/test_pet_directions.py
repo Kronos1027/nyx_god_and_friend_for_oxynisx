@@ -1,5 +1,6 @@
 import pytest
-from ui.sprite_renderer import SpriteRenderer
+pytest.importorskip('PyQt6')
+from ui.sprite_renderer import SpriteRenderer  # noqa: E402
 
 
 @pytest.mark.parametrize("dx,dy,expected", [(0,-100,0), (100,-100,2), (100,0,4), (100,100,6), (0,100,8), (-100,100,10), (-100,0,12), (-100,-100,14)])

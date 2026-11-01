@@ -10,7 +10,9 @@ Testes unitários e de integração para as novas ferramentas e componentes:
 """
 
 import sys
+import os
 from pathlib import Path
+import pytest
 
 # Garante path para src
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
@@ -18,8 +20,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from tools.clipboard_tool import ClipboardTool
 from tools.project_watch_tool import ProjectWatchTool
 from tools.ui_tool import UITool
-from ui.sprite_renderer import SpriteRenderer
-from audio.stt import SpeechToText
 from config import NyxConfig
 from cli import build_registry
 
@@ -103,6 +103,8 @@ def test_project_watch_tool_git():
     assert res.ok is False or "Git status" in res.output
 
 
+@pytest.mark.windows_live
+@pytest.mark.skipif(os.name != 'nt', reason='Listagem real de janelas Windows.')
 def test_ui_tool_basic():
     tool = UITool(screenshots_dir=Path("assets/screenshots"))
 
@@ -122,6 +124,7 @@ def test_ui_tool_basic():
 
 
 def test_sprite_renderer_all_emotions(qapp):
+    from ui.sprite_renderer import SpriteRenderer
 
     renderer = SpriteRenderer(scale=2)
     emotions = ["idle", "talk", "think", "surprised", "listening", "error", "sleep"]
@@ -137,6 +140,7 @@ def test_sprite_renderer_all_emotions(qapp):
 
 
 def test_stt_wake_word_detection():
+    from audio.stt import SpeechToText
     stt = SpeechToText()
 
     match1, cmd1 = stt.process_wake_word("Ei Nyx, qual é a temperatura atual?")
