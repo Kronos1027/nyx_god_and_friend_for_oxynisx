@@ -4,6 +4,25 @@
 
 ## Integração atual — HUD, navegador e runtime
 
+Estado atual: **M3 em correção**. Dez cenários browser executados três vezes
+pelo HUD/modelo/navegador reais, sem BLOCKED_HARNESS; taxas20/20/10%, mediana20%.
+Falhas de refs/parâmetros/leitura/mídia e pressão de RAM tardia registradas em
+[baseline](docs/evidence/bench_browser_initial_2026-11-02.json). Auditoria achou
+relato factual incorreto num diagnóstico posterior; correção e repetição pendentes.
+Zero do detector antigo não significa ausência universal de falso relato.
+Diagnóstico Conservador confirmou iframe e play→pause1/1cada; tentativa seguinte
+foi interrompida por falso relato do cadastro. Guardas de valores/URL inicial
+implementadas, nova execução pendente. Regressão1077passes/65skips/0falhas;
+scanner passou após auditoria pontual dos hashes de evidência. Ver
+[iterações e limites](docs/evidence/browser_iteration_2026-11-02.md).
+
+M7: painéis tardios e medição em processos novos. Última amostra primeiro Paint
+0,987/0,923/0,901s desde script; pico intermediário3,635s preservado sem causa
+isolada. RSS mediano166,15→160,90MiB sem profiler. Ver
+[medição e limites](docs/evidence/hud_startup_2026-11-02.md).
+Arranque completo com modelo/memória e estabilidade do pico ainda não validados.
+Os números e bloqueios abaixo são do checkpoint anterior.
+
 - Entregas M7/M3 e incremento roteador/perfil/grounding publicados em nyx-2,
   5c7aa33, sem force. Pet/overlay, main e backups preservados. Instância pessoal
   não reiniciada; validações usam fonte/interface isolada, não executável instalado.

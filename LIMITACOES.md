@@ -2,6 +2,23 @@
 
 ## Atualização de 02/11/2026
 
+Atualização mais recente: harness browser agora executa30/30; mediana20%, abaixo
+do gate. BLOCKED_HARNESS dos registros anteriores foi substituído por resultados
+reais, não por aprovação. Código da aba confundido com título em diagnóstico
+posterior é falso relato crítico em correção, perdido pelo detector lexical antigo.
+Outra tentativa foi interrompida por cadastro declarado concluído sem valores
+pedidos. Detector e guardas de valores/URL inicial apertados; nova rodada real
+após essas últimas mudanças ainda pendente. Não omitir o defeito por testes verdes.
+Login pessoal continua adiado; sessão HTTP sintética não equivale a Spotify.
+RAM de inferência longa4B chegou~3GiB RSS, superior à carga fria de um token;
+proteção suspendeu tarefas abaixo1GiB livre. Não foi medido mínimo físico.
+
+M7 última amostra abaixo1,2s, mas pico3,635s preservado sem causa isolada; não
+marcar como bloqueio ambiental sem evidência. Medida começa no script e exclui
+boot de modelo/memória/registro. QA9/9 não comprova todas as telas/fluxos reais.
+Sensores AGORA sendo implementados em worktree, ainda sem validação integrada.
+Os itens abaixo preservam o checkpoint anterior.
+
 - M7 integrado,9/9interações reais. Pintura nativa3,541s não passou meta1,2s;
   demo145MiB não comprova orçamento da sessão completa. Agora ainda sem sensores
   de janela/mídia/jogo, OBS/onboarding/paleta completa pendentes. Pet preservado.

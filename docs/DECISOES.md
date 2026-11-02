@@ -1,5 +1,32 @@
 # DECISOES — registro de decisões reversíveis (uma entrada por decisão)
 
+## D-013 · Ações browser completas e evidência preservada · 02/11/2026
+
+Contexto: modelo omitia snapshot, inventava URLs e concluía cadastro sem campos.
+Escolha: restringir geração por schema às refs/tokens completos e URLs/IDs
+observados; vincular valores explícitos a labels únicos antes de envio, sem
+autodigitar ou conceder permissão. Execução mantém TTL/identidade/política e
+confirmações. Leitura atual é exigida antes de responder código. Downloads
+explícitos até50MiB, exclusivos e conferidos; mídia observa tempo e pausa.
+Motivo: falhas medidas pelo HUD/modelo/HTTP/CDP independente, não teste isolado.
+Originais e falsos relatos preservados; detector lexical apertado não garante
+verdade universal. Nova qualificação exigida após commits, evitando stash de
+fontes durante ensaio. Reversão: commits pontuais, sem afrouxar verificadores,
+alterar pet ou apagar dados do usuário. Sem dependência nova.
+
+## D-012 · Navegador primeiro e bloqueios classificados pela causa · 02/11/2026
+
+Contexto: revisão explícita do ac0ee1a. Escolha: concluir dez setups/verificadores
+browser, rodar três vezes e publicar a taxa observada, sem BLOCKED_HARNESS como
+entrega. Falha de produto/harness fica em implementação/correção; "parcial" só
+para ambiente comprovado. Fixtures HTTP, perfis e arquivos descartáveis próprios
+permitem reset; cookies/contas pessoais continuam fora do ensaio. Persistência
+usa sessão HTTP local de teste, sem alegar login pessoal validado. Se um fluxo
+real exigir login, solicitar entrada humana e avançar os restantes. Depois:
+sensores AGORA consentidos, HUD perto1,2s, candidatos locais de fallback com
+prompts medidos, fontes/abstenção, permissões, memória/voz, aceite40tarefas×3.
+Reversão: commits e manifesto explícito; não reduzir verificadores ou proteção.
+
 ## D-010 · Faixa fria observada e degradação explícita · 02/11/2026
 
 Contexto: usuário exige Normal padrão condicional e medição antes de manter piso

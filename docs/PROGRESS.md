@@ -1,9 +1,9 @@
 # PROGRESS — memória externa do trabalho (atualize ao fim de cada passo relevante)
 
-**Marco atual:** M7 HUD e M3 integrados; M2 roteador/perfil medidos, todos parciais · **Branch de integração:** nyx-2
-**Próximo passo exato:** M3: implementar rota segura browser do runner pelo HUD/modelo usando fixture local/refs, com confirmação e verificador independente (30cenários atuais BLOCKED_HARNESS). M7: medir origem da pintura nativa3,541s e corrigir até1,2s. Depois retomar Apps com ownership/reset seguro. Não reabrir a Calculadora do último ensaio nem fechá-la sem prova de propriedade. Push por marco/~4h.
+**Marco atual:** M3 em correção após baseline real30/30; M7 medido, estabilidade em investigação · **Branch de integração:** nyx-2
+**Próximo passo exato:** M3: requalificar formulário/abas/download após guardas de URL inicial e valores de campos; repetir dez cenários×3 com fontes estáveis após commits. Última tentativa interrompida por falso relato de cadastro. Integrar sensores AGORA, preparação de fallbacks e proveniência de pesquisa das worktrees. Sem tocar pet/main/backups.
 **Como retomar:** `git switch nyx-2` · ler AGENTS.md, este arquivo e docs/DECISOES.md · rodar `python -m pytest -q`
-**Bloqueios:**35cenários do harness sem setup/verificador seguro, sem inferir incapacidade da Nyx. Apps não são fechados/resetados e há falhas medidas de foco/RAM. Login Spotify adiado pelo usuário. Migração privada/remoção remota fora do escopo aprovado. Requalificação de arquivos passou3/3; recusas anteriores permanecem como histórico.
+**Bloqueios:** browser não tem mais BLOCKED_HARNESS:30/30executados, mediana20%, falhas funcionais em correção e pressão de RAM tardia registrada. Apps não são fechados/resetados e há falhas de foco/RAM. Login Spotify adiado. Migração privada/remoção remota fora do escopo. Mínimo físico de RAM/qualificação dos fallbacks e demais categorias ainda pendentes.
 
 ## Marcos
 | Marco | Status | Evidência | Gate (limiares) | Notas |
@@ -11,14 +11,39 @@
 | M0 Fundação e baseline | parcial: bloqueado por ambiente | evidence/apps_expansion_2026-11-01.md | baseline ampliado/reset pendentes | Avançar por instrução do usuário |
 | M1 Destravar | parcial: bloqueado por ambiente | evidence/apps_expansion_2026-11-01.md | Apps instalados ≥ 95% · foco separado | RAM/foco/reset medidos; retornar depois |
 | M2 Cérebro e recursos | parcial: amostra de roteamento/carga fria validada | evidence/runtime_hud_integration_2026-11-02.md | 1º token < 1,5 s · multi-etapa ≥ 80% · VRAM ≤ 9,5 GiB | 72/72 classificações; mínimo RAM/qualidade geral pendentes |
-| M3 Navegador e pesquisa | parcial: componentes integrados; harness completo pendente | evidence/m3_actions_profile_2026-11-02.md | Navegador ≥ 85% · Pesquisa ≥ 85% | refs/Shadow/frames; 30/30 BLOCKED_HARNESS no runner |
+| M3 Navegador e pesquisa | em correção: baseline real abaixo do gate | evidence/bench_browser_initial_2026-11-02.json | Navegador ≥ 85% · Pesquisa ≥ 85% | 30/30executados; taxas20/20/10%; auditoria factual em curso |
 | M4 Desktop robusto e habilidades | pendente | | Desktop ≥ 90% · 10 apps com habilidade validada | |
 | M5 Confiança graduada | pendente | | tarefa de 6 passos com ≤ 1 confirmação; R3 sempre confirma | |
 | M6 Presença, memória e voz | pendente | | Presença/memória ≥ 90% · voz < 2,5 s | |
-| M7 Interface Nyx HUD | parcial: integrada; pintura nativa acima da meta | evidence/m7_hud_2026-11-02.md; evidence/runtime_hud_integration_2026-11-02.md | QA visual + check_ui + perf | 9/9interações; HUD/modelo reais; pet congelado |
+| M7 Interface Nyx HUD | em investigação: pico intermitente preservado | evidence/hud_startup_2026-11-02.md | QA visual + check_ui + perf | última amostra0,987/0,923/0,901s; pico3,635s sem causa isolada |
 | M8 Aceitação final | pendente | | bench 3× completo · soak 2 h · falso sucesso = 0 | |
 
 ## Log (mais recente primeiro)
+- 02/11/2026 — Checkpoint M3: ab39fed (download/mídia), ada5044 (schema/grounding),
+  308338d (dez fixtures/oráculos/evidência). Ruff limpo; regressão1077passes/
+  65skips/0falhas,41,890s. Diagnóstico Conservador iframe e play→pause1/1cada.
+  Tentativa seguinte interrompida após7linhas por falso relato de cadastro;
+  apertadas guardas de campos e detector, originais preservados. Commit durante
+  tentativa causou stash temporário; não usar essa amostra como aceite. Novo
+  ensaio só depois dos commits. Quatro hashes de evidência auditados, scanner
+  ativo passou; três digests de arquivos reproduzidos, fingerprint identificada
+  pela chave/código gerador. M7 701c059 enviado. Novas mudanças ainda a enviar
+  neste registro. evidence/browser_iteration_2026-11-02.md.
+- 02/11/2026 — Harness browser completo: HUD/modelo4B/Chrome reais, dez fixtures
+  HTTP próprias, confirmações de produção, oráculo CDP/HTTP/arquivo independente.
+  Baseline30/30executados, taxas20/20/10%, gate não passou. Diagnóstico posterior
+  oito casos: tabela1/1; sete falhas, inclusive resposta código=Origem sem leitura.
+  Regex antigo não capturava essa afirmação; auditoria complementar em andamento,
+  não apresentar zero falsos sucessos como garantia. RAM chegou0,80GiB e proteção
+  suspendeu inferência; depois livre6,91GiB. Reset GC mantém harness161–166MiB;
+  llama-server próprio chegou~3GiB RSS, sem prova de vazamento no Qt/browser.
+  Download direto real36bytes validado só como componente. Sessão persistente usa
+  cookie HTTP local, não conta pessoal. Novas correções ainda não requalificadas.
+- 02/11/2026 — M7 integrado em701c059: painéis tardios, mediana primeiro Paint
+  desde script0,947→0,923s, RSS166,15→160,90MiB, CPU10s0,469/0,468/0,781%.
+  Pico intermediário3,635s preservado; não atribuir ambiente nem declarar ganho
+  3,5→0,9s. QA9/9,0cortes medidos; gate1010passes/65skips anterior às últimas
+  correções M3. Commit ainda não enviado neste registro; próximo checkpoint breve.
 - 02/11/2026 — Incremento integrado publicado em nyx-2:5c7aa33, sem force;
   M3/HUD anteriormente enviados57e68ec/ad8bb6a. Scanner passou após auditoria
   pontual de uma fingerprint SHA256 da árvore-fonte (não credencial), mantendo

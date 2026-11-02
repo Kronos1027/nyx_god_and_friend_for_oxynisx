@@ -30,7 +30,8 @@ Falso sucesso encontrado = defeito crítico que bloqueia o marco.
 - Conversa geral deve usar classificador de intenção conversa×tarefa e streaming de texto livre, substituindo o roteador por regex de saudações.
 
 ## 4. Protocolo de trabalho de longa duração
-- Prioridade atual do usuário: **M7 Nyx HUD e M3 navegador em paralelo, em worktrees**. Não manter o projeto preso em M0/CI/higiene. Decisão reversível: decida, registre em `docs/DECISOES.md` (contexto, opções, escolha, motivo, como reverter) e siga.
+- Prioridade revisada: **M3 navegador nº1: dez cenários com setup/verificador, três rodadas e taxa real**. Depois sensores AGORA com consentimento, desempenho HUD, qualificação dos fallbacks instalados e pesquisa com fontes. M7 pode seguir na frente paralela já autorizada em worktree. Não manter o projeto preso em CI/higiene. Decisão reversível: decida, registre em `docs/DECISOES.md` e siga.
+- BLOCKED_HARNESS não é entrega final. Falha funcional fica em correção; usar "parcial" apenas quando existir evidência de bloqueio de ambiente. Se login humano for indispensável, pedir ao usuário e continuar os demais cenários. Sequência seguinte: M4 permissões graduadas, M6 memória/voz e M8 quarenta tarefas/três execuções.
 - Após cada marco: rode o **gate** (ver skill `nyx-windows-live-verify`), commite (um assunto por commit, `feat|fix|test|docs(escopo): ...`), atualize `docs/PROGRESS.md`. Trabalhe na branch `nyx-2`; nunca force-push; nunca commit em `main` sem pedido.
 - Worktrees de implementação podem usar branches codex/; integração e publicação em nyx-2. Dar push ao concluir cada marco ou a cada aproximadamente4horas, conforme autorização vigente do usuário. Não enviar dados privados.
 - `docs/PROGRESS.md` é a sua memória externa (o contexto é compactado): sempre registre marco atual, próximo passo exato, comandos para retomar, bloqueios.
