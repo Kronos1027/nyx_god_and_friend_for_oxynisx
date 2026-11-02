@@ -1,0 +1,34 @@
+{
+  "scope": "real production helper, no desktop mutations or application launch",
+  "rows": [
+    {
+      "run": 1,
+      "startup_s": 0.312,
+      "close_s": 0.0,
+      "owned_process_count": 2,
+      "redirected_launcher": true,
+      "owned_rss_mib": 24.33,
+      "remaining_after_close": 0
+    },
+    {
+      "run": 2,
+      "startup_s": 0.297,
+      "close_s": 0.016,
+      "owned_process_count": 2,
+      "redirected_launcher": true,
+      "owned_rss_mib": 24.32,
+      "remaining_after_close": 0
+    },
+    {
+      "run": 3,
+      "startup_s": 0.281,
+      "close_s": 0.0,
+      "owned_process_count": 2,
+      "redirected_launcher": true,
+      "owned_rss_mib": 24.32,
+      "remaining_after_close": 0
+    }
+  ],
+  "passed": true,
+  "limits": "RSS snapshot sums working sets and may repeat shared pages; not peak UI RAM/VRAM."
+}

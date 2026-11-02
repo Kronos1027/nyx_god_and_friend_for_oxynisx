@@ -70,6 +70,39 @@ def uia_context():
             ctypes.windll.ole32.CoUninitialize()
 
 
+def foreground_window_handle():
+    import win32gui
+    return win32gui.GetForegroundWindow()
+
+
+def _synchronize_focus(hwnd, control):
+    """Bounded worker-only input synchronization; always detach before return."""
+    import win32api
+    import win32gui
+    import win32process
+    own = win32api.GetCurrentThreadId()
+    foreground = win32gui.GetForegroundWindow()
+    threads = [win32process.GetWindowThreadProcessId(window)[0] for window in (foreground, hwnd) if window]
+    attached = []
+    try:
+        for thread in dict.fromkeys(threads):
+            if thread and thread != own:
+                win32process.AttachThreadInput(own, thread, True)
+                attached.append(thread)
+        control.check()
+        win32api.SetLastError(0)
+        win32gui.SetForegroundWindow(hwnd)
+    finally:
+        for thread in reversed(attached):
+            try:
+                win32process.AttachThreadInput(own, thread, False)
+            except Exception:
+                # An uncertain input link must not survive in a reusable helper.
+                # SystemExit ends only the owned worker; IPC observes EOF and
+                # closes its exact process tree rather than claiming success.
+                raise SystemExit('Sincronização de foco não foi liberada; auxiliar encerrado.') from None
+
+
 def focus(window, control):
     import pygetwindow as gw
     import win32gui
@@ -78,16 +111,22 @@ def focus(window, control):
         raise ValueError("Janela bloqueada por diálogo modal; selecione o diálogo primeiro.")
     if window.isMinimized:
         window.restore()
+    last_error = None
     if not window.isActive:
         try:
             window.activate()
-        except Exception:
+        except Exception as exc:
             # pygetwindow can raise error code 0 even when focus changes.
             # Only the subsequent observed HWND decides success.
-            pass
+            last_error = exc
     if not window.isActive:
-        from pywinauto import Desktop
-        Desktop(backend="uia").window(handle=window._hWnd).wrapper_object().set_focus()
+        # Focus needs the HWND, not UIA metadata (which can fail for elevated
+        # XAML apps). This also avoids pywinauto's out-of-screen mouse move.
+        control.check()
+        try:
+            _synchronize_focus(window._hWnd, control)
+        except Exception as exc:
+            last_error = exc
     deadline = time.monotonic() + 0.8
     while time.monotonic() < deadline:
         control.check()
@@ -95,7 +134,8 @@ def focus(window, control):
         if active and active._hWnd == window._hWnd:
             return
         time.sleep(0.04)
-    raise ValueError("A janela não recebeu foco; confira janelas modais antes de continuar.")
+    detail = f' Último erro: {last_error}' if last_error is not None else ''
+    raise ValueError("A janela não recebeu foco; confira janelas modais antes de continuar." + detail)
 
 
 class UIATargets:

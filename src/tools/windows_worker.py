@@ -1,5 +1,6 @@
 """Trusted UIA worker. No Qt, model-generated code, or arbitrary commands."""
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -14,6 +15,7 @@ def serve():
     control = OperationControl()
     targets = UIATargets(control)
     with uia_context():
+        print(json.dumps({'ready':True, 'pid':os.getpid()}), flush=True)
         for line in sys.stdin:
             if len(line) > 131072:
                 return 2

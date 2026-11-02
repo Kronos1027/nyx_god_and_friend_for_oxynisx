@@ -1,5 +1,7 @@
 """Bounded IPC to an owned UIA process, isolated from Qt's COM state."""
 import atexit
+import ctypes
+from ctypes import wintypes
 import json
 from pathlib import Path
 import queue
@@ -8,6 +10,7 @@ import sys
 import threading
 import time
 from uuid import uuid4
+import psutil
 
 
 class AutomationInterrupted(RuntimeError):
@@ -23,12 +26,53 @@ class WindowsAutomationClient:
         self._lock = threading.Lock()
         self._process = None
         self._responses = None
+        self._worker_pid = None
+        self._owned_pids = {}
         atexit.register(self.close)
+
+    def _allow_worker_foreground(self):
+        """Delegate only to this owned helper, if Windows allows the caller."""
+        process = self._process
+        if sys.platform != 'win32' or process is None or process.poll() is not None or self._worker_pid is None:
+            return False
+        try:
+            worker = psutil.Process(self._worker_pid)
+            if worker.create_time() != self._owned_pids.get(worker.pid) or not worker.is_running():
+                return False
+        except psutil.Error:
+            return False
+        user = ctypes.WinDLL('user32', use_last_error=True)
+        allow = user.AllowSetForegroundWindow
+        allow.argtypes = [wintypes.DWORD]
+        allow.restype = wintypes.BOOL
+        # Never ASFW_ANY, elevation, input attachment, or a system setting.
+        return bool(allow(worker.pid))
 
     def close(self):
         process, self._process = self._process, None
+        owned, self._owned_pids = self._owned_pids, {}
+        self._worker_pid = None
         if process is None:
             return
+        # Windows venv launchers may hide the actual interpreter two levels down.
+        # Keep exact creation times, including after an intermediate exits.
+        if process.poll() is None:
+            try:
+                for member in psutil.Process(process.pid).children(recursive=True):
+                    owned[member.pid] = member.create_time()
+            except psutil.Error:
+                pass
+        children = []
+        for pid, created in owned.items():
+            if pid == process.pid:
+                continue
+            try:
+                member = psutil.Process(pid)
+                if member.create_time() == created:
+                    children.append(member)
+                    member.terminate()
+            except psutil.Error:
+                pass
         if process.poll() is None:
             process.terminate()
         try:
@@ -36,6 +80,13 @@ class WindowsAutomationClient:
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait(timeout=1)
+        _, alive = psutil.wait_procs(children, timeout=.2)
+        for member in alive:
+            try:
+                if member.create_time() == owned.get(member.pid):
+                    member.kill()
+            except psutil.Error:
+                pass
         for stream in (process.stdin, process.stdout):
             if stream:
                 stream.close()
@@ -68,6 +119,21 @@ class WindowsAutomationClient:
                 except queue.Full:
                     pass
         threading.Thread(target=read, daemon=True, name="nyx-uia-reader").start()
+        try:
+            ready = responses.get(timeout=min(3, self.timeout))
+        except queue.Empty as exc:
+            raise AutomationInterrupted('O auxiliar UIA não confirmou sua identidade no prazo.') from exc
+        if not isinstance(ready, dict) or ready.get('ready') is not True or type(ready.get('pid')) is not int:
+            raise AutomationInterrupted('O auxiliar UIA não confirmou uma identidade válida.')
+        worker = psutil.Process(ready['pid'])
+        chain = [worker, *worker.parents()]
+        if process.pid not in {member.pid for member in chain}:
+            raise AutomationInterrupted('O PID informado não pertence ao auxiliar iniciado pela Nyx.')
+        for member in chain:
+            self._owned_pids[member.pid] = member.create_time()
+            if member.pid == process.pid:
+                break
+        self._worker_pid = worker.pid
 
     def call(self, verb, params):
         deadline = time.monotonic() + self.timeout
@@ -80,6 +146,8 @@ class WindowsAutomationClient:
         try:
             self.control.check()
             self._start()
+            if mutation:
+                self._allow_worker_foreground()
             token = uuid4().hex
             payload = json.dumps({"id": token, "verb": verb, "params": params}, ensure_ascii=True) + "\n"
             if len(payload) > 131072:
