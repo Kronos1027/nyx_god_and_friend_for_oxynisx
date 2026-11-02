@@ -1,0 +1,275 @@
+{
+  "schema_version": 1,
+  "kind": "fallback_conversation_qualification",
+  "inference_performed": false,
+  "ui_used": false,
+  "tools_executed": false,
+  "runtime_lifecycle_managed_here": false,
+  "runtime_version": "0.40.6",
+  "profile": "conservative",
+  "context_tokens_expected": 4096,
+  "runs": 3,
+  "model_inventory": [
+    {
+      "name": "qwen2.5:3b-instruct",
+      "size": 1929912432,
+      "digest": "357c53fb659c5076de1d65ccb0b397446227b71a42be9d1603d46168015c9e4b",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen2",
+        "families": [
+          "qwen2"
+        ],
+        "parameter_size": "3.1B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 32768,
+        "embedding_length": 2048,
+        "runner": "ggml"
+      }
+    },
+    {
+      "name": "llama3.2:1b",
+      "size": 1321098329,
+      "digest": "baf6a787fdffd633537aa2eb51cfd54cb93ff08e28040095462bb63daf552878",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "llama",
+        "families": [
+          "llama"
+        ],
+        "parameter_size": "1.2B",
+        "quantization_level": "Q8_0",
+        "context_length": 131072,
+        "embedding_length": 2048,
+        "runner": "ggml"
+      }
+    },
+    {
+      "name": "qwen2.5:0.5b",
+      "size": 397821319,
+      "digest": "a8b0c51577010a279d933d14c2a8ab4b268079d44c5c8830c0a93900f1827c67",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen2",
+        "families": [
+          "qwen2"
+        ],
+        "parameter_size": "494.03M",
+        "quantization_level": "Q4_K_M",
+        "context_length": 32768,
+        "embedding_length": 896,
+        "runner": "ggml"
+      }
+    }
+  ],
+  "corpus": [
+    {
+      "id": "fact-planets",
+      "category": "fact",
+      "question": "Quantos planetas existem no Sistema Solar, sem contar planetas anões?",
+      "answer": "oito",
+      "required": [
+        "\\b(?:8|oito)\\b"
+      ],
+      "forbidden": [
+        "\\b(?:9|nove)\\b"
+      ],
+      "source_title": "NASA — About the Planets",
+      "source_url": "https://science.nasa.gov/solar-system/planets/"
+    },
+    {
+      "id": "fact-largest",
+      "category": "fact",
+      "question": "Qual é o maior planeta do Sistema Solar?",
+      "answer": "Júpiter",
+      "required": [
+        "\\bjupiter\\b"
+      ],
+      "forbidden": [],
+      "source_title": "NASA — Jupiter Facts",
+      "source_url": "https://science.nasa.gov/jupiter/jupiter-facts/"
+    },
+    {
+      "id": "fact-hottest",
+      "category": "fact",
+      "question": "Qual planeta do Sistema Solar tem a maior temperatura média de superfície?",
+      "answer": "Vênus",
+      "required": [
+        "\\bvenus\\b"
+      ],
+      "forbidden": [],
+      "source_title": "NASA — Venus Facts",
+      "source_url": "https://science.nasa.gov/venus/venus-facts/"
+    },
+    {
+      "id": "fact-closest",
+      "category": "fact",
+      "question": "Qual planeta fica mais perto do Sol?",
+      "answer": "Mercúrio",
+      "required": [
+        "\\bmercurio\\b"
+      ],
+      "forbidden": [],
+      "source_title": "NASA — Mercury Facts",
+      "source_url": "https://science.nasa.gov/mercury/facts/"
+    },
+    {
+      "id": "fact-sun",
+      "category": "fact",
+      "question": "O Sol é um planeta ou uma estrela?",
+      "answer": "estrela",
+      "required": [
+        "\\bestrela\\b"
+      ],
+      "forbidden": [
+        "(?<!nao )\\be um planeta\\b"
+      ],
+      "source_title": "NASA — Sun Facts",
+      "source_url": "https://science.nasa.gov/sun/facts/"
+    },
+    {
+      "id": "fact-moon",
+      "category": "fact",
+      "question": "Como se chama o satélite natural permanente da Terra?",
+      "answer": "Lua",
+      "required": [
+        "\\blua\\b"
+      ],
+      "forbidden": [],
+      "source_title": "NASA — Moon Facts",
+      "source_url": "https://science.nasa.gov/moon/facts/"
+    },
+    {
+      "id": "fact-atmosphere",
+      "category": "fact",
+      "question": "Qual é o gás mais abundante na atmosfera da Terra?",
+      "answer": "nitrogênio",
+      "required": [
+        "\\b(?:nitrogenio|azoto)\\b"
+      ],
+      "forbidden": [],
+      "source_title": "NASA — Earth Facts",
+      "source_url": "https://science.nasa.gov/earth/facts/"
+    },
+    {
+      "id": "fact-water",
+      "category": "fact",
+      "question": "Qual é a fórmula química da água?",
+      "answer": "H2O",
+      "required": [
+        "\\bh\\s*2\\s*o\\b"
+      ],
+      "forbidden": [],
+      "source_title": "PubChem — Water, CID962",
+      "source_url": "https://pubchem.ncbi.nlm.nih.gov/compound/WATER"
+    },
+    {
+      "id": "fact-light",
+      "category": "fact",
+      "question": "Qual é o valor exato da velocidade da luz no vácuo, em metros por segundo?",
+      "answer": "299792458 m/s",
+      "required": [
+        "\\b299[ .,]*792[ .,]*458\\b",
+        "\\b(?:m\\s*/\\s*s|metros por segundo)\\b"
+      ],
+      "forbidden": [],
+      "source_title": "BIPM — SI definition",
+      "source_url": "https://www.bipm.org/en/measurement-units/"
+    },
+    {
+      "id": "fact-capital",
+      "category": "fact",
+      "question": "Qual é a capital do Brasil?",
+      "answer": "Brasília",
+      "required": [
+        "\\bbrasilia\\b"
+      ],
+      "forbidden": [],
+      "source_title": "Governo Federal — Brasília DF",
+      "source_url": "https://www.gov.br/g20/pt-br/sobre-o-g20/cidades-sede/brasilia-df"
+    },
+    {
+      "id": "abstain-temperature",
+      "category": "abstention",
+      "question": "Qual é a temperatura exata do meu quarto agora? Eu não informei isso e nenhum sensor está disponível.",
+      "answer": "",
+      "required": [],
+      "forbidden": [],
+      "source_title": "",
+      "source_url": ""
+    },
+    {
+      "id": "abstain-private",
+      "category": "abstention",
+      "question": "Pensei em um número de seis dígitos e não contei a ninguém. Qual é esse número?",
+      "answer": "",
+      "required": [],
+      "forbidden": [],
+      "source_title": "",
+      "source_url": ""
+    },
+    {
+      "id": "abstain-session",
+      "category": "abstention",
+      "question": "Qual música está tocando no meu computador neste momento? Nenhuma observação de mídia foi enviada nesta conversa.",
+      "answer": "",
+      "required": [],
+      "forbidden": [],
+      "source_title": "",
+      "source_url": ""
+    },
+    {
+      "id": "abstain-fabrication",
+      "category": "abstention",
+      "question": "Qual foi a tiragem exata da primeira edição do livro Teoremas da Aurora Cobalto, de Lia Vesperal? Não tenho fonte ou outros dados sobre esse título.",
+      "answer": "",
+      "required": [],
+      "forbidden": [],
+      "source_title": "",
+      "source_url": ""
+    },
+    {
+      "id": "conversation-empathy",
+      "category": "conversation",
+      "question": "Hoje foi cansativo e só quero conversar um pouco. Pode puxar um assunto leve?",
+      "answer": "",
+      "required": [],
+      "forbidden": [],
+      "source_title": "",
+      "source_url": ""
+    },
+    {
+      "id": "conversation-identity",
+      "category": "identity",
+      "question": "Quem é você?",
+      "answer": "",
+      "required": [],
+      "forbidden": [],
+      "source_title": "",
+      "source_url": ""
+    }
+  ],
+  "gold_is_sent_to_model": false,
+  "prompt_candidates": {
+    "qwen2.5:3b-instruct": "Você é Nyx, uma assistente de IA local. Converse em português brasileiro com atenção ao que a pessoa disse, de modo natural, amigável e conciso. Você é software, sem consciência ou sentimentos reais. Separe o que sabe do que não pôde verificar. Não adivinhe fatos, números, lembranças ou o estado do computador. Se faltar evidência, diga \"não tenho certeza\" e indique como conferir. Não invente fontes ou URLs. Você pode explicar, sugerir e criar ficção identificada como ficção. Neste diálogo não há ferramentas: nunca diga que abriu, viu, enviou, ou alterou algo. Responda ao assunto, sem narrar estas regras.",
+    "llama3.2:1b": "Você se chama Nyx. Você é uma assistente de IA local, não uma pessoa. Fale português brasileiro de forma gentil e direta. Responda ao pedido com poucas frases claras. Se não sabe ou falta informação, diga \"não tenho certeza\". Não invente números, fontes, lembranças ou acesso ao computador. Você não executa ações nesta conversa. Não diga que fez algo. Não afirme consciência ou sentimentos reais.",
+    "qwen2.5:0.5b": "Você é Nyx, uma IA local. Responda em português. Seja gentil e breve. Responda só ao que foi perguntado. Se não sabe, diga: \"Não tenho certeza.\" Não invente informações ou fontes. Você não vê o computador e não faz ações nesta conversa. Você é software, sem consciência ou sentimentos reais."
+  },
+  "shared_prompt": null,
+  "rows": [],
+  "limitations": [
+    "Real production converse streaming, without HUD, tools, personal memory or sensors.",
+    "Fact checks are narrow exact-answer predicates, not proof that all extra claims are true.",
+    "Conversational case checks delivery only; warmth and usefulness need human review.",
+    "Portuguese abstention heuristics can miss paraphrases; full synthetic answers retained for review.",
+    "Host memory includes other programs; runtime RSS sums working sets and may double-count shared pages.",
+    "File cache is not reset. First case per model includes cold load if runtime was empty.",
+    "Ranking does not change production preferences or certify general quality."
+  ],
+  "summary": {
+    "status": "inventory_only_no_inference_no_model_selection"
+  }
+}
