@@ -123,7 +123,8 @@ def test_stage_update_rejects_bad_checksum_and_cleans_staging(tmp_path, monkeypa
     assert not (local_app_data / "Nyx" / "updates" / "0.2.0").exists()
 
 
-def test_generated_update_helper_parses_and_has_rollback(tmp_path, monkeypatch):
+@pytest.fixture
+def generated_update_helper(tmp_path, monkeypatch):
     local_app_data = tmp_path / "local"
     install = local_app_data / "Programs" / "Nyx"
     install.mkdir(parents=True)
@@ -142,10 +143,20 @@ def test_generated_update_helper_parses_and_has_rollback(tmp_path, monkeypatch):
 
     helper = payload.parent / "apply-update.ps1"
     script = helper.read_text(encoding="utf-8")
+    return helper, script, calls, real_popen
+
+
+def test_generated_update_helper_has_rollback(generated_update_helper):
+    _, script, calls, _ = generated_update_helper
     assert "Wait-Process -Id $WaitPid" in script
     assert "Move-Item -LiteralPath $backup -Destination $install" in script
     assert "Autoteste da versão nova falhou." in script
     assert calls[0][0:4] == ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass"]
+
+
+@pytest.mark.skipif(sys.platform != 'win32', reason='Parser do Windows PowerShell requer Windows; rollback é verificado separadamente.')
+def test_generated_update_helper_parses_in_windows_powershell(generated_update_helper):
+    helper, _, _, real_popen = generated_update_helper
     escaped = str(helper).replace("'", "''")
     command = (
         "$tokens=$null; $errors=$null; "

@@ -1,9 +1,9 @@
 # PROGRESS — memória externa do trabalho (atualize ao fim de cada passo relevante)
 
 **Marco atual:** M0 (integração e baseline ampliado) · **Branch:** nyx-2 · **Base preservada:** 5fc8ee5
-**Próximo passo exato:** finalizar commits/sanitização do histórico local ainda não publicado e push explícito de nyx-2, autorizado pelo usuário. Conferir SHA remoto e CI. Depois seguir M0 por lacuna independente: auditoria/publicação concluída não fecha Apps; foco/RAM continuam bloqueios medidos.
+**Próximo passo exato:** enviar correção das três fixtures identificadas no CI Linux e verificar novo job até concluir. Código/checkpoint já no GitHub (nyx-2,58693f6). Depois seguir M0 por lacuna independente; foco/RAM continuam bloqueios medidos, sem repetir tentativas cegas.
 **Como retomar:** `git switch nyx-2` · ler AGENTS.md, este arquivo e docs/DECISOES.md · rodar `python -m pytest -q`
-**Bloqueios:**44cenários do harness sem setup/verificador seguro, sem inferir incapacidade da Nyx. Apps não são fechados/resetados, então a bateria nativa parcial não fecha gate. Login Spotify adiado pelo usuário. Migração privada/remoção remota fora do escopo aprovado. Requalificação atual de arquivos passou3/3; antigas recusas de RAM permanecem como histórico.
+**Bloqueios:**35cenários do harness sem setup/verificador seguro, sem inferir incapacidade da Nyx. Apps não são fechados/resetados e há falhas medidas de foco/RAM. Login Spotify adiado pelo usuário. Migração privada/remoção remota fora do escopo aprovado. Requalificação de arquivos passou3/3; recusas anteriores permanecem como histórico.
 
 ## Marcos
 | Marco | Status | Evidência | Gate (limiares) | Notas |
@@ -19,6 +19,11 @@
 | M8 Aceitação final | pendente | | bench 3× completo · soak 2 h · falso sucesso = 0 | |
 
 ## Log (mais recente primeiro)
+- 01/11/2026 — Push confirmado por Git/API:35commits na branch nyx-2,58693f6,
+  main/backups intactos, sem force.21blobs documentais históricos sanitizados;
+  árvore final idêntica e referência original local preservada. Scanner passou.
+  CI Linux real falhou em três fixtures; corrigidas sem remover asserts e com
+  parser Windows separado.67testes focados verdes; próximo push/verificação CI.
 - 01/11/2026 — Usuário reiterou envio ao GitHub. Gate final970passes/27skips/
   0falhas/49,845s,997casos. Rotas nativas12; roteamento12/12para quatro apps,
   mas runner final interrompido por RAM na sétima tarefa (2passes/7execuções;

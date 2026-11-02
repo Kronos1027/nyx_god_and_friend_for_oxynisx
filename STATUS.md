@@ -2,6 +2,14 @@
 
 Última atualização: 2026-11-01
 
+## Progresso enviado ao GitHub
+
+- Checkpoint35commits publicado e SHA58693f6confirmado na branch nyx-2.
+  Main/backups preservados; sem force-push; dados e logs brutos não enviados.
+- Primeiro CI Linux executou e encontrou três fixtures dependentes do Windows.
+  Correção preserva verificações;67testes focados passaram no Windows. Novo job
+  será acompanhado. Detalhes: docs/evidence/github_publication_2026-11-01.md.
+
 ## Checkpoint para publicação — expansão ainda parcial
 
 - Última regressão:970aprovados,27pulados,0falhas,997casos,49,845s; Ruff limpo.

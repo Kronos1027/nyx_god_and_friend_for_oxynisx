@@ -2,6 +2,11 @@
 
 ## Atualização de 01/11/2026
 
+- Checkpoint já está no GitHub. CI Linux inicial encontrou três fixtures a
+  corrigir; Windows verde não foi apresentado como comprovação de Linux.
+  Parser Windows PowerShell permanece específico do Windows, com rollback
+  verificado também no núcleo multiplataforma. Sem publicação de release.
+
 - Gate ampliado permanece reprovado:7/36tentativas nativas executadas antes de
   pressão de RAM, apenas2concluídas nessa rodada;29bloqueadas no runtime e9sem
   rota no total45. Não inferir sucesso ou incapacidade universal das demais.

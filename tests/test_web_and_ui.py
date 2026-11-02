@@ -61,6 +61,10 @@ def test_network_failure_never_invents_a_city(monkeypatch):
 
 
 def test_ui_tool_new_methods(monkeypatch):
+    from tools.installed_apps import AppResolutionError
+    def missing_native_app(name):
+        raise AppResolutionError('NOT_FOUND', [])
+    monkeypatch.setattr('tools.installed_apps.resolve_app', missing_native_app)
     ui = UITool()
     opened = []
     monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)

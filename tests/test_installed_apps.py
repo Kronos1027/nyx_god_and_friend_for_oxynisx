@@ -272,7 +272,7 @@ def test_steam_manifests_show_installed_games_without_launching(tmp_path, monkey
     write_manifest(library, '44', 'Steam Linux Runtime 3.0', 'runtime')
     write_manifest(library, '45', 'Incompleto', 'incomplete', '2')
     write_manifest(library, '46', 'Removido', 'deleted', create_directory=False)
-    monkeypatch.setattr('os.startfile', lambda *args: pytest.fail('Catalog must not launch anything'))
+    monkeypatch.setattr('os.startfile', lambda *args: pytest.fail('Catalog must not launch anything'), raising=False)
     result = UITool(tmp_path / 'shots').run({'action': 'list_steam_games'})
     assert result.ok
     data = json.loads(result.output)

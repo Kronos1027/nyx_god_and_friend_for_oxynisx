@@ -26,7 +26,7 @@ jobs:
         run: ruff check src tests tools bench
 
       - name: Testes (pytest)
-        run: pytest tests/ -q -m 'not windows_live' --tb=short
+        run: python -m pytest tests/ -m 'not windows_live' --tb=short
 
       - name: Segredos (offline, sem validação de credenciais na rede)
         env:
