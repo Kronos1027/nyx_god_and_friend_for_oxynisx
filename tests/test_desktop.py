@@ -98,6 +98,31 @@ def test_agora_clears_finished_step_instead_of_showing_stale_work(desktop):
     assert not window.agora.stepper.text() and not window.agora.cancel.isEnabled()
 
 
+def test_agora_has_opt_in_sensors_and_rejects_late_private_readings(desktop):
+    from core.presence_sensors import PresenceMonitor
+    window, app, _ = desktop
+    for sensor in ('active_window', 'process_inventory', 'media', 'games'):
+        assert not window.sensor_checks[sensor].isChecked()
+    window._refresh_presence()
+    assert window._presence is None
+    window.sensor_checks['active_window'].setChecked(True)
+    window._presence = PresenceMonitor(window._context)
+    window._presence.resume()
+    reading = {'generation': 0, 'observed_at': time.monotonic(),
+               'fields': {'window': {'status': 'ok', 'text': 'Fixture title'}}}
+    window._presence_done(reading)
+    assert window.agora.fields['window'].text() == 'Fixture title'
+    window.private_button.setChecked(True)
+    app.processEvents()
+    window._presence_done(reading)
+    assert window._context.permissions()['active_window']
+    assert 'Fixture title' not in window.agora.fields['window'].text()
+    assert 'Privado' in window.agora.fields['window'].text()
+    window.private_button.setChecked(False)
+    window._presence_done(reading)
+    assert 'Fixture title' not in window.agora.fields['window'].text()
+
+
 def test_memory_diagnostics_opens_without_process_enumeration(desktop, monkeypatch):
     from ui.resource_diagnostics import ResourceDiagnosticsDialog
     requests = []

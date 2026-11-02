@@ -9,7 +9,8 @@ import time
 from threading import RLock
 
 SENSORS = {"own_tasks": True, "research": True, "resources": True,
-           "processes": False, "folders": False, "browser": False, "active_window": False}
+           "processes": False, "folders": False, "browser": False, "active_window": False,
+           "process_inventory": False, "media": False, "games": False}
 EVENT_KINDS = {"task_failed", "task_complete", "research_found", "resource_pressure",
                "process_exited", "project_changed", "download_complete", "deadline"}
 
@@ -85,11 +86,26 @@ class ContextAwarenessEngine:
     def set_permission(self, sensor, enabled):
         if sensor not in SENSORS or type(enabled) is not bool:
             raise ValueError("Permissão de observação inválida")
-        with self.connect() as db:
-            db.execute("UPDATE sensors SET enabled=? WHERE name=?", (enabled, sensor))
-            if not enabled:
-                db.execute("DELETE FROM context_events WHERE sensor=?", (sensor,))
-            self._audit(db, sensor, "enabled" if enabled else "disabled")
+        with self._pause_lock:
+            # Revoking and granting again must not release an older observation.
+            self._pause_generation += 1
+            with self.connect() as db:
+                db.execute("UPDATE sensors SET enabled=? WHERE name=?", (enabled, sensor))
+                if not enabled:
+                    db.execute("DELETE FROM context_events WHERE sensor=?", (sensor,))
+                self._audit(db, sensor, "enabled" if enabled else "disabled")
+
+    def observe_now(self, sensor, collector):
+        """Permission-check a transient HUD reading without writing content/history."""
+        with self._pause_lock:
+            if self._paused or not self.permissions().get(sensor, False):
+                return None
+            generation = self._pause_generation
+        result = collector()
+        with self._pause_lock:
+            if not self._collection_current(generation) or not self.permissions().get(sensor, False):
+                return None
+            return result
 
     def _audit(self, db, sensor, outcome):
         db.execute("INSERT INTO observation_access(sensor,at,outcome) VALUES (?,?,?)", (sensor, self.clock(), outcome))

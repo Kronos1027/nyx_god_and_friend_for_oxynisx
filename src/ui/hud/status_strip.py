@@ -29,10 +29,10 @@ class StatusStrip(QFrame):
         self.stop.clicked.connect(self.stop_requested)
         layout.addWidget(self.stop)
 
-    def update_state(self, *, model, profile, permission, private):
+    def update_state(self, *, model, profile, permission, private, presence='PRESENÇA'):
         values = {'model':'MODELO '+model.removeprefix('Local · '), 'profile':profile.upper(),
                   'permission':'ASSISTIDA' if permission=='assistida' else 'AUTÔNOMA',
-                  'presence':'PRIVADO' if private else 'PRESENÇA'}
+                  'presence':'PRIVADO' if private else presence}
         for key, value in values.items():
             button = self.items[key]
             button.setToolTip(value)

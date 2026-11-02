@@ -1,0 +1,559 @@
+{
+  "scope": "Offscreen Qt layout and scripted UI smoke, not native startup or inference qualification. Measurements precede the final no-consent/no-worker optimization.",
+  "scales": [
+    {
+      "scale": "1",
+      "platform": "offscreen",
+      "captures": [
+        {
+          "name": "midnight-chat",
+          "findings": []
+        },
+        {
+          "name": "midnight-agenda",
+          "findings": []
+        },
+        {
+          "name": "midnight-settings-0",
+          "findings": []
+        },
+        {
+          "name": "midnight-settings-1",
+          "findings": []
+        },
+        {
+          "name": "midnight-settings-2",
+          "findings": []
+        },
+        {
+          "name": "midnight-settings-3",
+          "findings": []
+        },
+        {
+          "name": "midnight-settings-4",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-0",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-1",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-2",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-3",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-4",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-5",
+          "findings": []
+        },
+        {
+          "name": "midnight-confirm",
+          "findings": []
+        },
+        {
+          "name": "daylight-chat",
+          "findings": []
+        },
+        {
+          "name": "daylight-agenda",
+          "findings": []
+        },
+        {
+          "name": "daylight-settings-0",
+          "findings": []
+        },
+        {
+          "name": "daylight-settings-1",
+          "findings": []
+        },
+        {
+          "name": "daylight-settings-2",
+          "findings": []
+        },
+        {
+          "name": "daylight-settings-3",
+          "findings": []
+        },
+        {
+          "name": "daylight-settings-4",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-0",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-1",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-2",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-3",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-4",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-5",
+          "findings": []
+        },
+        {
+          "name": "daylight-confirm",
+          "findings": []
+        }
+      ],
+      "smoke": {
+        "midnight_deny": true,
+        "daylight_deny": true,
+        "approve": true,
+        "private_pause": true,
+        "private_restore": true,
+        "send": true,
+        "stop": true,
+        "escape_escape_stop": true,
+        "hidden_polling_stopped": true
+      },
+      "contrast": {
+        "midnight": {
+          "text/ink": 16.616,
+          "text/surface1": 15.355,
+          "text/surface2": 13.791,
+          "muted/ink": 6.831,
+          "muted/surface1": 6.312,
+          "muted/surface2": 5.669,
+          "gold/ink": 10.947,
+          "gold/surface1": 10.116,
+          "gold/surface2": 9.086,
+          "teal/ink": 10.496,
+          "teal/surface1": 9.699,
+          "teal/surface2": 8.711,
+          "red/ink": 6.459,
+          "red/surface1": 5.968,
+          "red/surface2": 5.36,
+          "onGold/gold": 10.947,
+          "onTeal/teal": 10.496,
+          "onRed/red": 6.459
+        },
+        "daylight": {
+          "text/ink": 16.745,
+          "text/surface1": 18.106,
+          "text/surface2": 16.024,
+          "muted/ink": 6.483,
+          "muted/surface1": 7.01,
+          "muted/surface2": 6.204,
+          "gold/ink": 5.482,
+          "gold/surface1": 5.927,
+          "gold/surface2": 5.246,
+          "teal/ink": 4.806,
+          "teal/surface1": 5.197,
+          "teal/surface2": 4.599,
+          "red/ink": 5.248,
+          "red/surface1": 5.675,
+          "red/surface2": 5.022,
+          "onGold/gold": 5.927,
+          "onTeal/teal": 5.197,
+          "onRed/red": 5.675
+        }
+      },
+      "contrast_passed": true,
+      "native_style": {
+        "dark_frame": false,
+        "mica": false,
+        "capture_excluded": false,
+        "supported": false
+      },
+      "first_paint_s": 0.6447,
+      "rss_mib": 130.39,
+      "idle_cpu_percent": 1.562,
+      "backup_timer_preserved": true,
+      "passed_interactions": true,
+      "text_findings": 0
+    },
+    {
+      "scale": "1.25",
+      "platform": "offscreen",
+      "captures": [
+        {
+          "name": "midnight-chat",
+          "findings": []
+        },
+        {
+          "name": "midnight-agenda",
+          "findings": []
+        },
+        {
+          "name": "midnight-settings-0",
+          "findings": []
+        },
+        {
+          "name": "midnight-settings-1",
+          "findings": []
+        },
+        {
+          "name": "midnight-settings-2",
+          "findings": []
+        },
+        {
+          "name": "midnight-settings-3",
+          "findings": []
+        },
+        {
+          "name": "midnight-settings-4",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-0",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-1",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-2",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-3",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-4",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-5",
+          "findings": []
+        },
+        {
+          "name": "midnight-confirm",
+          "findings": []
+        },
+        {
+          "name": "daylight-chat",
+          "findings": []
+        },
+        {
+          "name": "daylight-agenda",
+          "findings": []
+        },
+        {
+          "name": "daylight-settings-0",
+          "findings": []
+        },
+        {
+          "name": "daylight-settings-1",
+          "findings": []
+        },
+        {
+          "name": "daylight-settings-2",
+          "findings": []
+        },
+        {
+          "name": "daylight-settings-3",
+          "findings": []
+        },
+        {
+          "name": "daylight-settings-4",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-0",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-1",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-2",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-3",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-4",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-5",
+          "findings": []
+        },
+        {
+          "name": "daylight-confirm",
+          "findings": []
+        }
+      ],
+      "smoke": {
+        "midnight_deny": true,
+        "daylight_deny": true,
+        "approve": true,
+        "private_pause": true,
+        "private_restore": true,
+        "send": true,
+        "stop": true,
+        "escape_escape_stop": true,
+        "hidden_polling_stopped": true
+      },
+      "contrast": {
+        "midnight": {
+          "text/ink": 16.616,
+          "text/surface1": 15.355,
+          "text/surface2": 13.791,
+          "muted/ink": 6.831,
+          "muted/surface1": 6.312,
+          "muted/surface2": 5.669,
+          "gold/ink": 10.947,
+          "gold/surface1": 10.116,
+          "gold/surface2": 9.086,
+          "teal/ink": 10.496,
+          "teal/surface1": 9.699,
+          "teal/surface2": 8.711,
+          "red/ink": 6.459,
+          "red/surface1": 5.968,
+          "red/surface2": 5.36,
+          "onGold/gold": 10.947,
+          "onTeal/teal": 10.496,
+          "onRed/red": 6.459
+        },
+        "daylight": {
+          "text/ink": 16.745,
+          "text/surface1": 18.106,
+          "text/surface2": 16.024,
+          "muted/ink": 6.483,
+          "muted/surface1": 7.01,
+          "muted/surface2": 6.204,
+          "gold/ink": 5.482,
+          "gold/surface1": 5.927,
+          "gold/surface2": 5.246,
+          "teal/ink": 4.806,
+          "teal/surface1": 5.197,
+          "teal/surface2": 4.599,
+          "red/ink": 5.248,
+          "red/surface1": 5.675,
+          "red/surface2": 5.022,
+          "onGold/gold": 5.927,
+          "onTeal/teal": 5.197,
+          "onRed/red": 5.675
+        }
+      },
+      "contrast_passed": true,
+      "native_style": {
+        "dark_frame": false,
+        "mica": false,
+        "capture_excluded": false,
+        "supported": false
+      },
+      "first_paint_s": 0.4787,
+      "rss_mib": 133.14,
+      "idle_cpu_percent": 1.093,
+      "backup_timer_preserved": true,
+      "passed_interactions": true,
+      "text_findings": 0
+    },
+    {
+      "scale": "1.5",
+      "platform": "offscreen",
+      "captures": [
+        {
+          "name": "midnight-chat",
+          "findings": []
+        },
+        {
+          "name": "midnight-agenda",
+          "findings": []
+        },
+        {
+          "name": "midnight-settings-0",
+          "findings": []
+        },
+        {
+          "name": "midnight-settings-1",
+          "findings": []
+        },
+        {
+          "name": "midnight-settings-2",
+          "findings": []
+        },
+        {
+          "name": "midnight-settings-3",
+          "findings": []
+        },
+        {
+          "name": "midnight-settings-4",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-0",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-1",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-2",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-3",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-4",
+          "findings": []
+        },
+        {
+          "name": "midnight-learning-5",
+          "findings": []
+        },
+        {
+          "name": "midnight-confirm",
+          "findings": []
+        },
+        {
+          "name": "daylight-chat",
+          "findings": []
+        },
+        {
+          "name": "daylight-agenda",
+          "findings": []
+        },
+        {
+          "name": "daylight-settings-0",
+          "findings": []
+        },
+        {
+          "name": "daylight-settings-1",
+          "findings": []
+        },
+        {
+          "name": "daylight-settings-2",
+          "findings": []
+        },
+        {
+          "name": "daylight-settings-3",
+          "findings": []
+        },
+        {
+          "name": "daylight-settings-4",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-0",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-1",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-2",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-3",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-4",
+          "findings": []
+        },
+        {
+          "name": "daylight-learning-5",
+          "findings": []
+        },
+        {
+          "name": "daylight-confirm",
+          "findings": []
+        }
+      ],
+      "smoke": {
+        "midnight_deny": true,
+        "daylight_deny": true,
+        "approve": true,
+        "private_pause": true,
+        "private_restore": true,
+        "send": true,
+        "stop": true,
+        "escape_escape_stop": true,
+        "hidden_polling_stopped": true
+      },
+      "contrast": {
+        "midnight": {
+          "text/ink": 16.616,
+          "text/surface1": 15.355,
+          "text/surface2": 13.791,
+          "muted/ink": 6.831,
+          "muted/surface1": 6.312,
+          "muted/surface2": 5.669,
+          "gold/ink": 10.947,
+          "gold/surface1": 10.116,
+          "gold/surface2": 9.086,
+          "teal/ink": 10.496,
+          "teal/surface1": 9.699,
+          "teal/surface2": 8.711,
+          "red/ink": 6.459,
+          "red/surface1": 5.968,
+          "red/surface2": 5.36,
+          "onGold/gold": 10.947,
+          "onTeal/teal": 10.496,
+          "onRed/red": 6.459
+        },
+        "daylight": {
+          "text/ink": 16.745,
+          "text/surface1": 18.106,
+          "text/surface2": 16.024,
+          "muted/ink": 6.483,
+          "muted/surface1": 7.01,
+          "muted/surface2": 6.204,
+          "gold/ink": 5.482,
+          "gold/surface1": 5.927,
+          "gold/surface2": 5.246,
+          "teal/ink": 4.806,
+          "teal/surface1": 5.197,
+          "teal/surface2": 4.599,
+          "red/ink": 5.248,
+          "red/surface1": 5.675,
+          "red/surface2": 5.022,
+          "onGold/gold": 5.927,
+          "onTeal/teal": 5.197,
+          "onRed/red": 5.675
+        }
+      },
+      "contrast_passed": true,
+      "native_style": {
+        "dark_frame": false,
+        "mica": false,
+        "capture_excluded": false,
+        "supported": false
+      },
+      "first_paint_s": 3.1416,
+      "rss_mib": 135.76,
+      "idle_cpu_percent": 0.781,
+      "backup_timer_preserved": true,
+      "passed_interactions": true,
+      "text_findings": 0
+    }
+  ],
+  "pngs_reviewed": 90,
+  "review": "15 contact sheets inspected; new permission checkboxes fit, right panel scrolls, no new overlap. Screenshots remain ignored under build/previews."
+}

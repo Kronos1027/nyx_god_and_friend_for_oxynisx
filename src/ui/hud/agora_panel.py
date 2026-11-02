@@ -15,11 +15,12 @@ class AgoraPanel(QFrame):
         title.setObjectName('Eyebrow')
         layout.addWidget(title)
         self.fields = {}
-        for key, caption in (('window','JANELA ATIVA'),('media','MÍDIA'),('game','JOGO'),('task','TAREFA')):
+        for key, caption in (('window','JANELA ATIVA'),('media','MÍDIA'),('game','JOGO'),
+                             ('processes','PROCESSOS'),('task','TAREFA')):
             label = QLabel(caption)
             label.setObjectName('HudData')
             layout.addWidget(label)
-            value = QLabel('Sensor não conectado' if key!='task' else 'Nenhuma tarefa em andamento')
+            value = QLabel('Desligado · configure percepção' if key!='task' else 'Nenhuma tarefa em andamento')
             value.setTextFormat(Qt.TextFormat.PlainText)
             value.setWordWrap(True)
             value.setAccessibleName(caption.capitalize())
@@ -47,8 +48,22 @@ class AgoraPanel(QFrame):
         layout.addWidget(self.privacy)
 
     def set_private(self, enabled):
-        for key in ('window','media','game'):
-            self.fields[key].setText('Pausado no Modo Privado' if enabled else 'Sensor não conectado')
+        self.clear_presence('Pausado no Modo Privado' if enabled else 'Aguardando consulta autorizada')
+
+    def clear_presence(self, reason):
+        for key in ('window','media','game','processes'):
+            self.fields[key].setText(reason)
+            self.fields[key].setToolTip(reason)
+
+    def set_presence(self, snapshot):
+        for key, value in snapshot.get('fields', {}).items():
+            if key in self.fields and key != 'task':
+                self.fields[key].setText(value['text'])
+                self.fields[key].setToolTip(
+                    'Observação local efêmera; não salva em histórico. '
+                    'Janela/jogo/processos: consulta em até 6 s; mídia: até 12 s. '
+                    'Jogos: lista limitada por nome de processo. Mídia: sessão publicada no Windows. '
+                    f"Estado: {value['status']}.")
 
     def progress(self, data):
         phase = data.get('phase')

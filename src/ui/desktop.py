@@ -171,6 +171,7 @@ class DesktopWindow(QMainWindow):
     shutdown_requested = pyqtSignal()
     backup_finished = pyqtSignal(str)
     research_finished = pyqtSignal(object)
+    presence_finished = pyqtSignal(object)
 
     def __init__(self, controller, store: ChatStore | None = None, settings: QSettings | None = None) -> None:
         super().__init__()
@@ -195,6 +196,8 @@ class DesktopWindow(QMainWindow):
         self._pending_confirm_card = None
         self._private = False
         self._private_saved = {}
+        self._presence = None
+        self._presence_at = None
         self._research_busy = False
         self._closing = False
         self._research_cancel = threading.Event()
@@ -249,6 +252,7 @@ class DesktopWindow(QMainWindow):
         self.backup_timer.timeout.connect(self._start_backup)
         self.backup_timer.start()
         self.research_finished.connect(self._research_done)
+        self.presence_finished.connect(self._presence_done)
         self.research_timer = QTimer(self)
         self.research_timer.setInterval(30_000)
         self.research_timer.timeout.connect(self._research_tick)
@@ -428,6 +432,8 @@ class DesktopWindow(QMainWindow):
         pause = getattr(self._context, 'set_paused', None)
         if callable(pause):
             pause(enabled)
+        if self._presence is not None:
+            self._presence.pause()
         controls = {'voice':self.speech_check, 'initiative':self.initiative_check, 'research':self.research_check}
         if enabled:
             saved = self.settings.value('private_restore',None)
@@ -749,11 +755,18 @@ class DesktopWindow(QMainWindow):
         self.companion_dock.setMinimumWidth(260)
         self.companion_dock.setMaximumWidth(360)
         self.companion_dock.visibilityChanged.connect(self._sync_companion_layout)
+        self.companion_dock.visibilityChanged.connect(self._presence_visibility_changed)
         for widget in (self.ram_label,self.ram_bar,self.queue_label):
             widget.hide()
 
     def _sync_companion_layout(self, *_args):
         self.hero_companion.setVisible(not self.companion_dock.isVisible())
+
+    def _presence_visibility_changed(self, visible):
+        if not visible and self._presence is not None:
+            self._presence.pause()
+            self._presence_at = None
+            self.agora.clear_presence('Pausado enquanto AGORA está oculto')
 
     def _tab_section(self, tabs: QTabWidget, title: str) -> QVBoxLayout:
         section, layout = self._page()
@@ -961,18 +974,28 @@ class DesktopWindow(QMainWindow):
         permissions = self._context.permissions()
         for name, label in (("own_tasks", "Resultados das próprias tarefas"),
                             ("research", "Estudos autorizados concluídos"), ("resources", "Pressão de recursos"),
-                            ("processes", "Encerramento dos processos escolhidos por PID")):
+                            ("processes", "Encerramento dos processos escolhidos por PID"),
+                            ("active_window", "AGORA: app e título da janela ativa"),
+                            ("process_inventory", "AGORA: nomes de processos em execução"),
+                            ("media", "AGORA: título e artista da mídia do Windows"),
+                            ("games", "AGORA: reconhecer jogos por lista de processos")):
             check = QCheckBox(label)
             check.setChecked(permissions[name])
             check.toggled.connect(lambda enabled, sensor=name: self._set_sensor_permission(sensor, enabled))
             self.sensor_checks[name] = check
+            if name in {'active_window', 'process_inventory', 'media', 'games'}:
+                check.setToolTip('Somente leitura local enquanto AGORA está visível; sem salvar conteúdo. '
+                                 'Navegadores conhecidos: título oculto; mídia de fontes não reconhecidas: só estado. '
+                                 'Modo Privado pausa tudo. Jogo/Live mantém só app/jogo em primeiro plano.')
             layout.addWidget(check)
         watch = QPushButton("Escolher processo para observar…")
         watch.clicked.connect(self._watch_process)
         layout.addWidget(watch)
         self.process_watch_status = self._muted("Nenhum processo selecionado. As escolhas duram esta sessão; nenhum aplicativo será encerrado.")
         layout.addWidget(self.process_watch_status)
-        layout.addWidget(self._muted("Janelas, pastas e navegador: sensores externos ainda não conectados; permanecem desligados."))
+        layout.addWidget(self._muted("AGORA consulta somente sensores autorizados, sem guardar títulos ou mídia. "
+                                    "No perfil Jogo/Live, mídia e inventário pausam; janela e jogo usam apenas o app em primeiro plano. "
+                                    "Pastas e abas externas continuam desligadas. A lista de jogos é limitada; nenhum app será encerrado."))
         self.initiative_history_list = QListWidget()
         self.initiative_history_list.setMaximumHeight(170)
         layout.addWidget(self.initiative_history_list)
@@ -1037,6 +1060,10 @@ class DesktopWindow(QMainWindow):
 
     def _set_sensor_permission(self, sensor, enabled):
         self._context.set_permission(sensor, enabled)
+        if self._presence is not None:
+            self._presence.invalidate()
+        self.agora.clear_presence('Permissões alteradas · aguardando consulta autorizada')
+        self._presence_at = None
         if sensor == "processes" and not enabled:
             self._process_sensor.clear()
             self.process_watch_status.setText("Observação de processos desativada; seleção removida.")
@@ -2201,8 +2228,13 @@ class DesktopWindow(QMainWindow):
             self.resource_profile_combo.setEnabled(not self._busy)
         self.model_badge.setText(self._model_name())
         self.stop_banner.setVisible(self.controller.loop.registry.control.is_cancelled())
+        opted_in = sum(self.sensor_checks[name].isChecked()
+                       for name in ('active_window', 'process_inventory', 'media', 'games'))
+        presence = f'PRESENÇA · {opted_in} sensores' if opted_in else 'PRESENÇA DESLIGADA'
+        if opted_in and not self.agora.isVisible():
+            presence = 'PRESENÇA PAUSADA'
         self.hud_status.update_state(model=self._model_name(), profile=self.resource_profile_combo.currentText(),
-                                     permission=self.controller.loop.mode_name,private=self._private)
+                                     permission=self.controller.loop.mode_name,private=self._private, presence=presence)
         llm = getattr(getattr(self.controller, "loop", None), "llm", None)
         notice = getattr(llm, 'runtime_notice', '')
         profile_notice = self._profile_notice if self.resource_profile_combo.currentData() == 'conservative' else ''
@@ -2214,6 +2246,7 @@ class DesktopWindow(QMainWindow):
         self.model_badge.setToolTip(notice or getattr(llm, "unavailable_reason", "") or self._model_name())
         if not self.isVisible():
             return
+        self._refresh_presence()
         from core.runtime_budget import INFERENCE_GATE
         state = INFERENCE_GATE.telemetry()
         if self._control_center is not None:
@@ -2249,6 +2282,34 @@ class DesktopWindow(QMainWindow):
         if self.pages.currentIndex() == 1:
             self._refresh_reminders()
 
+    def _refresh_presence(self):
+        if self._closing or self._private or not self.agora.isVisible() or self.isMinimized():
+            if self._presence is not None:
+                self._presence.pause()
+            return
+        if not any(self.sensor_checks[name].isChecked()
+                   for name in ('active_window', 'process_inventory', 'media', 'games')):
+            if self._presence is not None:
+                self._presence.pause()
+            self.agora.clear_presence('Desligado · configure percepção')
+            return
+        if self._presence is None:
+            from core.presence_sensors import PresenceMonitor
+            self._presence = PresenceMonitor(self._context)
+        self._presence.set_lightweight(self.resource_profile_combo.currentData() == 'game')
+        self._presence.resume()
+        if self._presence_at is not None and time.monotonic()-self._presence_at > 20:
+            self.agora.clear_presence('Observação antiga · aguardando atualização')
+        self._presence.request(self.presence_finished.emit)
+
+    def _presence_done(self, snapshot):
+        if (self._closing or self._private or not self.isVisible() or not self.agora.isVisible()
+                or self.isMinimized() or self._presence is None
+                or not self._presence.current(snapshot['generation'])):
+            return
+        self._presence_at = snapshot['observed_at']
+        self.agora.set_presence(snapshot)
+
     def showEvent(self, event):
         super().showEvent(event)
         if hasattr(self,'telemetry_timer') and not self._closing:
@@ -2259,6 +2320,10 @@ class DesktopWindow(QMainWindow):
                 self.initiative_timer.start()
 
     def hideEvent(self, event):
+        if self._presence is not None:
+            self._presence.pause()
+        self._presence_at = None
+        self.agora.clear_presence('Pausado enquanto a janela está oculta')
         for name in ('telemetry_timer','research_timer','initiative_timer'):
             timer = getattr(self,name,None)
             if timer is not None:
@@ -2274,6 +2339,8 @@ class DesktopWindow(QMainWindow):
         if self._pending_confirm_card is not None:
             self._pending_confirm_card.decide(False)
         self._closing = True
+        if self._presence is not None:
+            self._presence.pause()
         self.controller.cancel_task()
         self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("dock_state", self.saveState())

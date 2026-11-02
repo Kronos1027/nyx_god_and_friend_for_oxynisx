@@ -1,0 +1,30 @@
+{
+  "scope": "Read-only GSMTC helper cost; no user metadata captured or persisted. Existing Windows PowerShell 5/WinRT; no installed package.",
+  "rows": [
+    {
+      "run": 1,
+      "duration_s": 1.316,
+      "helper_rss_peak_mib": 90.652,
+      "helper_cpu_s": 0.828,
+      "returned_status": "empty",
+      "content_saved": false
+    },
+    {
+      "run": 2,
+      "duration_s": 0.385,
+      "helper_rss_peak_mib": 89.855,
+      "helper_cpu_s": 0.422,
+      "returned_status": "empty",
+      "content_saved": false
+    },
+    {
+      "run": 3,
+      "duration_s": 0.345,
+      "helper_rss_peak_mib": 90.23,
+      "helper_cpu_s": 0.453,
+      "returned_status": "empty",
+      "content_saved": false
+    }
+  ],
+  "new_runtime_python_bytes": 21052
+}
