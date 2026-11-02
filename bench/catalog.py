@@ -60,4 +60,6 @@ def cases():
 THRESHOLDS = {'apps': .95, 'desktop': .90, 'browser': .85, 'multi_step': .80,
               'research': .85, 'presence_memory': .90, 'conversation': 1.0}
 
-NATIVE_CASES = {'apps-01':'calculator', 'apps-02':'notepad', 'apps-12':'paint'}
+NATIVE_CASES = {'apps-01':'calculator', 'apps-02':'notepad', 'apps-04':'edge', 'apps-05':'explorer',
+                'apps-06':'settings', 'apps-07':'discord', 'apps-09':'steam', 'apps-10':'obs',
+                'apps-11':'antigravity', 'apps-12':'paint', 'apps-13':'taskmanager', 'apps-14':'terminal'}

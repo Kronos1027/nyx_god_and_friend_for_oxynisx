@@ -16,6 +16,13 @@ def test_uia_or_title_success_does_not_replace_independent_process_identity():
     assert not matches({'process':'ApplicationFrameHost.exe','title':'Calculadora.png - Fotos'},APPS['calculator'])
 
 
+def test_explorer_desktop_shell_does_not_count_as_a_file_window():
+    window = {'process':'explorer.exe', 'title':'Program Manager', 'class':'Progman'}
+    assert not matches(window, APPS['explorer'])
+    window.update(title='Fixture', **{'class':'CabinetWClass'})
+    assert matches(window, APPS['explorer'])
+
+
 def test_native_bench_preserves_child_resource_failure_instead_of_only_exit_code(tmp_path, monkeypatch):
     from types import SimpleNamespace
     from bench.catalog import cases

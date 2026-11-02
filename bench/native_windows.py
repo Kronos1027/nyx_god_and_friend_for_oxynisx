@@ -10,6 +10,22 @@ APPS = {
                 'processes':('notepad.exe',), 'hosted_titles':('bloco de notas','notepad')},
     'paint': {'prompt':'Abre o Paint.', 'aliases':('paint','mspaint','microsoft paint'),
               'processes':('mspaint.exe','paintstudio.view.exe'), 'hosted_titles':('paint',)},
+    'edge': {'prompt':'Abre o Edge.', 'aliases':('edge','msedge','microsoft edge','navegador edge'),
+             'processes':('msedge.exe',)},
+    'explorer': {'prompt':'Abre o Explorador de Arquivos.',
+                 'aliases':('explorador','explorador de arquivos','explorer'), 'processes':('explorer.exe',),
+                 'classes':('CabinetWClass','ExploreWClass')},
+    'settings': {'prompt':'Abre as Configurações do Windows.',
+                 'aliases':('configuracoes','configuracoes do windows','settings','systemsettings'),
+                 'processes':('systemsettings.exe',), 'hosted_titles':('configuracoes','settings')},
+    'discord': {'prompt':'Abre o Discord.', 'aliases':('discord',), 'processes':('discord.exe',)},
+    'steam': {'prompt':'Abre a Steam.', 'aliases':('steam',), 'processes':('steam.exe','steamwebhelper.exe')},
+    'obs': {'prompt':'Abre o OBS.', 'aliases':('obs','obs studio','obs64'), 'processes':('obs64.exe','obs32.exe')},
+    'antigravity': {'prompt':'Abre o Antigravity.', 'aliases':('antigravity',), 'processes':('antigravity.exe',)},
+    'taskmanager': {'prompt':'Abre o Gerenciador de Tarefas.',
+                    'aliases':('gerenciador de tarefas','taskmgr','task manager'), 'processes':('taskmgr.exe',)},
+    'terminal': {'prompt':'Abre o Terminal.', 'aliases':('terminal','windows terminal','wt'),
+                 'processes':('windowsterminal.exe',)},
 }
 
 
@@ -19,6 +35,8 @@ def fold(text):
 
 def matches(window, expectation):
     process = window['process'].casefold()
+    if expectation.get('classes') and window.get('class') not in expectation['classes']:
+        return False
     if process in expectation['processes']:
         return True
     return (process == 'applicationframehost.exe'
@@ -42,6 +60,7 @@ def visible_windows():
     user.IsWindow.argtypes = [w.HWND]
     user.GetWindowTextLengthW.argtypes = [w.HWND]
     user.GetWindowTextW.argtypes = [w.HWND, w.LPWSTR, ctypes.c_int]
+    user.GetClassNameW.argtypes = [w.HWND, w.LPWSTR, ctypes.c_int]
     user.GetWindowThreadProcessId.argtypes = [w.HWND, ctypes.POINTER(w.DWORD)]
     user.GetForegroundWindow.restype = w.HWND
     dwm = ctypes.WinDLL('dwmapi', use_last_error=True)
@@ -65,6 +84,8 @@ def visible_windows():
             return True
         title = ctypes.create_unicode_buffer(length+1)
         user.GetWindowTextW(hwnd, title, length+1)
+        window_class = ctypes.create_unicode_buffer(256)
+        user.GetClassNameW(hwnd, window_class, len(window_class))
         pid = w.DWORD()
         user.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
         try:
@@ -83,7 +104,8 @@ def visible_windows():
                 return True
             user.EnumChildWindows(hwnd, callback_type(observe_child), 0)
         rows.append({'hwnd':int(hwnd), 'pid':pid.value, 'title':title.value,
-                     'process':process, 'child_processes':sorted(child_processes), 'foreground':hwnd==foreground})
+                     'class':window_class.value, 'process':process,
+                     'child_processes':sorted(child_processes), 'foreground':hwnd==foreground})
         return True
     if not user.EnumWindows(callback_type(observe), 0):
         raise OSError('EnumWindows não concluiu a observação independente.')

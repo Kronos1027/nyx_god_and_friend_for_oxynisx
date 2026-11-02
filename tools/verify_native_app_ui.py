@@ -26,6 +26,7 @@ def main():
     parser.add_argument('--profile', choices=['conservative','normal','game','focus'], default='normal')
     parser.add_argument('--model', default='qwen3.5:4b')
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--visible-ui', action='store_true', help='Exibe somente a janela temporária deste ensaio.')
     args = parser.parse_args()
     if args.output.exists():
         parser.error('O relatório já existe; escolha outro --output para preservar os resultados.')
@@ -85,7 +86,10 @@ def main():
                       'idle_research':False,'conversation_initiative':False,'initiative_level':'off'}.items():
         settings.setValue(key,value)
     window = DesktopWindow(controller, ChatStore(base/'chats.db'), settings)
-    window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen)
+    if not args.visible_ui:
+        window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen)
+    else:
+        window.setWindowTitle('Nyx — validação isolada')
     window.show()
     window.set_page(0)
     current, approvals, denials = {}, [], []
@@ -115,6 +119,7 @@ def main():
     reviewer.timeout.connect(review_dialog)
     reviewer.start()
     report = {'scope':'owned production Qt UI, real permission-dialog clicks, real model, independent Win32',
+              'owned_ui_visible':args.visible_ui,
               'environment':environment,'model':args.model,'profile':args.profile,'runs':args.runs,
               'warmup_excluded_s':warmup_seconds,
               'milestone_complete':False,'rows':[],
@@ -157,12 +162,23 @@ def main():
                        'already_visible_before':before['ok'],'verifier':verdict,'workflow_state':finished,
                        'confirmations_approved':len(approvals),'confirmations_denied':len(denials),
                        'false_success':bool(claimed_verified and not postcondition),
-                       'error_code':'TIMEOUT' if timed_out else None if passed else 'UNVERIFIED',
+                       'error_code':('RESOURCE_PRESSURE' if loop.task_runner.resource_pressure else
+                                     'TIMEOUT' if timed_out else None if passed else 'UNVERIFIED'),
                        'actions':len(loop.task_runner.steps),'resources':sampler.report(),
                        'trace_path':f'logs/traces/{task_id}.jsonl'}
                 report['rows'].append(row)
                 atomic_write(args.output,report)
                 print(key,run,'PASS' if passed else 'FAIL',row['elapsed_s'],flush=True)
+                if loop.task_runner.resource_pressure:
+                    report.update(passed=False, runtime_failure={'error_code':'RESOURCE_PRESSURE',
+                        'error':'A tarefa foi suspensa por pressão de memória; nenhuma nova inferência será tentada.'})
+                    atomic_write(args.output, report)
+                    raise RuntimeError('Pressão de memória; relatório parcial preservado, novas tarefas suspensas.')
+                if row['false_success']:
+                    report.update(passed=False, runtime_failure={'error_code':'CRITICAL_FALSE_SUCCESS',
+                        'error':'Verificador independente negou a pós-condição confirmada; novas ações suspensas.'})
+                    atomic_write(args.output, report)
+                    raise RuntimeError('Falso sucesso crítico; relatório preservado, nenhuma nova abertura será enviada.')
                 if timed_out:
                     raise TimeoutError('A tarefa não encerrou no prazo; relatório parcial preservado, sem repetir a abertura.')
         report['permission_dialog_exercised'] = any(row['confirmations_approved'] for row in report['rows'])

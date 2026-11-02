@@ -120,7 +120,7 @@ def main():
     report = {'schema_version': 1, 'scope': 'production TaskRunner with independent verifiers; personal UI not operated',
               'model': args.model, 'profile': args.profile, 'runs': args.runs, 'milestone_complete': False,
               'environment': desktop_probe(), 'manifest': [case.to_dict() for case in selected], 'rows': [],
-              'limitations': ['Safe routes currently cover conversation, numeric files and three native apps through an owned production Qt UI.',
+              'limitations': ['Safe routes currently cover conversation, numeric files and twelve native apps through an owned production Qt UI.',
                               'Blocked harness coverage is not proof that Nyx lacks the capability.',
                               'No M0-M8 milestone is completed by this partial runner alone.',
                               'GPU peaks are system samples, not exclusive Nyx allocation.']}

@@ -12,7 +12,7 @@ def run_native_cases(root, selected, runs, model, profile, artifacts):
         return []
     report_path = Path(artifacts)/'native-ui.json'
     log_path = Path(artifacts)/'native-ui.log'
-    command = [sys.executable,str(root/'tools/verify_native_app_ui.py'),'--runs',str(runs),
+    command = [sys.executable,str(root/'tools/verify_native_app_ui.py'),'--visible-ui','--runs',str(runs),
                '--model',model,'--profile',profile,'--output',str(report_path),
                '--apps',*[NATIVE_CASES[case.id] for case in targets]]
     exit_code = None
