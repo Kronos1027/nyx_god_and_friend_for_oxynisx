@@ -2,6 +2,25 @@
 
 ## Atualização de 02/11/2026
 
+- M7 integrado,9/9interações reais. Pintura nativa3,541s não passou meta1,2s;
+  demo145MiB não comprova orçamento da sessão completa. Agora ainda sem sensores
+  de janela/mídia/jogo, OBS/onboarding/paleta completa pendentes. Pet preservado.
+- M3 refs/Shadow/frames/ações reais integrados;30/30cenários do runner browser
+  bloqueados por harness incompleto. Isso é implementação pendente, não ambiente
+  nem aprovação; OOPIF, login/mídia/upload/download/pesquisa ainda pendentes.
+- Classificador semântico72/72na amostra após17/18inicial. Probabilístico, sem
+  garantia para intenção arbitrária. Streaming validado não confirma verdade:
+  respostas sintéticas contêm imprecisões factuais preservadas nas evidências.
+- Normal padrão condicional implementado, respeitando escolhas manuais. Faixa
+  operacional fria provisória5,3GiB substitui pisoRAM2,5GiB não medido;3cargas4B
+  passaram partindo5,21–5,26GiB. **Mínimo necessário real continua desconhecido**;
+  margem nova pode recusar cargas viáveis. Sem stress/paginação artificial.
+- Degradação real para3B com aviso visível/carga3/3, principal salvo preservado.
+  Capacidade menor observada: abrir Calculadora0/3antes do grounding; após fix,
+  janela nova confirmada1/1, outras2bloqueadas por reset. Amostra não qualifica
+  modelo menor em todas as tarefas; não retorna ao principal silenciosamente.
+  Ver docs/evidence/runtime_hud_integration_2026-11-02.md.
+
 - M0/M1 **parcial: bloqueado por ambiente**, sem travar M7/M3. Abertura de app
   e foco agora são resultados separados; negar foreground não nega uma janela
   visível/identificada. Apps elevados continuam com limitação de foco conhecida.
@@ -9,11 +28,12 @@
   estado desconhecido bloqueia o gate. Pré-existentes são sinalizados, nunca
   encerrados pelo nome. Falta ownership suficiente para reset automático dos
   apps lançados via startfile; ainda não validada bateria de aberturas novas.
-- 960 testes padrão passaram, 61 pulados; isso não constitui aceite live. Detalhes:
-  docs/evidence/apps_policy_2026-11-02.md. CI remoto 72c6080 passou; falhas de
+- Gate integrado987passes/65pulados, Windows live39passes/26pulados,zero falhas;
+  nenhum desses fecha os marcos. Detalhes: docs/evidence/runtime_hud_integration_2026-11-02.md.
+  CI remoto72c6080passou; falhas de
   fixtures Linux descritas abaixo são histórico, não bloqueio atual.
-- Normal condicional, medição de RAM fria e classificador semântico ainda em
-  implementação. Não foi medido mínimo real que justifique o piso de 2,5GiB.
+- Medição fria distingue RSS, private commit e memória livre do sistema; cache
+  de arquivos não foi esvaziado. Não generalizar para outros modelos/hardware.
 
 As seções anteriores abaixo preservam evidência sob os critérios da época.
 

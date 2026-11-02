@@ -128,7 +128,7 @@ def test_explicit_no_delegation_filters_catalog_and_blocks_rogue_proposal(tmp_pa
     result = runner.start('Leia diretamente; não delegue.')
     assert all(t['name'] != 'agent_team' for t in catalogs[0])
     assert calls == []
-    assert 'delegação foi excluída' in result.response.speech_output
+    assert 'agent_team' in result.response.speech_output and 'a ação não foi executada' in result.response.speech_output
 
 
 def test_sum_replans_before_double_counting_and_rejects_wrong_final_total(tmp_path):
@@ -166,10 +166,13 @@ def test_file_sum_rejects_an_extra_file_before_execution_and_delivers_answer(tmp
     assert runner.replans == 1
 
 
-def test_greeting_stream_is_wrapped_as_no_action_without_planner_or_tools(tmp_path):
+@pytest.mark.parametrize('prompt', ['Bom dia, Nyx!', 'Explique por que estrelas brilham.',
+                                   'Estou cansado e queria conversar.'])
+def test_classified_conversation_stream_has_no_planner_or_tools(tmp_path, prompt):
     from core.conversation import conversation_response
     runner, loop, registry = make_runner(tmp_path, [])
     loop.llm.supports_conversation = True
+    loop.llm.classify_intent = lambda *args, **kwargs: {'route': 'conversation', 'fallback': False}
     registry.register(ToolSpec('shell', 'shell'), lambda p: pytest.fail('Conversa não executa ferramentas.'))
     loop.llm.generate = lambda *args, **kwargs: pytest.fail('Cumprimento não passa pelo planejador JSON.')
     def converse(prompt, history=None, memory_context=None, on_delta=None):
@@ -177,10 +180,26 @@ def test_greeting_stream_is_wrapped_as_no_action_without_planner_or_tools(tmp_pa
         return conversation_response('Bom dia!')
     loop.llm.converse = converse
     events = []
-    result = runner.start('Bom dia, Nyx!', events.append)
+    result = runner.start(prompt, events.append)
     assert not result.executed and not runner.steps and not result.needs_confirmation
     assert result.response.action.type == 'none' and result.response.speech_output == 'Bom dia!'
     assert any(event['phase'] == 'conversation_delta' for event in events)
+
+
+def test_uncertain_intent_uses_planner_once_and_never_streams(tmp_path):
+    runner, loop, _ = make_runner(tmp_path, [reply(speech='O que deseja fazer?')])
+    classifications = []
+    loop.llm.supports_conversation = True
+    def classify(prompt, history):
+        classifications.append(prompt)
+        return {'route': 'task', 'fallback': True, 'reason': 'uncertain'}
+    loop.llm.classify_intent = classify
+    loop.llm.converse = lambda *a, **k: pytest.fail('Intenção incerta não vira conversa por palpite.')
+    events = []
+    result = runner.start('E aquilo?', events.append)
+    assert result.response.speech_output == 'O que deseja fazer?' and not runner.steps
+    assert classifications == ['E aquilo?']
+    assert any(event['phase'] == 'intent_routed' and event['fallback'] for event in events)
 
 
 def test_correct_sum_still_replans_when_explicit_calculator_step_was_skipped(tmp_path):

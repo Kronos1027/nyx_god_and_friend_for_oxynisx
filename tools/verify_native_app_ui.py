@@ -50,6 +50,7 @@ def main():
     from ui.desktop import DesktopWindow
     from ui.overlay import OverlayWindow
     from ui.permission_dialog import PermissionDialog
+    from ui.hud.confirm_card import ConfirmCard
 
     warmup_started = time.monotonic()
     try:
@@ -107,8 +108,9 @@ def main():
             raise ValueError('BLOCKED_POLICY: o ensaio autoriza somente observação e abertura do aplicativo escolhido.')
     loop.task_runner._guard = scoped_guard
     def review_dialog():
-        for dialog in app.topLevelWidgets():
-            if not isinstance(dialog,PermissionDialog) or not dialog.isVisible() or dialog.property('bench_reviewed'):
+        for dialog in [*app.topLevelWidgets(), *window.findChildren(ConfirmCard)]:
+            if (not isinstance(dialog,(PermissionDialog,ConfirmCard)) or not dialog.isVisible()
+                    or dialog.property('bench_reviewed')):
                 continue
             dialog.setProperty('bench_reviewed',True)
             approved = bool(current) and not dialog.is_destructive and expected_open(dialog.pending_action)
@@ -119,7 +121,7 @@ def main():
     reviewer.setInterval(50)
     reviewer.timeout.connect(review_dialog)
     reviewer.start()
-    report = {'scope':'owned production Qt UI, real permission-dialog clicks, real model, independent Win32',
+    report = {'scope':'owned production Qt HUD, real confirmation-card/dialog clicks, real model, independent Win32',
               'owned_ui_visible':args.visible_ui,
               'environment':environment,'model':args.model,'profile':args.profile,'runs':args.runs,
               'warmup_excluded_s':warmup_seconds,

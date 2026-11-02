@@ -1,0 +1,35 @@
+{
+  "ui": "isolated production Qt window, not physical display",
+  "real_model": "qwen3.5:4b",
+  "input": "Explique por que as estrelas brilham.",
+  "voice_enabled": false,
+  "first_delta": {
+    "elapsed_s": 0.6720000000000255,
+    "label": "As"
+  },
+  "elapsed_s": 1.9060000000001764,
+  "response": "As estrelas brilham porque são esferas gigantes de plasma em constante fusão nuclear no seu núcleo. Nessas condições extremas, átomos de hidrogênio colidem e se transformam em hélio, liberando uma quantidade imensa de energia na forma de luz e calor. É essa energia que viaja até nós, fazendo com que as estrelas pareçam pontos luminosos no céu, mesmo sendo distantes bilhões de anos-luz.",
+  "actions": 0,
+  "generations": [
+    [
+      {
+        "route": "conversation",
+        "streaming": true,
+        "first_token_seconds": 0.21899999999982356,
+        "elapsed_seconds": 1.421999999999798,
+        "output_characters": 388,
+        "eval_count": 92,
+        "prompt_eval_count": 177,
+        "context_tokens": 8192,
+        "input_tokens_estimated": 270,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 270,
+        "identity_buffered": false,
+        "identity_claim_rejected": false,
+        "attempt": 1
+      }
+    ]
+  ],
+  "passed": true
+}

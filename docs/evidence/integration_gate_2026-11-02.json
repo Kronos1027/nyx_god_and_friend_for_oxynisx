@@ -1,0 +1,56 @@
+{
+  "date": "2026-11-02",
+  "ruff": "passed: src tests tools bench",
+  "pytest": {
+    "tests": 1052,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 65,
+    "passed": 987,
+    "seconds": 47.432
+  },
+  "windows_live": {
+    "tests": 65,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 26,
+    "passed": 39,
+    "seconds": 20.56
+  },
+  "ui": {
+    "scale": "1",
+    "platform": "offscreen",
+    "smoke": {
+      "midnight_deny": true,
+      "daylight_deny": true,
+      "approve": true,
+      "private_pause": true,
+      "private_restore": true,
+      "send": true,
+      "stop": true,
+      "escape_escape_stop": true,
+      "hidden_polling_stopped": true
+    },
+    "first_paint_s": 0.5347,
+    "rss_mib": 135.45,
+    "idle_cpu_percent": 0.469,
+    "passed_interactions": true,
+    "text_findings": 0,
+    "contrast_passed": true
+  },
+  "scope": "Integration checks; not full milestone acceptance. No private XML/hostnames/screenshots published.",
+  "not_validated": [
+    "Complete browser/model/UI acceptance battery",
+    "True minimum cold-load RAM",
+    "General factual accuracy",
+    "Full UI-plus-model memory budget",
+    "OBS capture and onboarding",
+    "Cold app reset across three runs"
+  ],
+  "known_failures": [
+    "Native first paint 3.541s exceeds 1.2s target",
+    "Initial 3B app opening 0/3; corrected 1/1 executed, two reset blocks",
+    "Initial intent 17/18; corrected sample 72/72",
+    "Browser runner 30/30 BLOCKED_HARNESS"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "ui": "isolated production Qt window, not physical display",
+  "real_model": "qwen2.5:3b-instruct",
+  "runtime_notice": "Degradação explícita: usando qwen2.5:3b-instruct no lugar de qwen3.5:4b, por orçamento de memória ou RAM fora da faixa de carga fria validada. O modelo principal salvo foi preservado; a capacidade pode ser menor. Nenhum modelo foi baixado.",
+  "runtime_notice_visible": true,
+  "input": "Explique por que as estrelas brilham.",
+  "voice_enabled": false,
+  "first_delta": {
+    "elapsed_s": 0.3910000000000764,
+    "label": "As"
+  },
+  "elapsed_s": 0.8119999999998981,
+  "response": "As estrelas brilham porque refletem luz emitida por seus núcleos ao se aquecerem e aquecerem ainda mais durante a fusão nuclear de hidrogênio em hélio.",
+  "actions": 0,
+  "generations": [
+    [
+      {
+        "route": "conversation",
+        "streaming": true,
+        "first_token_seconds": 0.125,
+        "elapsed_seconds": 0.5149999999998727,
+        "output_characters": 151,
+        "eval_count": 45,
+        "prompt_eval_count": 208,
+        "context_tokens": 2048,
+        "input_tokens_estimated": 270,
+        "output_tokens_reserved": 512,
+        "compaction_level": 0,
+        "original_input_tokens_estimated": 270,
+        "identity_buffered": false,
+        "identity_claim_rejected": false,
+        "attempt": 1
+      }
+    ]
+  ],
+  "passed": true
+}

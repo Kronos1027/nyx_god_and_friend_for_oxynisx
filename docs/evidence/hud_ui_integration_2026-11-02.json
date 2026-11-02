@@ -1,0 +1,21 @@
+{
+  "scale": "1",
+  "platform": "offscreen",
+  "smoke": {
+    "midnight_deny": true,
+    "daylight_deny": true,
+    "approve": true,
+    "private_pause": true,
+    "private_restore": true,
+    "send": true,
+    "stop": true,
+    "escape_escape_stop": true,
+    "hidden_polling_stopped": true
+  },
+  "first_paint_s": 0.5347,
+  "rss_mib": 135.45,
+  "idle_cpu_percent": 0.469,
+  "passed_interactions": true,
+  "text_findings": 0,
+  "contrast_passed": true
+}

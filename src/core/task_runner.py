@@ -107,6 +107,7 @@ class TaskRunner:
             self.resource_pressure = False
             self.observations = []
             self.planning_feedback = "Tarefa retomada por ação do usuário. Confira o estado atual; aprovações anteriores não valem para novas ações."
+            self.intent_route = None
             self.on_progress = on_progress or (lambda item: None)
             self.cancelled.clear()
             self.pause_requested.clear()
@@ -132,7 +133,7 @@ class TaskRunner:
         self._check()
         from core.tool_selection import select_task_tools
         if not select_task_tools(self.goal, [{'name': tool}]):
-            raise TaskStopped('A delegação foi excluída pelo pedido original; nenhuma microagente foi iniciada.')
+            raise TaskStopped(f'A ferramenta {tool} não está incluída no escopo do pedido original; a ação não foi executada.')
         from core.arithmetic_grounding import calculator_issue, source_issue
         issue = source_issue(self.goal, self.steps, tool, params) or calculator_issue(self.goal, self.steps, tool, params)
         if issue:
@@ -189,6 +190,7 @@ class TaskRunner:
             self.observations = []
             self.replans = 0
             self.planning_feedback = ""
+            self.intent_route = None
             self.on_progress = on_progress or (lambda item: None)
             try:
                 self._checkpoint("PLAN")
@@ -290,9 +292,19 @@ class TaskRunner:
                 with inference_scope(WorkPriority.TASK, lambda: self.cancelled.is_set()
                                      or self.clock() >= self.deadline or self.loop.registry.control.is_cancelled()):
                     try:
-                        from core.conversation import is_simple_conversation
-                        if (not self.steps and is_simple_conversation(self.goal)
+                        if (not self.steps and self.intent_route is None
                                 and getattr(self.loop.llm, 'supports_conversation', False)):
+                            self.on_progress({'phase': 'intent_classifying', 'task_id': self.task_id,
+                                              'step': 1, 'tool': ''})
+                            classifier = getattr(self.loop.llm, 'classify_intent', None)
+                            route = classifier(self.goal, history=history) if classifier else {
+                                'route': 'task', 'fallback': True, 'reason': 'classifier_unavailable'}
+                            self.intent_route = route
+                            self.loop.audit.log_event('intent_routed', task_id=self.task_id, **route)
+                            self.on_progress({'phase': 'intent_routed', 'task_id': self.task_id,
+                                              'step': 1, 'tool': '', **route})
+                            self._check()
+                        if not self.steps and self.intent_route and self.intent_route.get('route') == 'conversation':
                             raw = self.loop.llm.converse(self.goal, history=history, memory_context=context,
                                 on_delta=lambda text: self.on_progress({'phase': 'conversation_delta',
                                     'step': 1, 'task_id': self.task_id, 'text': text}))
@@ -307,11 +319,15 @@ class TaskRunner:
                 if proposed.parse_ok:
                     from core.app_grounding import explicit_app_issue
                     from core.arithmetic_grounding import calculator_issue, final_sum_issue, source_issue
-                    app_issue = explicit_app_issue(self.goal, proposed.action.type, proposed.action.params)
+                    app_issue = explicit_app_issue(self.goal, proposed.action.type, proposed.action.params, self.steps)
                     issue = (app_issue or source_issue(self.goal, self.steps, proposed.action.type, proposed.action.params)
                              or calculator_issue(self.goal, self.steps, proposed.action.type, proposed.action.params)
                              or final_sum_issue(self.goal, self.steps, proposed))
                     if issue:
+                        if self.intent_route and self.intent_route.get('route') == 'conversation':
+                            self.intent_route = {'route': 'task', 'fallback': True, 'reason': 'grounding_requires_task'}
+                            self.on_progress({'phase': 'intent_routed', 'task_id': self.task_id,
+                                              'step': 1, 'tool': '', **self.intent_route})
                         if self.replans >= 2:
                             return self._stop('A conclusão não corresponde aos dados verificados. ' + issue)
                         self.replans += 1

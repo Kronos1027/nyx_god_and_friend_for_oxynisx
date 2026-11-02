@@ -1,5 +1,30 @@
 # DECISOES — registro de decisões reversíveis (uma entrada por decisão)
 
+## D-010 · Faixa fria observada e degradação explícita · 02/11/2026
+
+Contexto: usuário exige Normal padrão condicional e medição antes de manter piso
+RAM2,5GiB. Três cargas4B/8K reais passaram partindo5,21–5,26GiB livres; não foi
+medido limite físico inferior. Opções: manter palpite, criar pressão artificial
+de RAM ou usar faixa observada conservadora. Escolha: faixa operacional5,3GiB
+arredondada para cima na admissão fria; Normal automático quando permite, senão
+Conservador. Modelo menor instalado pode substituir principal com aviso visível,
+sem mudar a preferência ou baixar pesos. Residentes exatos têm regra separada.
+Motivo: evita afirmar mínimo não medido e não força paginação com disco C cheio.
+Pode recusar cargas viáveis abaixo dessa faixa; medir depois sob condições reais.
+Reversão: commits/perfis; não altera sistema, credenciais, backups ou preferências
+manuais. Evidência: evidence/runtime_hud_integration_2026-11-02.md.
+
+## D-011 · Classificação semântica e prova do app solicitado · 02/11/2026
+
+Contexto: regex só atendia saudações; modelo3B confundiu abrir Calculadora com
+executar cálculo,0/3no HUD real. Escolha: classificador local conversa×tarefa
+com histórico; conversa livre/streaming sem ferramentas. Incerteza vira tarefa
+com aviso, não permissão. Pedidos exatos de abrir app restringem catálogo a UI,
+mantendo modelo, confirmação e verificador; conclusão exige observação do alvo.
+Motivo:72/72classificações na amostra e abertura nova real1/1, outras2bloqueadas
+por reset. Não declarar qualidade factual universal: respostas preservam erros.
+Reversão: commits de roteador/grounding; nunca restaurar sucesso sem pós-condição.
+
 ## D-009 · Prioridades e aceite separados por ambiente · 02/11/2026
 
 Contexto: usuário revisou nyx-2 e determinou avanço apesar de limites ambientais.

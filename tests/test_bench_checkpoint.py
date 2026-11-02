@@ -56,3 +56,19 @@ def test_resume_keeps_completed_rows_and_rejects_changed_runtime(tmp_path):
     atomic_write(path, report)
     with pytest.raises(ValueError, match='duplicado'):
         load_resume(path, [case], 'qwen', 'normal', 3, 'original')
+
+
+def test_environment_blocks_stay_recorded_without_replaying_app_effects(tmp_path):
+    case = Case('a1','apps','Abra Calculadora','cold','window',120,'R1','native_app_ui')
+    report = {'schema_version':1,'model':'qwen','profile':'normal','runs':3,
+              'manifest':[case.to_dict()],'runtime_fingerprint':'same',
+              'rows':[{'id':'a1','category':'apps','run':run,'status':'BLOCKED_ENVIRONMENT','ok':False}
+                      for run in (1,2,3)]}
+    path = tmp_path/'blocked.json'
+    atomic_write(path,report)
+    loaded, done = load_resume(path,[case],'qwen','normal',3,'same')
+    assert len(done) == 3 and loaded['rows'] == report['rows']
+    report['rows'].pop()
+    atomic_write(path,report)
+    with pytest.raises(ValueError,match='efeitos exigem revisão'):
+        load_resume(path,[case],'qwen','normal',3,'same')

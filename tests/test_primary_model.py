@@ -16,19 +16,29 @@ def routing(monkeypatch):
     return monkeypatch
 
 
-def test_primary_model_is_not_downgraded_under_pressure(routing):
+def test_installed_smaller_model_has_explicit_notice_without_changing_primary(routing):
     routing.setattr(runtime_budget, "model_weight_budget_bytes", lambda snapshot: 2_000_000_000)
     client, state = llm_client.create_llm_client()
-    assert isinstance(client, llm_client.OfflineLLM)
-    assert state == "preferred_model_deferred"
-    assert "qwen3.5:4b" in client.unavailable_reason
+    assert client.model == 'qwen2.5:3b-instruct'
+    assert state == 'ollama:qwen2.5:3b-instruct'
+    assert 'qwen3.5:4b' in client.runtime_notice and client.model in client.runtime_notice
+    assert ollama_service.load_runtime_config()['preferred_model'] == 'qwen3.5:4b'
 
 
 def test_primary_recovers_when_budget_allows(routing):
+    routing.setattr(runtime_budget, 'resource_snapshot', lambda: runtime_budget.ResourceSnapshot(
+        6 * runtime_budget.GIB, 12 * runtime_budget.GIB, 10 * runtime_budget.GIB))
     routing.setattr(runtime_budget, "model_weight_budget_bytes", lambda snapshot: 4_000_000_000)
     client, state = llm_client.create_llm_client()
     assert client.model == "qwen3.5:4b"
     assert state == "ollama:qwen3.5:4b"
+
+
+def test_no_safe_smaller_model_waits_instead_of_loading_unknown_or_oversized(routing):
+    routing.setattr(runtime_budget, 'model_weight_budget_bytes', lambda snapshot: 100)
+    client, state = llm_client.create_llm_client()
+    assert isinstance(client, llm_client.OfflineLLM) and state == 'preferred_model_deferred'
+    assert 'Nenhum modelo menor instalado cabe' in client.unavailable_reason
 
 
 def test_primary_reuses_exact_resident_when_cold_load_would_not_fit(routing):

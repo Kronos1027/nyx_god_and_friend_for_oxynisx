@@ -63,6 +63,24 @@ def test_conversation_deltas_are_plain_text_and_reset_for_new_request(desktop):
     assert len(window._cards) == count + 1
 
 
+def test_model_degradation_notice_is_visible_and_not_only_a_tooltip(desktop):
+    window, app, llm = desktop
+    llm.runtime_notice = 'Usando modelo menor instalado por pressão de memória; principal preservado.'
+    window._refresh_status()
+    app.processEvents()
+    assert window.runtime_notice_banner.isVisible()
+    assert window.runtime_notice_banner.text() == llm.runtime_notice
+    assert llm.runtime_notice in window.model_badge.toolTip()
+
+
+def test_agora_clears_finished_step_instead_of_showing_stale_work(desktop):
+    window, _, _ = desktop
+    window.agora.progress({'phase':'executing','step':2,'tool':'ui_action'})
+    assert window.agora.stepper.text()
+    window.agora.set_busy(False)
+    assert not window.agora.stepper.text() and not window.agora.cancel.isEnabled()
+
+
 def test_memory_diagnostics_opens_without_process_enumeration(desktop, monkeypatch):
     from ui.resource_diagnostics import ResourceDiagnosticsDialog
     requests = []
@@ -301,6 +319,7 @@ def desktop(tmp_path, monkeypatch, qapp):
     loop = AgentLoop(llm, registry, AuditLogger(tmp_path / "logs", session_id="ui-test"))
     controller = OverlayWindow(loop)
     settings = QSettings(str(tmp_path / "desktop.ini"), QSettings.Format.IniFormat)
+    settings.setValue('resource_profile', 'conservative')  # Explicit preference, independent of the test host.
     window = DesktopWindow(controller, ChatStore(tmp_path / "chats.db"), settings)
     window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen)
     window.show()
@@ -308,6 +327,8 @@ def desktop(tmp_path, monkeypatch, qapp):
     yield window, app, llm
     window.close()
     app.processEvents()
+    from core.resource_profiles import select_profile
+    select_profile('conservative')
 
 
 def _wait(app, predicate, timeout=3):

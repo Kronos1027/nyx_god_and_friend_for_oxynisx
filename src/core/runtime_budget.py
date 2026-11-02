@@ -151,11 +151,11 @@ def resource_snapshot() -> ResourceSnapshot:
 
 def model_weight_budget_bytes(snapshot: ResourceSnapshot) -> int | None:
     """Estimate a safe maximum disk-sized model, leaving OS/display headroom."""
-    from core.resource_profiles import profile_name, current_profile
+    from core.resource_profiles import profile_name, current_profile, NORMAL_COLD_START_AVAILABLE_BYTES
     if profile_name() != 'conservative' and snapshot.vram_free_bytes is not None:
         profile = current_profile()
         # Cold load needs host staging headroom even for entirely GPU-sized weights.
-        if snapshot.ram_available_bytes is None or snapshot.ram_available_bytes < int(2.5 * GIB):
+        if snapshot.ram_available_bytes is None or snapshot.ram_available_bytes < NORMAL_COLD_START_AVAILABLE_BYTES:
             return 0
         return max(0, min(profile.resident_cap_bytes - profile.kv_reserve_bytes,
                           snapshot.vram_free_bytes - profile.vram_reserve_bytes - profile.kv_reserve_bytes))
@@ -194,10 +194,10 @@ def admit_gguf_load(path: Path, requested_context: int) -> int:
 
 def safe_context_tokens(snapshot: ResourceSnapshot) -> int:
     """Choose a context under the selected profile; conservative mode caps at 4096."""
-    from core.resource_profiles import profile_name, current_profile
+    from core.resource_profiles import profile_name, current_profile, NORMAL_COLD_START_AVAILABLE_BYTES
     if profile_name() != 'conservative' and snapshot.vram_free_bytes is not None:
         profile = current_profile()
-        if (snapshot.ram_available_bytes is not None and snapshot.ram_available_bytes >= int(2.5 * GIB)
+        if (snapshot.ram_available_bytes is not None and snapshot.ram_available_bytes >= NORMAL_COLD_START_AVAILABLE_BYTES
                 and snapshot.vram_free_bytes >= profile.vram_reserve_bytes + profile.kv_reserve_bytes):
             return profile.context_tokens
         return 1024

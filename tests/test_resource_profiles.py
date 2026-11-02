@@ -14,8 +14,8 @@ def test_profile_scope_restores_after_error():
 
 
 def test_normal_gpu_budget_does_not_scale_weights_with_host_ram():
-    low = budget.ResourceSnapshot(3 * budget.GIB, 12 * budget.GIB, 11 * budget.GIB)
-    high = budget.ResourceSnapshot(7 * budget.GIB, 12 * budget.GIB, 11 * budget.GIB)
+    low = budget.ResourceSnapshot(6 * budget.GIB, 12 * budget.GIB, 11 * budget.GIB)
+    high = budget.ResourceSnapshot(8 * budget.GIB, 12 * budget.GIB, 11 * budget.GIB)
     with resource_profile_scope('normal'):
         assert budget.model_weight_budget_bytes(low) == budget.model_weight_budget_bytes(high)
         assert budget.model_weight_budget_bytes(low) == int(7.5 * budget.GIB)
@@ -37,7 +37,7 @@ def test_game_keep_alive_is_zero_and_profile_metadata_not_sent_as_model_instruct
     import io
     import json
     import urllib.request
-    snapshot = budget.ResourceSnapshot(4 * budget.GIB, 12 * budget.GIB, 11 * budget.GIB)
+    snapshot = budget.ResourceSnapshot(6 * budget.GIB, 12 * budget.GIB, 11 * budget.GIB)
     captured = []
     monkeypatch.setattr(budget, 'resource_snapshot', lambda: snapshot)
     monkeypatch.setattr(budget, 'ollama_models', lambda host, endpoint:
@@ -50,3 +50,13 @@ def test_game_keep_alive_is_zero_and_profile_metadata_not_sent_as_model_instruct
         budget.post_ollama_json('http://localhost/api/generate', {'model': 'small', 'prompt': 'oi'}, 10)
     assert captured[0]['keep_alive'] == 0
     assert captured[0]['options']['num_ctx'] == 4096
+
+
+def test_default_normal_only_with_observed_cold_headroom_and_known_vram():
+    from core.resource_profiles import default_profile
+    assert default_profile(budget.ResourceSnapshot(6 * budget.GIB,12 * budget.GIB,11 * budget.GIB))[0] == 'normal'
+    for snapshot in (budget.ResourceSnapshot(2 * budget.GIB,12 * budget.GIB,11 * budget.GIB),
+                     budget.ResourceSnapshot(6 * budget.GIB,None,None),
+                     budget.ResourceSnapshot(6 * budget.GIB,12 * budget.GIB,3 * budget.GIB)):
+        profile, notice = default_profile(snapshot)
+        assert profile == 'conservative' and 'Conservador automático' in notice

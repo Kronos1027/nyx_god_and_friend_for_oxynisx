@@ -24,6 +24,9 @@ def install(monkeypatch, outputs):
     pending = iter(outputs)
 
     def post(url, payload, timeout):
+        from core.intent_router import INTENT_SCHEMA
+        if payload.get('format') == INTENT_SCHEMA:
+            return output('{"intent":"task"}')
         calls.append((payload, timeout))
         return next(pending)
 
@@ -66,7 +69,7 @@ def test_recovered_write_still_requires_confirmation(tmp_path, monkeypatch):
     assert result.pending_action["params"]["content"] == "hello"
     reports = [e for e in loop.audit.read_all() if e["event"] == "model_generation"]
     assert len(reports[0]["attempts"]) == 2
-    assert [p["phase"] for p in progress] == ["planning", "recovering", "confirmation"]
+    assert [p["phase"] for p in progress] == ["planning", "intent_classifying", "intent_routed", "recovering", "confirmation"]
 
 
 @pytest.mark.parametrize("raw", ['{"action":', response("write_file")])
@@ -118,6 +121,9 @@ def test_retry_cannot_start_after_generation_deadline(monkeypatch):
     now, calls = [0], []
     monkeypatch.setattr("core.llm_client.time.monotonic", lambda: now[0])
     def post(*args):
+        from core.intent_router import INTENT_SCHEMA
+        if args[1].get('format') == INTENT_SCHEMA:
+            return output('{"intent":"task"}')
         calls.append(args)
         now[0] = 121
         return output("invalid")

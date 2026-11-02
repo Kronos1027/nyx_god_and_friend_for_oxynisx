@@ -1,0 +1,43 @@
+{
+  "model": "qwen3.5:4b",
+  "runs": [
+    {
+      "run": 1,
+      "cold_runner": true,
+      "os_file_cache_reset": false,
+      "ok": true,
+      "error": null,
+      "elapsed_seconds": 5.7349999999999,
+      "before": {
+        "ram_available_bytes": 5496602624,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 11721445376,
+        "cpu_percent": 21.7,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 13322940416,
+        "commit_limit_bytes": 32668831744
+      },
+      "baseline_owned_rss_bytes": 59367424,
+      "peak_owned_rss_bytes": 1232621568,
+      "peak_owned_private_bytes": 6636912640,
+      "minimum_system_available_bytes": 4335579136,
+      "resident": [
+        {
+          "name": "qwen3.5:4b",
+          "size": 3364911840,
+          "size_vram": 3364911840,
+          "context_length": 8192
+        }
+      ],
+      "load_duration_ns": 5427757000
+    }
+  ],
+  "intent_probe_exit_code": 0,
+  "scope": "Servidor Ollama e filhos próprios, pesos existentes, contexto Normal; sem apps pessoais.",
+  "limitations": [
+    "RAM total do sistema sofre interferência de outros processos.",
+    "RSS soma working sets e pode duplicar páginas compartilhadas; amostragem 100ms.",
+    "Carga fria do runner; cache de arquivos do Windows não foi esvaziado.",
+    "Mínimo inicial observado não prova limite mínimo necessário: sem stress artificial de RAM."
+  ]
+}

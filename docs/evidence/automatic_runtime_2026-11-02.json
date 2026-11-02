@@ -1,0 +1,120 @@
+{
+  "model": "qwen2.5:3b-instruct",
+  "profile": "conservative",
+  "automatic_selection": {
+    "profile": "conservative",
+    "reason": "Conservador automático: RAM/VRAM fora da faixa de carga fria validada para Normal ou telemetria indisponível. O modelo será limitado pelo orçamento atual.",
+    "backend": "ollama:qwen2.5:3b-instruct",
+    "model": "qwen2.5:3b-instruct",
+    "notice": "Degradação explícita: usando qwen2.5:3b-instruct no lugar de qwen3.5:4b, por orçamento de memória ou RAM fora da faixa de carga fria validada. O modelo principal salvo foi preservado; a capacidade pode ser menor. Nenhum modelo foi baixado.",
+    "resources": {
+      "ram_available_bytes": 5473701888,
+      "vram_total_bytes": 12884901888,
+      "vram_free_bytes": 11719938048,
+      "cpu_percent": 16.2,
+      "ram_total_bytes": 17099575296,
+      "committed_bytes": 13178081280,
+      "commit_limit_bytes": 32668831744
+    }
+  },
+  "runs": [
+    {
+      "run": 1,
+      "cold_runner": true,
+      "os_file_cache_reset": false,
+      "ok": true,
+      "error": null,
+      "elapsed_seconds": 9.1400000000001,
+      "before": {
+        "ram_available_bytes": 5453402112,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 11720069120,
+        "cpu_percent": 10.5,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 13187485696,
+        "commit_limit_bytes": 32668831744
+      },
+      "baseline_owned_rss_bytes": 60780544,
+      "peak_owned_rss_bytes": 769781760,
+      "peak_owned_private_bytes": 3216654336,
+      "minimum_system_available_bytes": 4518805504,
+      "resident": [
+        {
+          "name": "qwen2.5:3b-instruct",
+          "size": 2085974179,
+          "size_vram": 2085974179,
+          "context_length": 2048
+        }
+      ],
+      "load_duration_ns": 8897331100
+    },
+    {
+      "run": 2,
+      "cold_runner": true,
+      "os_file_cache_reset": false,
+      "ok": true,
+      "error": null,
+      "elapsed_seconds": 2.3120000000001255,
+      "before": {
+        "ram_available_bytes": 5234192384,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 11721117696,
+        "cpu_percent": 17.2,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 13816696832,
+        "commit_limit_bytes": 32668831744
+      },
+      "baseline_owned_rss_bytes": 63561728,
+      "peak_owned_rss_bytes": 782102528,
+      "peak_owned_private_bytes": 3227213824,
+      "minimum_system_available_bytes": 4597760000,
+      "resident": [
+        {
+          "name": "qwen2.5:3b-instruct",
+          "size": 2085974179,
+          "size_vram": 2085974179,
+          "context_length": 2048
+        }
+      ],
+      "load_duration_ns": 2159083100
+    },
+    {
+      "run": 3,
+      "cold_runner": true,
+      "os_file_cache_reset": false,
+      "ok": true,
+      "error": null,
+      "elapsed_seconds": 2.3120000000001255,
+      "before": {
+        "ram_available_bytes": 5264044032,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 11721838592,
+        "cpu_percent": 40.5,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 13847130112,
+        "commit_limit_bytes": 32668831744
+      },
+      "baseline_owned_rss_bytes": 64790528,
+      "peak_owned_rss_bytes": 770502656,
+      "peak_owned_private_bytes": 3214794752,
+      "minimum_system_available_bytes": 4404551680,
+      "resident": [
+        {
+          "name": "qwen2.5:3b-instruct",
+          "size": 2085974179,
+          "size_vram": 2085974179,
+          "context_length": 2048
+        }
+      ],
+      "load_duration_ns": 2148198000
+    }
+  ],
+  "intent_probe_exit_code": null,
+  "scope": "Servidor Ollama e filhos próprios, pesos existentes; sem apps pessoais.",
+  "limitations": [
+    "RAM total do sistema sofre interferência de outros processos.",
+    "RSS soma working sets e pode duplicar páginas compartilhadas; amostragem 100ms.",
+    "Carga fria do runner; cache de arquivos do Windows não foi esvaziado.",
+    "Mínimo inicial observado não prova limite mínimo necessário: sem stress artificial de RAM."
+  ]
+}

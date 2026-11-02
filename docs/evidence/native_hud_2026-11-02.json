@@ -1,0 +1,124 @@
+{
+  "scope": "owned production Qt HUD, real confirmation-card/dialog clicks, real model, independent Win32",
+  "owned_ui_visible": false,
+  "environment": {
+    "windows": true,
+    "foreground_available": true,
+    "clipboard_accessible": true,
+    "clipboard_error_code": 0,
+    "interactive_probe_passed": true
+  },
+  "model": "qwen2.5:3b-instruct",
+  "profile": "conservative",
+  "runs": 3,
+  "warmup_excluded_s": 0.31199999999989814,
+  "milestone_complete": false,
+  "rows": [
+    {
+      "app": "calculator",
+      "run": 1,
+      "ok": false,
+      "elapsed_s": 2.062,
+      "already_visible_before": false,
+      "verifier": {
+        "ok": false,
+        "matching_visible_windows": 0,
+        "foreground_match": false,
+        "process_signals": [],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "new_visible_window": false,
+      "focus_verified": false,
+      "cold_start_prechecked": true,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 0,
+      "resources": {
+        "ram_peak_mib": 168.07421875,
+        "vram_peak_mib": 3238.9921875,
+        "samples": 9,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793624428.8987575
+      },
+      "trace_path": "logs/traces/c53b19b463ed4b368322368ff59c9701.jsonl"
+    },
+    {
+      "app": "calculator",
+      "run": 2,
+      "ok": false,
+      "elapsed_s": 2.641,
+      "already_visible_before": false,
+      "verifier": {
+        "ok": false,
+        "matching_visible_windows": 0,
+        "foreground_match": false,
+        "process_signals": [],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "new_visible_window": false,
+      "focus_verified": false,
+      "cold_start_prechecked": true,
+      "confirmations_approved": 0,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 0,
+      "resources": {
+        "ram_peak_mib": 168.671875,
+        "vram_peak_mib": 3239.8046875,
+        "samples": 11,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793624431.5672793
+      },
+      "trace_path": "logs/traces/f64cccd914834e5887fd2f0d9c9832b4.jsonl"
+    },
+    {
+      "app": "calculator",
+      "run": 3,
+      "ok": false,
+      "elapsed_s": 3.016,
+      "already_visible_before": false,
+      "verifier": {
+        "ok": false,
+        "matching_visible_windows": 0,
+        "foreground_match": false,
+        "process_signals": [],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "new_visible_window": false,
+      "focus_verified": false,
+      "cold_start_prechecked": true,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 0,
+      "resources": {
+        "ram_peak_mib": 168.78515625,
+        "vram_peak_mib": 3239.7421875,
+        "samples": 13,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793624434.614451
+      },
+      "trace_path": "logs/traces/19d61040cb0d49e99c8d2ec1dd44693e.jsonl"
+    }
+  ],
+  "limitations": [
+    "No personal apps are closed; state is not reset between repetitions.",
+    "Personal window titles and model text remain only in local ignored traces.",
+    "This does not validate logged-in app functionality, voice, or all 15 apps."
+  ],
+  "permission_dialog_exercised": false,
+  "passed": false
+}

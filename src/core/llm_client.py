@@ -501,6 +501,10 @@ class OllamaClient:
     """Cliente para servidor local Ollama (ex: Qwen2.5, DeepSeek)."""
     supports_conversation = True
 
+    def classify_intent(self, user_input, history=None):
+        from core.intent_router import classify_intent
+        return classify_intent(self, user_input, history)
+
     def converse(self, user_input, history=None, memory_context=None, on_delta=None):
         from core.conversation import (stream_conversation, conversation_response, is_identity_question,
                                        false_identity_claim, ConversationStreamError)
@@ -753,19 +757,30 @@ def create_llm_client(
         log.info(f"Ollama detectado com modelos: {models}")
         sizes = {str(item["name"]): int(item["size"]) for item in inventory}
         from core.runtime_budget import GIB, model_weight_budget_bytes, resource_snapshot, ollama_models, resident_context
+        from core.resource_profiles import NORMAL_COLD_START_AVAILABLE_BYTES
 
         snapshot = resource_snapshot()
         max_size = model_weight_budget_bytes(snapshot)
         if max_size is None:
             max_size = 4 * GIB
+        notice = ''
         if preferred:
             if preferred not in models or preferred.lower().endswith("cloud"):
                 return OfflineLLM(unavailable_reason=f"O modelo principal {preferred} não está instalado no Ollama local. Confira Personalizar → Modelo local."), "preferred_model_missing"
-            if not 0 < sizes.get(preferred, 0) <= max_size:
+            unmeasured_low_ram_load = (sizes.get(preferred, 0) >= 3 * GIB
+                and (snapshot.ram_available_bytes is None
+                     or snapshot.ram_available_bytes < NORMAL_COLD_START_AVAILABLE_BYTES))
+            chosen = preferred
+            if not 0 < sizes.get(preferred, 0) <= max_size or unmeasured_low_ram_load:
                 installed = next(item for item in inventory if item["name"] == preferred)
                 if resident_context(snapshot, installed, ollama_models(ollama.host, "ps")) is None:
-                    return OfflineLLM(unavailable_reason=f"O modelo principal {preferred} não cabe no orçamento de memória atual. Vou aguardar recursos, sem trocar por um modelo menor."), "preferred_model_deferred"
-            chosen = preferred
+                    smaller = [name for name in models if 0 < sizes.get(name, 0) < min(sizes[preferred], 3 * GIB)]
+                    chosen = select_preferred_model(smaller, model_sizes=sizes, max_model_size_bytes=max_size)
+                    if not chosen:
+                        return OfflineLLM(unavailable_reason=f"O modelo principal {preferred} não cabe no orçamento ou está fora da faixa de carga fria validada. Nenhum modelo menor instalado cabe; aguardando recursos."), "preferred_model_deferred"
+                    notice = (f'Degradação explícita: usando {chosen} no lugar de {preferred}, por orçamento '
+                              'de memória ou RAM fora da faixa de carga fria validada. O modelo principal salvo foi preservado; '
+                              'a capacidade pode ser menor. Nenhum modelo foi baixado.')
         else:
             chosen = select_preferred_model(
                 models, model_sizes=sizes, max_model_size_bytes=max_size
@@ -773,6 +788,7 @@ def create_llm_client(
 
         if chosen:
             ollama.model = chosen
+            ollama.runtime_notice = notice
             ollama.configure_thinking()
             return ollama, f"ollama:{chosen}"
         if models:

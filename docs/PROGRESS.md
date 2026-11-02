@@ -1,7 +1,7 @@
 # PROGRESS — memória externa do trabalho (atualize ao fim de cada passo relevante)
 
-**Marco atual:** M7 HUD + M3 navegador em paralelo, por prioridade do usuário · **Branch de integração:** nyx-2
-**Próximo passo exato:** integrar entregas das worktrees codex/nyx-m7-hud e codex/nyx-m3-browser. Root separa abertura/foco e inventário/reset do bench; depois Normal condicional/carga fria e classificador semântico. CI/higiene só quando necessário. Push a cada marco/~4h.
+**Marco atual:** M7 HUD e M3 integrados; M2 roteador/perfil medidos, todos parciais · **Branch de integração:** nyx-2
+**Próximo passo exato:** M3: implementar rota segura browser do runner pelo HUD/modelo usando fixture local/refs, com confirmação e verificador independente (30cenários atuais BLOCKED_HARNESS). M7: medir origem da pintura nativa3,541s e corrigir até1,2s. Depois retomar Apps com ownership/reset seguro. Não reabrir a Calculadora do último ensaio nem fechá-la sem prova de propriedade. Push por marco/~4h.
 **Como retomar:** `git switch nyx-2` · ler AGENTS.md, este arquivo e docs/DECISOES.md · rodar `python -m pytest -q`
 **Bloqueios:**35cenários do harness sem setup/verificador seguro, sem inferir incapacidade da Nyx. Apps não são fechados/resetados e há falhas medidas de foco/RAM. Login Spotify adiado pelo usuário. Migração privada/remoção remota fora do escopo aprovado. Requalificação de arquivos passou3/3; recusas anteriores permanecem como histórico.
 
@@ -10,15 +10,26 @@
 |---|---|---|---|---|
 | M0 Fundação e baseline | parcial: bloqueado por ambiente | evidence/apps_expansion_2026-11-01.md | baseline ampliado/reset pendentes | Avançar por instrução do usuário |
 | M1 Destravar | parcial: bloqueado por ambiente | evidence/apps_expansion_2026-11-01.md | Apps instalados ≥ 95% · foco separado | RAM/foco/reset medidos; retornar depois |
-| M2 Cérebro e recursos | parcial herdado | evidence/resource_profiles_2026-10-31.md; evidence/conversation_stream_2026-10-31.md | 1º token < 1,5 s · multi-etapa ≥ 80% · VRAM ≤ 9,5 GiB | Perfis/saudações medidos; não conclui o gate |
-| M3 Navegador e pesquisa | em implementação paralela | | Navegador ≥ 85% · Pesquisa ≥ 85% | codex/nyx-m3-browser |
+| M2 Cérebro e recursos | parcial: amostra de roteamento/carga fria validada | evidence/runtime_hud_integration_2026-11-02.md | 1º token < 1,5 s · multi-etapa ≥ 80% · VRAM ≤ 9,5 GiB | 72/72 classificações; mínimo RAM/qualidade geral pendentes |
+| M3 Navegador e pesquisa | parcial: componentes integrados; harness completo pendente | evidence/m3_actions_profile_2026-11-02.md | Navegador ≥ 85% · Pesquisa ≥ 85% | refs/Shadow/frames; 30/30 BLOCKED_HARNESS no runner |
 | M4 Desktop robusto e habilidades | pendente | | Desktop ≥ 90% · 10 apps com habilidade validada | |
 | M5 Confiança graduada | pendente | | tarefa de 6 passos com ≤ 1 confirmação; R3 sempre confirma | |
 | M6 Presença, memória e voz | pendente | | Presença/memória ≥ 90% · voz < 2,5 s | |
-| M7 Interface Nyx HUD | em implementação paralela | | QA visual + check_ui + perf | codex/nyx-m7-hud; pet congelado |
+| M7 Interface Nyx HUD | parcial: integrada; pintura nativa acima da meta | evidence/m7_hud_2026-11-02.md; evidence/runtime_hud_integration_2026-11-02.md | QA visual + check_ui + perf | 9/9interações; HUD/modelo reais; pet congelado |
 | M8 Aceitação final | pendente | | bench 3× completo · soak 2 h · falso sucesso = 0 | |
 
 ## Log (mais recente primeiro)
+- 02/11/2026 — HUD ad8bb6a e M3 57e68ec integrados/publicados. Roteador semântico
+  17/18inicial→72/72em24pedidos×3; conversas TaskRunner2/2, HUD4B primeirodelta
+  0,672s, HUD3B0,391s com aviso visível. Textos incluem imprecisões factuais,
+  não confundir teste de entrega com verdade. Cold4B3/3, Normal padrão condicional;
+  antigo pisoRAM2,5não medido substituído pela faixa provisória5,3GiB (D-010).
+  Escolha real Conservador/3B+aviso, cold3/3. Falha real Calculadora0/3corrigida
+  por catálogo/grounding: abertura nova1/1em8,704s,1confirmação, foco confirmado,
+  2repetições bloqueadas por reset, sem encerrar app. Detalhes/testes em
+  evidence/runtime_hud_integration_2026-11-02.md e integration_gate_2026-11-02.json.
+  Gate final987passes/65skips/0falhas,47,432s; live39passes/26skips/0falhas;
+  Ruff limpo, QA integrado9/9/0cortes medidos. Publicar incremento em nyx-2.
 - 02/11/2026 — Abertura e foco separados na ferramenta/guarda final; bench
   instalado 12/15, quatro pré-existentes bloqueados por reset manual seguro.
   Ruff limpo; regressão padrão 960/61pulados/0falhas,50,083s. Nova bateria fria

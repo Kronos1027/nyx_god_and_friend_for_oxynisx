@@ -1,0 +1,103 @@
+{
+  "model": "qwen3.5:4b",
+  "runs": [
+    {
+      "run": 1,
+      "cold_runner": true,
+      "os_file_cache_reset": false,
+      "ok": true,
+      "error": null,
+      "elapsed_seconds": 14.219000000000051,
+      "before": {
+        "ram_available_bytes": 5652430848,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 11722428416,
+        "cpu_percent": 12.9,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 13021040640,
+        "commit_limit_bytes": 32668831744
+      },
+      "baseline_owned_rss_bytes": 111493120,
+      "peak_owned_rss_bytes": 1286606848,
+      "peak_owned_private_bytes": 6606086144,
+      "minimum_system_available_bytes": 4391981056,
+      "resident": [
+        {
+          "name": "qwen3.5:4b",
+          "size": 3364911840,
+          "size_vram": 3364911840,
+          "context_length": 8192
+        }
+      ],
+      "load_duration_ns": 13778625000
+    },
+    {
+      "run": 2,
+      "cold_runner": true,
+      "os_file_cache_reset": false,
+      "ok": true,
+      "error": null,
+      "elapsed_seconds": 3.3279999999999745,
+      "before": {
+        "ram_available_bytes": 5647884288,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 11722657792,
+        "cpu_percent": 9.1,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 13002551296,
+        "commit_limit_bytes": 32668831744
+      },
+      "baseline_owned_rss_bytes": 114913280,
+      "peak_owned_rss_bytes": 1285922816,
+      "peak_owned_private_bytes": 6606356480,
+      "minimum_system_available_bytes": 4451438592,
+      "resident": [
+        {
+          "name": "qwen3.5:4b",
+          "size": 3364911840,
+          "size_vram": 3364911840,
+          "context_length": 8192
+        }
+      ],
+      "load_duration_ns": 3161175600
+    },
+    {
+      "run": 3,
+      "cold_runner": true,
+      "os_file_cache_reset": false,
+      "ok": true,
+      "error": null,
+      "elapsed_seconds": 3.0319999999999254,
+      "before": {
+        "ram_available_bytes": 5598056448,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 11722559488,
+        "cpu_percent": 18.6,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 12997189632,
+        "commit_limit_bytes": 32668831744
+      },
+      "baseline_owned_rss_bytes": 115953664,
+      "peak_owned_rss_bytes": 1286434816,
+      "peak_owned_private_bytes": 6608748544,
+      "minimum_system_available_bytes": 4509741056,
+      "resident": [
+        {
+          "name": "qwen3.5:4b",
+          "size": 3364911840,
+          "size_vram": 3364911840,
+          "context_length": 8192
+        }
+      ],
+      "load_duration_ns": 2880749400
+    }
+  ],
+  "intent_probe_exit_code": 1,
+  "scope": "Servidor Ollama e filhos próprios, pesos existentes, contexto Normal; sem apps pessoais.",
+  "limitations": [
+    "RAM total do sistema sofre interferência de outros processos.",
+    "RSS soma working sets e pode duplicar páginas compartilhadas; amostragem 100ms.",
+    "Carga fria do runner; cache de arquivos do Windows não foi esvaziado.",
+    "Mínimo inicial observado não prova limite mínimo necessário: sem stress artificial de RAM."
+  ]
+}

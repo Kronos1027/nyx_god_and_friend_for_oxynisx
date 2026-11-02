@@ -1,4 +1,4 @@
-"""Text-only streaming route for unambiguous greetings; never offers tools."""
+"""Text-only general conversation streaming; never offers tools."""
 import json
 import re
 import time
@@ -26,14 +26,6 @@ def _greeting_text(text):
     return ' '.join(re.sub(r'[,!.?;:]+', ' ', _fold(text)).split())
 
 
-def is_simple_conversation(text):
-    if not isinstance(text, str) or len(text) > 200:
-        return False
-    text = _greeting_text(text)
-    return bool(re.fullmatch(r'(?:oi|ola|bom dia|boa tarde|boa noite)(?: nyx)?(?: como (?:voce esta|vai)| tudo bem)?'
-                             r'|(?:nyx )?(?:como voce esta|tudo bem|quem e voce|vamos conversar)', text))
-
-
 def is_identity_question(text):
     return isinstance(text, str) and bool(re.fullmatch(r'(?:nyx )?quem e voce', _greeting_text(text)))
 
@@ -53,7 +45,9 @@ def stream_conversation(client, user_input, history=None, memory_context=None, o
     _, cancelled = _work_context.get()
     base = (getattr(client, 'conversation_system_prompt', None) or NYX_CONVERSATION_PROMPT) + (
         ' Responda apenas com texto, sem JSON. Esta rota não possui ferramentas e não executa ações; '
-        'não afirme que abriu, enviou ou alterou algo. Responda ao cumprimento em até duas frases.')
+        'não afirme que abriu, enviou ou alterou algo. Converse naturalmente em português, '
+        'respondendo ao assunto e ao contexto. Se faltarem dados atuais ou observações, diga isso; '
+        'não invente acesso ao PC, notícias ou lembranças. Seja concisa sem limitar toda resposta a duas frases.')
     if is_identity_question(user_input):
         base += ' ' + NYX_IDENTITY_FACTS
     if identity_retry:

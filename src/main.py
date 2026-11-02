@@ -78,10 +78,14 @@ def run_gui(args: argparse.Namespace) -> int:
     # Load the persisted profile before model admission, not only after creating UI.
     from PyQt6.QtCore import QSettings
     from app_paths import user_data_dir
-    from core.resource_profiles import select_profile, PROFILES
+    from core.resource_profiles import select_profile, PROFILES, default_profile
+    from core.runtime_budget import resource_snapshot
     settings = QSettings(str(user_data_dir() / 'data' / 'desktop.ini'), QSettings.Format.IniFormat)
-    profile = settings.value('resource_profile', 'conservative')
-    select_profile(profile if profile in PROFILES else 'conservative')
+    profile = settings.value('resource_profile', '')
+    if profile not in PROFILES:
+        profile, reason = default_profile(resource_snapshot())
+        log.info(reason)
+    select_profile(profile)
 
     cfg = NyxConfig()
     cfg.ensure_dirs()

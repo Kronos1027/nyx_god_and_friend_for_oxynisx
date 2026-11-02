@@ -2,16 +2,30 @@
 
 Última atualização: 2026-11-02
 
-## Direção atual — M7 e M3 em paralelo
+## Integração atual — HUD, navegador e runtime
+
+- Entregas M7/M3 integradas e publicadas até ad8bb6a; próximos commits incluem
+  roteador/perfil/grounding e evidência da integração. Pet/overlay preservados.
+- HUD real+modelo4B: streaming em0,672s; modelo3B com aviso visível0,391s.
+  Classificador semântico72/72na amostra, erro inicial17/18preservado.
+- Normal automático na faixa de carga fria observada; Conservador/modelo menor
+  com motivo explícito quando necessário. Principal/preferências preservados.
+  Cold4B3/3 e seleção real3B3/3; mínimo físico de RAM ainda não medido.
+- Calculadora pelo HUD/modelo menor:0/3antes→1abertura nova/1executada após
+  correção;2rodadas bloqueadas por janela existente. Não equivale a3/3/gate Apps.
+- M7 parcial: pintura nativa3,541s acima da meta; M3 parcial:30/30do runner
+  bloqueados por harness incompleto, embora componentes reais passem. Evidência
+  integrada: docs/evidence/runtime_hud_integration_2026-11-02.md.
 
 - M0/M1 **parcial: bloqueado por ambiente**; não impedem avanço do HUD/navegador.
 - Abertura confirmada e foco separados; bench exige janela nova e registra foco
   à parte. Inventário real: 15 entradas → 12 instaladas, quatro apps pedem
   fechamento manual antes da rodada, sem encerrar processos pessoais.
-- Regressão padrão: 960 aprovados, 61 pulados, zero falhas, 50,083s; Ruff limpo.
-  Nova bateria fria ainda não validada: docs/evidence/apps_policy_2026-11-02.md.
-- CI remoto do checkpoint 72c6080 passou. HUD e segundo incremento M3 continuam
-  em worktrees; Normal condicional/carga fria e classificador vêm na sequência.
+- Gate integrado:987aprovados/65pulados/0falhas,47,432s; Windows live39/26pulados/
+  0falhas,20,560s; Ruff limpo. Bateria fria Apps completa ainda não validada.
+  Contagens anteriores preservadas em docs/evidence/apps_policy_2026-11-02.md.
+- CI remoto do checkpoint72c6080 passou; verificações locais posteriores estão
+  no relatório de integração, sem inferir execução de CI dos commits novos.
 
 Os registros abaixo são históricos; os critérios atuais estão em AGENTS.md.
 

@@ -64,4 +64,5 @@ class AgoraPanel(QFrame):
         self.cancel.setEnabled(busy)
         if not busy:
             self.fields['task'].setText('Nenhuma tarefa em andamento')
+            self.stepper.clear()
 

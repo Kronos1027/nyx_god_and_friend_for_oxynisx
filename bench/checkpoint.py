@@ -44,7 +44,7 @@ def completed_keys(report, manifest, repetitions):
                 or not 1 <= row['run'] <= repetitions or key in seen):
             raise ValueError('Checkpoint contém caso/rodada incompatível ou duplicado; nada será repetido.')
         if (type(row['ok']) is not bool or row['status'] not in
-                {'PASS', 'FAIL', 'ERROR', 'BLOCKED_HARNESS', 'BLOCKED_RUNTIME'}
+                {'PASS', 'FAIL', 'ERROR', 'BLOCKED_HARNESS', 'BLOCKED_RUNTIME', 'BLOCKED_ENVIRONMENT'}
                 or row['ok'] != (row['status'] == 'PASS')):
             raise ValueError('Resultado de checkpoint inconsistente; revise o relatório.')
         seen.add(key)

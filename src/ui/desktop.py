@@ -190,6 +190,7 @@ class DesktopWindow(QMainWindow):
         self._activity_auto_hidden = False
         self.chat_id = ""
         self._busy = False
+        self._last_runtime_notice = ''
         self._pending_confirm_card = None
         self._private = False
         self._private_saved = {}
@@ -508,6 +509,13 @@ class DesktopWindow(QMainWindow):
         stopped.addWidget(self.hud_resume_button)
         self.stop_banner.hide()
         layout.addWidget(self.stop_banner)
+        self.runtime_notice_banner = QLabel('')
+        self.runtime_notice_banner.setObjectName('StateBanner')
+        self.runtime_notice_banner.setWordWrap(True)
+        self.runtime_notice_banner.setTextFormat(Qt.TextFormat.PlainText)
+        self.runtime_notice_banner.setAccessibleName('Aviso de perfil ou degradação do modelo')
+        self.runtime_notice_banner.hide()
+        layout.addWidget(self.runtime_notice_banner)
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.feed = QWidget()
@@ -1399,15 +1407,17 @@ class DesktopWindow(QMainWindow):
         self.preferred_model = QLineEdit(runtime.get("preferred_model", ""))
         self.preferred_model.setMaxLength(160)
         self.preferred_model.setPlaceholderText("Automático (se vazio)")
-        self.preferred_model.setToolTip("Nome exato no Ollama. Se não houver memória, a Nyx aguarda em vez de trocar por um modelo menor.")
+        self.preferred_model.setToolTip("Nome exato no Ollama. Se não couber, um modelo menor já instalado pode ser usado com aviso explícito; a preferência é preservada.")
         runtime_form.addRow("Modelo principal", self.preferred_model)
-        from core.resource_profiles import PROFILES, select_profile
+        from core.resource_profiles import PROFILES, select_profile, default_profile
         self.resource_profile_combo = QComboBox()
         for key, profile in PROFILES.items():
             self.resource_profile_combo.addItem(profile.label, key)
-        saved_profile = self.settings.value('resource_profile', 'conservative')
+        saved_profile = self.settings.value('resource_profile', '')
+        self._profile_notice = ''
         if saved_profile not in PROFILES:
-            saved_profile = 'conservative'
+            from core.runtime_budget import resource_snapshot
+            saved_profile, self._profile_notice = default_profile(resource_snapshot())
         self.resource_profile_combo.setCurrentIndex(self.resource_profile_combo.findData(saved_profile))
         select_profile(saved_profile)
         self.resource_profile_combo.setToolTip('Normal: até 8K; Foco: até 16K; Jogo/Live: até 4K e sem tarefas de fundo. '
@@ -1419,7 +1429,7 @@ class DesktopWindow(QMainWindow):
         save_runtime = QPushButton("Salvar configuração do modelo")
         save_runtime.clicked.connect(self._save_runtime)
         layout.addWidget(save_runtime)
-        self.runtime_feedback = self._muted("Reinicie a Nyx após alterar o modelo principal. Se faltar memória, ela aguardará recursos sem trocar de modelo. Os caminhos são usados ao iniciar o Ollama.")
+        self.runtime_feedback = self._muted("Reinicie a Nyx após alterar o modelo principal. Degradação para um modelo menor instalado é informada; sem candidato seguro, aguarda recursos. " + self._profile_notice)
         layout.addWidget(self.runtime_feedback)
         self.memory_diagnostic_button = QPushButton('Diagnosticar memória')
         self.memory_diagnostic_button.clicked.connect(self._show_resource_diagnostics)
@@ -1936,6 +1946,13 @@ class DesktopWindow(QMainWindow):
                 self._streamed_text = ''
                 self._clear_stream_reply()
             self.busy_label.setText(f"Avaliando a próxima etapa · {step}")
+        elif phase == 'intent_classifying':
+            self.busy_label.setText('Entendendo se o pedido precisa de ferramentas…')
+        elif phase == 'intent_routed':
+            if progress.get('fallback'):
+                self._add_activity('A intenção precisa de mais análise. Vou usar o planejador; as confirmações continuam valendo.')
+            self.busy_label.setText('Nyx está respondendo…' if progress.get('route') == 'conversation'
+                                    else 'Planejando a tarefa…')
         elif phase == 'conversation_delta':
             self._hide_typing()
             self._streamed_text = (getattr(self, '_streamed_text', '') + progress.get('text', ''))[:2000]
@@ -2122,6 +2139,7 @@ class DesktopWindow(QMainWindow):
             self.resource_profile_combo.blockSignals(False)
             return
         name = self.resource_profile_combo.currentData()
+        self._profile_notice = ''  # A manual choice replaces the automatic startup explanation.
         select_profile(name)
         self.settings.setValue('resource_profile', name)
         self.controller.loop.audit.log_event('resource_profile_changed', profile=name, source='desktop_settings')
@@ -2134,7 +2152,14 @@ class DesktopWindow(QMainWindow):
         self.hud_status.update_state(model=self._model_name(), profile=self.resource_profile_combo.currentText(),
                                      permission=self.controller.loop.mode_name,private=self._private)
         llm = getattr(getattr(self.controller, "loop", None), "llm", None)
-        self.model_badge.setToolTip(getattr(llm, "unavailable_reason", "") or self._model_name())
+        notice = getattr(llm, 'runtime_notice', '')
+        profile_notice = self._profile_notice if self.resource_profile_combo.currentData() == 'conservative' else ''
+        self.runtime_notice_banner.setText('\n'.join(part for part in (profile_notice, notice) if part))
+        self.runtime_notice_banner.setVisible(bool(profile_notice or notice))
+        if notice and notice != self._last_runtime_notice:
+            self._add_activity(notice)
+            self._last_runtime_notice = notice
+        self.model_badge.setToolTip(notice or getattr(llm, "unavailable_reason", "") or self._model_name())
         if not self.isVisible():
             return
         from core.runtime_budget import INFERENCE_GATE

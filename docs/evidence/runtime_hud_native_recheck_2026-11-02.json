@@ -1,0 +1,62 @@
+{
+  "model": "qwen2.5:3b-instruct",
+  "profile": "conservative",
+  "automatic_selection": {
+    "profile": "conservative",
+    "reason": "Conservador automático: RAM/VRAM fora da faixa de carga fria validada para Normal ou telemetria indisponível. O modelo será limitado pelo orçamento atual.",
+    "backend": "ollama:qwen2.5:3b-instruct",
+    "model": "qwen2.5:3b-instruct",
+    "notice": "Degradação explícita: usando qwen2.5:3b-instruct no lugar de qwen3.5:4b, por orçamento de memória ou RAM fora da faixa de carga fria validada. O modelo principal salvo foi preservado; a capacidade pode ser menor. Nenhum modelo foi baixado.",
+    "resources": {
+      "ram_available_bytes": 5414563840,
+      "vram_total_bytes": 12884901888,
+      "vram_free_bytes": 11698683904,
+      "cpu_percent": 18.7,
+      "ram_total_bytes": 17099575296,
+      "committed_bytes": 13348712448,
+      "commit_limit_bytes": 32668831744
+    }
+  },
+  "runs": [
+    {
+      "run": 1,
+      "cold_runner": true,
+      "os_file_cache_reset": false,
+      "ok": true,
+      "error": null,
+      "elapsed_seconds": 3.75,
+      "before": {
+        "ram_available_bytes": 5390462976,
+        "vram_total_bytes": 12884901888,
+        "vram_free_bytes": 11698552832,
+        "cpu_percent": 15.6,
+        "ram_total_bytes": 17099575296,
+        "committed_bytes": 13351280640,
+        "commit_limit_bytes": 32668831744
+      },
+      "baseline_owned_rss_bytes": 61173760,
+      "peak_owned_rss_bytes": 769212416,
+      "peak_owned_private_bytes": 3215831040,
+      "minimum_system_available_bytes": 4670218240,
+      "resident": [
+        {
+          "name": "qwen2.5:3b-instruct",
+          "size": 2085974179,
+          "size_vram": 2085974179,
+          "context_length": 2048
+        }
+      ],
+      "load_duration_ns": 3629322100
+    }
+  ],
+  "intent_probe_exit_code": null,
+  "hud_probe_exit_code": null,
+  "native_probe_exit_code": 1,
+  "scope": "Servidor Ollama e filhos próprios, pesos existentes; sem apps pessoais.",
+  "limitations": [
+    "RAM total do sistema sofre interferência de outros processos.",
+    "RSS soma working sets e pode duplicar páginas compartilhadas; amostragem 100ms.",
+    "Carga fria do runner; cache de arquivos do Windows não foi esvaziado.",
+    "Mínimo inicial observado não prova limite mínimo necessário: sem stress artificial de RAM."
+  ]
+}

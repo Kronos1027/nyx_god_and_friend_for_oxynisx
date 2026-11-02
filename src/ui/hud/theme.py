@@ -66,6 +66,7 @@ def stylesheet(theme='midnight', accent='gold', font_size=14):
     QPushButton#Primary {{ background:{a}; color:{on}; border-color:{a}; font-weight:600; }}
     QPushButton#Danger {{ color:{p['red']}; background:{p['surface1']}; border-color:{p['red']}; }}
     QPushButton#Danger:hover {{ background:{p['red']}; color:{p['onRed']}; }}
+    QPushButton#Primary:disabled, QPushButton#Danger:disabled {{ color:{p['muted']}; background:{p['surface2']}; border-color:{p['line']}; }}
     QPushButton#Nav {{ background:transparent; border-color:transparent; text-align:left; font-size:12px; padding:8px 6px; }}
     QPushButton#Nav:checked {{ color:{a}; background:{p['surface2']}; border-left:2px solid {a}; }}
     QPushButton#Quiet, QToolButton#StatusItem {{ background:transparent; border-color:transparent; color:{p['muted']}; }}

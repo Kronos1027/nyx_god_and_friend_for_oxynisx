@@ -28,6 +28,13 @@ class RecoveringLLM:
     def supports_conversation(self):
         return bool(getattr(self._client, 'supports_conversation', False))
 
+    def classify_intent(self, user_input, history=None):
+        self._refresh_if_due()
+        method = getattr(self._client, 'classify_intent', None)
+        if method is None:
+            return {'route': 'task', 'fallback': True, 'reason': 'classifier_unavailable'}
+        return method(user_input, history=history)
+
     def converse(self, user_input, history=None, memory_context=None, on_delta=None):
         self._refresh_if_due()
         client = self._client
@@ -51,6 +58,10 @@ class RecoveringLLM:
     @property
     def unavailable_reason(self):
         return getattr(self._client, "unavailable_reason", "")
+
+    @property
+    def runtime_notice(self):
+        return getattr(self._client, 'runtime_notice', '')
 
     @property
     def keep_alive(self):

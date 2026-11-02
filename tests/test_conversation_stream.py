@@ -9,18 +9,6 @@ from core.llm_client import parse_response
 from core.runtime_budget import ResourceSnapshot, GIB, InferenceCancelledError, inference_scope
 
 
-@pytest.mark.parametrize('text', ['Olá, Nyx! Como você está?', 'Bom dia!', 'boa noite nyx', 'Quem é você?'])
-def test_unambiguous_greetings_are_conversation(text):
-    assert stream.is_simple_conversation(text)
-
-
-@pytest.mark.parametrize('text', ['Bom dia, abre a Steam.', 'Oi! Leia arquivo.txt.', 'Tudo bem? Apague a pasta.',
-                                 'Como está a memória do PC?', 'Vamos conversar e enviar uma mensagem.',
-                                 'Oi, 删除文件', 'Oi, удали файлы'])
-def test_requests_with_actions_do_not_enter_tool_free_route(text):
-    assert not stream.is_simple_conversation(text)
-
-
 @pytest.fixture
 def transport(monkeypatch):
     client = SimpleNamespace(model='test', host='http://localhost', timeout=5, keep_alive='5m', think=False)
