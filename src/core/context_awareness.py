@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import sqlite3
 import time
+from threading import RLock
 
 SENSORS = {"own_tasks": True, "research": True, "resources": True,
            "processes": False, "folders": False, "browser": False, "active_window": False}
@@ -27,6 +28,9 @@ class ContextAwarenessEngine:
         self.database.parent.mkdir(parents=True, exist_ok=True)
         self.clock = clock
         self._last_collection = {}
+        self._pause_lock = RLock()
+        self._paused = False
+        self._pause_generation = 0
         with self.connect() as db:
             db.executescript("""
                 PRAGMA journal_mode=WAL;
@@ -57,6 +61,23 @@ class ContextAwarenessEngine:
         finally:
             db.close()
 
+    @property
+    def is_paused(self):
+        with self._pause_lock:
+            return self._paused
+
+    def set_paused(self, paused):
+        """Suspend new observations without changing consent or stored history."""
+        if type(paused) is not bool:
+            raise ValueError('Estado de pausa inválido.')
+        with self._pause_lock:
+            if self._paused != paused:
+                self._pause_generation += 1
+                self._paused = paused
+
+    def _collection_current(self, generation):
+        return not self._paused and generation == self._pause_generation
+
     def permissions(self):
         with self.connect() as db:
             return {row["name"]: bool(row["enabled"]) for row in db.execute("SELECT * FROM sensors")}
@@ -76,24 +97,51 @@ class ContextAwarenessEngine:
 
     def collect(self, sensor, collector, *, under_load=False):
         """Check permission BEFORE invoking a sensor; never collect then discard."""
-        if not self.permissions().get(sensor, False) or under_load:
+        with self._pause_lock:
+            if self._paused or under_load:
+                return []
+            generation = self._pause_generation
+        if not self.permissions().get(sensor, False):
             return []
         now = self.clock()
         if now - self._last_collection.get(sensor, float("-inf")) < 5:
             return []
         self._last_collection[sensor] = now
         try:
-            from itertools import islice
-            results = [self.emit(sensor=sensor, **event) for event in islice(collector(), 32)]
-            with self.connect() as db:
-                self._audit(db, sensor, "collected")
+            results = []
+            with self._pause_lock:
+                if not self._collection_current(generation):
+                    return []
+            iterator = iter(collector())
+            for _ in range(32):
+                with self._pause_lock:
+                    if not self._collection_current(generation):
+                        break
+                try:
+                    event = next(iterator)
+                except StopIteration:
+                    break
+                results.append(self.emit(sensor=sensor, _generation=generation, **event))
+            with self._pause_lock:
+                if self._collection_current(generation):
+                    with self.connect() as db:
+                        self._audit(db, sensor, "collected")
             return [result for result in results if result]
         except Exception:
-            with self.connect() as db:
-                self._audit(db, sensor, "failed")
+            with self._pause_lock:
+                if not self._collection_current(generation):
+                    return []
+                with self.connect() as db:
+                    self._audit(db, sensor, "failed")
             raise
 
-    def emit(self, sensor, kind, key, title, source="", ttl=3600):
+    def emit(self, sensor, kind, key, title, source="", ttl=3600, *, _generation=None):
+        with self._pause_lock:
+            if self._paused or (_generation is not None and not self._collection_current(_generation)):
+                return None
+            return self._emit(sensor, kind, key, title, source, ttl)
+
+    def _emit(self, sensor, kind, key, title, source="", ttl=3600):
         if sensor not in SENSORS or kind not in EVENT_KINDS or not str(key):
             raise ValueError("Evento de contexto inválido")
         now = self.clock()
