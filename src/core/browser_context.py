@@ -58,7 +58,7 @@ def browser_planning_state(steps):
             state.setdefault('typed_fields',{}).update(step['browser_typed'])
         for key in ('links','tabs'):
             if key in step.get('browser_targets',{}):
-                state[key] = step['browser_targets'][key]
+                state[key] = [dict(row) for row in step['browser_targets'][key]]
     return state
 
 

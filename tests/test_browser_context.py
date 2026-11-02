@@ -37,3 +37,12 @@ def test_targets_are_retained_whole_but_navigation_invalidates_prior_page_refs()
     assert browser_planning_state(steps)['snapshot']=='a'*32
     steps.append({'tool':'browser','ok':True,'params':{'action':'click'}})
     assert browser_planning_state(steps)=={'tabs':[{'id':'t1'}]}
+
+
+def test_switching_does_not_rewrite_the_historical_tab_observation():
+    original=[{'id':'t1','active':False},{'id':'t2','active':True}]
+    steps=[{'tool':'browser','ok':True,'params':{'action':'tabs'},'browser_targets':{'tabs':original}},
+           {'tool':'browser','ok':True,'verified':True,'params':{'action':'switch_tab','tab_id':'t1'}}]
+    state=browser_planning_state(steps)
+    assert state['tabs'][0]['active'] and not state['tabs'][1]['active']
+    assert original==[{'id':'t1','active':False},{'id':'t2','active':True}]
