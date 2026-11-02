@@ -1,6 +1,6 @@
 import json
 
-from core.browser_context import compact_browser_observation, compact_browser_targets, browser_planning_state
+from core.browser_context import compact_browser_observation, compact_browser_targets, browser_planning_state, display_browser_state
 
 
 def test_compact_observation_keeps_field_refs_snapshot_and_protection():
@@ -46,3 +46,14 @@ def test_switching_does_not_rewrite_the_historical_tab_observation():
     state=browser_planning_state(steps)
     assert state['tabs'][0]['active'] and not state['tabs'][1]['active']
     assert original==[{'id':'t1','active':False},{'id':'t2','active':True}]
+
+
+def test_display_keeps_pending_values_and_current_ref_pair_without_repeating_typed_text():
+    state={'snapshot':'a'*32,'controls':[{'ref':'e1','role':'textbox','name':'Nome','states':{}}],
+           'bindings':[{'name':'Nome','ref':'e1','text':'Nyx'},{'name':'Mensagem','ref':'e2','text':'Olá'}],
+           'typed_fields':{'Nome':'Nyx'},'ref_usage':'repeated instructions','visited_urls':['https://example.test/']}
+    shown=display_browser_state(state)
+    assert shown['snapshot']=='a'*32 and shown['pending_fields']==[state['bindings'][1]]
+    assert shown['completed_fields']==['Nome']
+    assert not ({'typed_fields','bindings','visited_urls','ref_usage'} & set(shown))
+    assert state['typed_fields']=={'Nome':'Nyx'}

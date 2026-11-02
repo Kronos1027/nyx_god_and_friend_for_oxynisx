@@ -18,7 +18,7 @@ def browser_action_schema(history, goal=''):
     for item in reversed(history or []):
         if item.get('nyx_browser_state') is True and str(item.get('content','')).startswith(PREFIX):
             try:
-                observation = json.loads(item['content'][len(PREFIX):])
+                observation = item.get('nyx_browser_state_data') or json.loads(item['content'][len(PREFIX):])
             except (ValueError, TypeError):
                 pass
             break
@@ -86,6 +86,21 @@ def browser_action_schema(history, goal=''):
                 else:
                     action(name, {'ref':{'enum':refs}, 'snapshot':{'const':snapshot}, **extra},
                            ('ref','snapshot',*required))
+    # The model chooses the action; avoid offering unrelated read-only detours
+    # while explicit inputs or a requested download are still pending.
+    field_goal = bool(re.search(r'\bpreencha\b',goal,re.I) or re.search(r'\bpesquise\b.{0,160}\bformulário\b',goal,re.I))
+    if pending:
+        allowed={'type','inspect','status'}
+    elif field_goal and page_ready and not controls and not observation.get('typed_fields'):
+        allowed={'inspect','status'}
+    elif field_goal and observation.get('typed_fields'):
+        allowed={'click','inspect','read','wait_text','status'}
+    elif re.search(r'\b(?:baixe|baixar|download)\b',goal,re.I) and page_ready:
+        allowed={'download','status'} if link_urls else {'links','status'}
+    else:
+        allowed=None
+    if allowed is not None:
+        variants=[variant for variant in variants if variant['properties']['action']['const'] in allowed]
     return _object({'type':{'const':'browser'},'params':{'anyOf':variants}}, ['type','params'])
 
 

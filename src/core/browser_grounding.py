@@ -84,6 +84,11 @@ def browser_sequence_issue(goal, steps, tool, speech=''):
     if re.search(r'\bpreench\w*\b',goal,re.I) and re.search(r'\bcom\b',goal,re.I):
         if not any(step.get('verified') and step.get('params',{}).get('action')=='type' for step in browser_steps):
             return 'Nenhum preenchimento foi verificado. Inspecione os campos e digite os valores pedidos; não declare o cadastro concluído.'
+        if re.search(r'\b(?:salve|envie|enviar|salvar)\b',goal,re.I):
+            clicks=[index for index,step in enumerate(browser_steps) if step.get('ok') and step.get('params',{}).get('action')=='click']
+            if not clicks or not any(step.get('ok') and step.get('verified') and step.get('params',{}).get('action') in {'read','wait_text'}
+                                     for step in browser_steps[clicks[-1]+1:]):
+                return 'Depois de preencher e clicar, leia a confirmação atual da página antes de afirmar que o cadastro foi enviado ou salvo.'
     if _CODE_REQUEST.search(goal):
         issue = _code_issue(browser_steps, speech)
         if issue:

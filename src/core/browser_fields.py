@@ -8,6 +8,8 @@ import re
 
 def requested_fields(goal, controls):
     goal = str(goal).split('\n\n',1)[0]
+    if not re.search(r'\b(?:preencha|digite|escreva|pesquise)\b',goal,re.I):
+        return []
     fields = [item for item in controls if item.get('role') in {'textbox','searchbox','spinbutton'}
               and item.get('name') and not item.get('protected')]
     names = [item['name'] for item in fields]
@@ -18,6 +20,10 @@ def requested_fields(goal, controls):
             continue
         match = re.search(r'\b'+re.escape(name)+r'\b[^.!?\n]{0,100}?\bcom\s+(.+)',goal,re.I)
         if not match:
+            continue
+        start = match.start()
+        prior = goal[max(0,start-100):start]
+        if re.search(r'\b(?:não|nunca|sem)\b[^.!?;]{0,90}\b(?:preench\w*|digit\w*|escrev\w*)\b[^.!?;]*$',prior,re.I):
             continue
         value = match[1].strip()
         if value[:1] in {'"',"'",'“'}:

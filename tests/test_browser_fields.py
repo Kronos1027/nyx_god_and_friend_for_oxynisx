@@ -29,6 +29,12 @@ def test_simple_form_search_binds_only_a_unique_observed_textbox():
     assert requested_fields('Na página pesquise astronomia no formulário.',[field('Pesquisar'),field('Outro','e2')])==[]
 
 
+def test_negated_or_descriptive_field_mentions_do_not_force_typing():
+    assert requested_fields('Não preencha Nome com Nyx.',[field('Nome')])==[]
+    assert requested_fields('Nunca digite Nome com Nyx.',[field('Nome')])==[]
+    assert requested_fields('Explique um formulário que associa Nome com Nyx.',[field('Nome')])==[]
+
+
 def test_schema_prevents_submitting_explicit_fields_before_verified_typing():
     state={'snapshot':'a'*32,'controls':[field('Nome'),{'name':'Salvar','ref':'e3','role':'button'}],
            'bindings':[{'name':'Nome','ref':'e1','text':'Nyx'}]}

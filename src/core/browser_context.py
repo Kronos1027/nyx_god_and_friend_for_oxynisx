@@ -73,3 +73,17 @@ def compact_browser_targets(action, text):
         return None
     keys = ('text','href') if action=='links' else ('id','title','url','active')
     return {action:[{key:row[key] for key in keys if key in row} for row in rows[:30] if isinstance(row,dict)]}
+
+
+def display_browser_state(state):
+    """Do not spend the model's context on repeated instructions or typed values."""
+    from core.browser_fields import pending_fields
+    result={key:value for key,value in state.items() if key not in {
+        'ref_usage','typed_fields','bindings','controls','visited_urls'}}
+    if 'controls' in state:
+        result['controls']=[{key:row[key] for key in ('ref','role','name','protected') if key in row}
+                            for row in state['controls']]
+    if state.get('bindings'):
+        result['pending_fields']=pending_fields(state)
+        result['completed_fields']=list(state.get('typed_fields',{}))
+    return result

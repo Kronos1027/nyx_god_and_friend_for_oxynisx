@@ -623,6 +623,8 @@ class OllamaClient:
                 from core.browser_schema import constrain_browser_schema
                 active_schema = constrain_browser_schema(active_schema, names, history, user_input)
                 planning_tools = [{**tool,'params_contract':{
+                    'actions':'open|read|inspect|type|click|tabs|switch_tab|links|tables|download|media_play|media_status|media_pause',
+                    'params':'type(ref,snapshot,text), click(ref,snapshot), open(url), switch_tab(tab_id), download(url,path)',
                     'sequence':'URL pedida:open→read; aba existente:tabs→switch_tab→read; campos:inspect→type/click',
                     'refs':'Copie ref+snapshot do inspect, válidos30s; não invente alvos.',
                     'download':'links→download(url observada,path exato); confirma e nunca executa',
