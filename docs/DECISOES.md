@@ -1,5 +1,18 @@
 # DECISOES — registro de decisões reversíveis (uma entrada por decisão)
 
+## D-008 · Publicação sanitizada com histórico preservado · 01/11/2026
+
+Contexto: usuário pediu envio imediato do progresso; branch nyx-2 ainda não
+existe no remoto. Auditoria encontrou caminhos locais em versões intermediárias
+de HANDOFF_DSH.md, STATUS.md e SPEC_CAPACIDADES.md não publicadas. Escolha:
+sanitizar apenas esses documentos na cadeia local, conservar uma referência
+local privada da cadeia original, preservar mensagens/autores e todos os estados
+de código, publicar só nyx-2 explicitamente sem force. Motivo: histórico completo
+do trabalho preservado sem introduzir esses caminhos no GitHub. Não altera main,
+branch de backups, chaves, snapshots ou histórico que já estava remoto. Reversão:
+referência local preservada e mapeamento de SHAs em build/diagnostic; árvore final
+de código igual, sem reset destrutivo de arquivos.
+
 ## D-007 · Janela e foco no encerramento · 01/11/2026
 
 Contexto: nove aberturas observavam janela, mas seis não tinham foco; UWP cloaked

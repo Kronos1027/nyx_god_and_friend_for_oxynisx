@@ -1,7 +1,7 @@
 # PROGRESS — memória externa do trabalho (atualize ao fim de cada passo relevante)
 
 **Marco atual:** M0 (integração e baseline ampliado) · **Branch:** nyx-2 · **Base preservada:** 5fc8ee5
-**Próximo passo exato:** ampliar o harness Apps para os nativos restantes com sinais independentes por classe/processo e rodadas3×. Conferência final de foco implementada; dois ensaios9/9. Não reexecutar o relatório legado como método aprovado.
+**Próximo passo exato:** finalizar commits/sanitização do histórico local ainda não publicado e push explícito de nyx-2, autorizado pelo usuário. Conferir SHA remoto e CI. Depois seguir M0 por lacuna independente: auditoria/publicação concluída não fecha Apps; foco/RAM continuam bloqueios medidos.
 **Como retomar:** `git switch nyx-2` · ler AGENTS.md, este arquivo e docs/DECISOES.md · rodar `python -m pytest -q`
 **Bloqueios:**44cenários do harness sem setup/verificador seguro, sem inferir incapacidade da Nyx. Apps não são fechados/resetados, então a bateria nativa parcial não fecha gate. Login Spotify adiado pelo usuário. Migração privada/remoção remota fora do escopo aprovado. Requalificação atual de arquivos passou3/3; antigas recusas de RAM permanecem como histórico.
 
@@ -19,6 +19,27 @@
 | M8 Aceitação final | pendente | | bench 3× completo · soak 2 h · falso sucesso = 0 | |
 
 ## Log (mais recente primeiro)
+- 01/11/2026 — Usuário reiterou envio ao GitHub. Gate final970passes/27skips/
+  0falhas/49,845s,997casos. Rotas nativas12; roteamento12/12para quatro apps,
+  mas runner final interrompido por RAM na sétima tarefa (2passes/7execuções;
+  29runtime/9harness bloqueados). Sem falso sucesso no último runner.
+  Auxiliar PID real validado por parentesco/criação, árvore própria encerrada3/3;
+  foco sincronizado passou12/12em fixtures, apps instalados ainda bloqueiam.
+  Evidência: evidence/apps_expansion_2026-11-01.md. Não promover M0/M1.
+- 01/11/2026 — Revisão de publicação:319blobs novos origin/main..HEAD analisados;
+  39candidatos do scanner conferidos como fingerprints/digests/metadados do
+  próprio baseline. Caminhos locais encontrados em19versões de três documentos.
+  Sanitizar só esses documentos na cadeia ainda não enviada, preservar referência
+  local original, manter código/árvore final idênticos, sem mudar main/backups.
+- 01/11/2026 — Expansão Apps em andamento: baseline15tarefas/5apps revelou
+  falso sucesso Explorer (área de trabalho), forwarder wt não reconhecido e
+  escolhas browser/Bing e shell/GET_PROCESS em pedidos de abrir Edge/Terminal.
+  Filtro de classe Explorer, AUMID Terminal e guarda de planejamento adicionados.
+  Nova UI real Edge/Explorer/Settings/Terminal12/12, foco final confirmado.
+  Gerenciador: UIA falhou; alternativa Win32 sem COM/mover mouse preserva erro
+  real `(5, BringWindowToTop, Acesso negado.)`,0/3. Duas estratégias realizadas;
+  não elevar ou reduzir proteção. Seguir Discord/Steam/OBS/Antigravity e gate.
+  Ainda sem commit desta expansão; últimos sources commitados08f21dc.
 - 01/11/2026 — Gate de regressão do incremento:949passes/27skips/0falhas,
   976casos,48,178s; Ruff limpo. Runner integrado Normal9/9executados,36bloqueados,
   saída1 correta por cobertura/sem reset. Duas novas fingerprints auditadas

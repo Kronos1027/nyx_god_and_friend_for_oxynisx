@@ -1,0 +1,120 @@
+{
+  "scope": "owned production Qt UI, real permission-dialog clicks, real model, independent Win32",
+  "environment": {
+    "windows": true,
+    "foreground_available": true,
+    "clipboard_accessible": true,
+    "clipboard_error_code": 0,
+    "interactive_probe_passed": true
+  },
+  "model": "qwen3.5:4b",
+  "profile": "normal",
+  "runs": 3,
+  "warmup_excluded_s": 0.46900000000005093,
+  "milestone_complete": false,
+  "rows": [
+    {
+      "app": "taskmanager",
+      "run": 1,
+      "ok": false,
+      "elapsed_s": 8.484,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "Taskmgr.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "confirmations_approved": 1,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 273.65234375,
+        "vram_peak_mib": 5133.1328125,
+        "samples": 34,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793559784.04276
+      },
+      "trace_path": "logs/traces/e8ff7c5cb94b486eabfec993370c1da4.jsonl"
+    },
+    {
+      "app": "taskmanager",
+      "run": 2,
+      "ok": false,
+      "elapsed_s": 6.0,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "Taskmgr.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "confirmations_approved": 1,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 201.36328125,
+        "vram_peak_mib": 5133.1328125,
+        "samples": 24,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793559790.058525
+      },
+      "trace_path": "logs/traces/e7a74550c509451bb01036f9c402add2.jsonl"
+    },
+    {
+      "app": "taskmanager",
+      "run": 3,
+      "ok": false,
+      "elapsed_s": 5.906,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "Taskmgr.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "confirmations_approved": 1,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 201.77734375,
+        "vram_peak_mib": 5131.8203125,
+        "samples": 24,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793559795.9927313
+      },
+      "trace_path": "logs/traces/a9663dd6816149f8a63525afc7fdd49f.jsonl"
+    }
+  ],
+  "limitations": [
+    "No personal apps are closed; state is not reset between repetitions.",
+    "Personal window titles and model text remain only in local ignored traces.",
+    "This does not validate logged-in app functionality, voice, or all 15 apps."
+  ],
+  "permission_dialog_exercised": true,
+  "passed": false
+}

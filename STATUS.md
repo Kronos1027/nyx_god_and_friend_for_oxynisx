@@ -2,6 +2,18 @@
 
 Última atualização: 2026-11-01
 
+## Checkpoint para publicação — expansão ainda parcial
+
+- Última regressão:970aprovados,27pulados,0falhas,997casos,49,845s; Ruff limpo.
+- Rotas nativas3→12; Edge/Explorador/Configurações/Terminal12/12no ensaio de
+  roteamento. Bloqueios posteriores de foco e RAM preservados: runner integrado
+  só7execuções/2passes,29bloqueadas por runtime e9sem harness. Gate não aprovado.
+- Identidade/encerramento do auxiliar reais3/3, sem processo restante.
+  Evidência completa: docs/evidence/apps_expansion_2026-11-01.md.
+- Usuário autorizou explicitamente enviar o progresso ao GitHub. Preparação
+  inclui sanitizar caminhos locais também nas versões ainda não publicadas dos
+  documentos; histórico original preservado localmente, sem force-push.
+
 ## M0 — higiene e regressão atual
 
 - Incremento de foco:9/9tarefas reais de três apps confirmaram janela e foco

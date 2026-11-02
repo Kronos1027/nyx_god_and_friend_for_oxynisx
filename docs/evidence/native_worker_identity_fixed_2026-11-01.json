@@ -1,0 +1,505 @@
+{
+  "scope": "owned production Qt UI, real permission-dialog clicks, real model, independent Win32",
+  "owned_ui_visible": true,
+  "environment": {
+    "windows": true,
+    "foreground_available": true,
+    "clipboard_accessible": true,
+    "clipboard_error_code": 0,
+    "interactive_probe_passed": true
+  },
+  "model": "qwen3.5:4b",
+  "profile": "normal",
+  "runs": 3,
+  "warmup_excluded_s": 0.7179999999998472,
+  "milestone_complete": false,
+  "rows": [
+    {
+      "app": "discord",
+      "run": 1,
+      "ok": true,
+      "elapsed_s": 9.063,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": true,
+        "process_signals": [
+          "Discord.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "finished",
+      "confirmations_approved": 1,
+      "confirmations_denied": 0,
+      "false_success": false,
+      "error_code": null,
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 277.01171875,
+        "vram_peak_mib": 5092.8046875,
+        "samples": 36,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793560805.336194
+      },
+      "trace_path": "logs/traces/df6c3067129f41edb5f299c7b1ff5c6c.jsonl"
+    },
+    {
+      "app": "steam",
+      "run": 1,
+      "ok": false,
+      "elapsed_s": 5.297,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 3,
+        "foreground_match": false,
+        "process_signals": [
+          "steamwebhelper.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "confirmations_approved": 1,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 202.73828125,
+        "vram_peak_mib": 5093.9921875,
+        "samples": 22,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793560810.6613984
+      },
+      "trace_path": "logs/traces/fa5e2de7300a44f8b5fc1c9ac24fb7d1.jsonl"
+    },
+    {
+      "app": "obs",
+      "run": 1,
+      "ok": false,
+      "elapsed_s": 5.344,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "obs64.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "confirmations_approved": 1,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 202.92578125,
+        "vram_peak_mib": 5093.9921875,
+        "samples": 22,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793560816.0378525
+      },
+      "trace_path": "logs/traces/43a043fff2c24dc9b3a033ffc63e21cf.jsonl"
+    },
+    {
+      "app": "antigravity",
+      "run": 1,
+      "ok": false,
+      "elapsed_s": 5.485,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "Antigravity.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "confirmations_approved": 1,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 202.9765625,
+        "vram_peak_mib": 5092.6796875,
+        "samples": 22,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793560821.5476341
+      },
+      "trace_path": "logs/traces/0c1303efe56241b18fb2c471cb162075.jsonl"
+    },
+    {
+      "app": "taskmanager",
+      "run": 1,
+      "ok": false,
+      "elapsed_s": 6.14,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "Taskmgr.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "confirmations_approved": 1,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 203.2421875,
+        "vram_peak_mib": 5092.6796875,
+        "samples": 25,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793560827.718405
+      },
+      "trace_path": "logs/traces/49357fba46694585a1cb874d34a86cea.jsonl"
+    },
+    {
+      "app": "discord",
+      "run": 2,
+      "ok": true,
+      "elapsed_s": 6.468,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": true,
+        "process_signals": [
+          "Discord.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "finished",
+      "confirmations_approved": 1,
+      "confirmations_denied": 0,
+      "false_success": false,
+      "error_code": null,
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 203.3515625,
+        "vram_peak_mib": 5092.9296875,
+        "samples": 26,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793560834.2209177
+      },
+      "trace_path": "logs/traces/90ee312cd0ed4a9ea956cab4dfb7d5d4.jsonl"
+    },
+    {
+      "app": "steam",
+      "run": 2,
+      "ok": false,
+      "elapsed_s": 5.156,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 3,
+        "foreground_match": false,
+        "process_signals": [
+          "steamwebhelper.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "confirmations_approved": 1,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 203.39453125,
+        "vram_peak_mib": 5092.9296875,
+        "samples": 21,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793560839.407544
+      },
+      "trace_path": "logs/traces/efdb368ac5c24d7b8ae48e673a9894c0.jsonl"
+    },
+    {
+      "app": "obs",
+      "run": 2,
+      "ok": false,
+      "elapsed_s": 5.219,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "obs64.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "confirmations_approved": 1,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 203.49609375,
+        "vram_peak_mib": 5091.6171875,
+        "samples": 21,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793560844.6698184
+      },
+      "trace_path": "logs/traces/95a7bc7e69a34b8ca0e9a9dfd670be23.jsonl"
+    },
+    {
+      "app": "antigravity",
+      "run": 2,
+      "ok": false,
+      "elapsed_s": 5.469,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "Antigravity.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "confirmations_approved": 1,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 203.57421875,
+        "vram_peak_mib": 5092.9296875,
+        "samples": 22,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793560850.1545851
+      },
+      "trace_path": "logs/traces/28124545bbae40ada57f9a4b46eb0191.jsonl"
+    },
+    {
+      "app": "taskmanager",
+      "run": 2,
+      "ok": false,
+      "elapsed_s": 6.031,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "Taskmgr.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "confirmations_approved": 1,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 203.63671875,
+        "vram_peak_mib": 5091.6171875,
+        "samples": 24,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793560856.2144625
+      },
+      "trace_path": "logs/traces/b8d65b73073845bfbf5ef2cf4c68cdec.jsonl"
+    },
+    {
+      "app": "discord",
+      "run": 3,
+      "ok": true,
+      "elapsed_s": 6.578,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": true,
+        "process_signals": [
+          "Discord.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "finished",
+      "confirmations_approved": 1,
+      "confirmations_denied": 0,
+      "false_success": false,
+      "error_code": null,
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 203.58203125,
+        "vram_peak_mib": 5092.8671875,
+        "samples": 26,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793560862.820075
+      },
+      "trace_path": "logs/traces/a180147eb7694e67b0e69ee5fbe8ae50.jsonl"
+    },
+    {
+      "app": "steam",
+      "run": 3,
+      "ok": false,
+      "elapsed_s": 7.031,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 3,
+        "foreground_match": false,
+        "process_signals": [
+          "steamwebhelper.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "confirmations_approved": 1,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 325.8125,
+        "vram_peak_mib": 5092.8671875,
+        "samples": 28,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793560869.902642
+      },
+      "trace_path": "logs/traces/9cdc614c61a947edae891256f5ed1449.jsonl"
+    },
+    {
+      "app": "obs",
+      "run": 3,
+      "ok": false,
+      "elapsed_s": 5.25,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "obs64.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "confirmations_approved": 1,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 203.61328125,
+        "vram_peak_mib": 5091.5546875,
+        "samples": 21,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793560875.1834633
+      },
+      "trace_path": "logs/traces/dbce2ec3913b4b5bae2993793e639a33.jsonl"
+    },
+    {
+      "app": "antigravity",
+      "run": 3,
+      "ok": false,
+      "elapsed_s": 5.265,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "Antigravity.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "confirmations_approved": 1,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 203.77734375,
+        "vram_peak_mib": 5092.8671875,
+        "samples": 21,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793560880.4704957
+      },
+      "trace_path": "logs/traces/e59fb02c21564e5cab66be7daeed009d.jsonl"
+    },
+    {
+      "app": "taskmanager",
+      "run": 3,
+      "ok": false,
+      "elapsed_s": 5.765,
+      "already_visible_before": true,
+      "verifier": {
+        "ok": true,
+        "matching_visible_windows": 1,
+        "foreground_match": false,
+        "process_signals": [
+          "Taskmgr.exe"
+        ],
+        "check": "independent Win32 window, DWM uncloaked and process; UWP host requires app title and child process"
+      },
+      "workflow_state": "stopped",
+      "confirmations_approved": 1,
+      "confirmations_denied": 1,
+      "false_success": false,
+      "error_code": "UNVERIFIED",
+      "actions": 1,
+      "resources": {
+        "ram_peak_mib": 204.3125,
+        "vram_peak_mib": 5091.5546875,
+        "samples": 23,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793560886.2769659
+      },
+      "trace_path": "logs/traces/a9a4c6b64a764a1a94d64f57684b9b0e.jsonl"
+    }
+  ],
+  "limitations": [
+    "No personal apps are closed; state is not reset between repetitions.",
+    "Personal window titles and model text remain only in local ignored traces.",
+    "This does not validate logged-in app functionality, voice, or all 15 apps."
+  ],
+  "permission_dialog_exercised": true,
+  "passed": false
+}

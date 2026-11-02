@@ -2,6 +2,19 @@
 
 ## Atualização de 01/11/2026
 
+- Gate ampliado permanece reprovado:7/36tentativas nativas executadas antes de
+  pressão de RAM, apenas2concluídas nessa rodada;29bloqueadas no runtime e9sem
+  rota no total45. Não inferir sucesso ou incapacidade universal das demais.
+  Foco negado em apps instalados continua sem causa confirmada. Consultas de
+  integridade/job não mostraram restrição simples que explique todas as falhas.
+- Benchmark amplia rotas, mas não oferece reset seguro de apps pessoais. Não
+  fecha esses apps para liberar RAM; piso1GiB de inferência permanece ativo.
+
+- Gerenciador de Tarefas: foco bloqueado por Windows. UIA retornou erro COM
+  -2146233079; alternativa Win32 retornou `(5, BringWindowToTop, Acesso negado.)`
+  em3/3. Janela existe, mas não recebe foco; tarefa não aprovada. Sem elevação ou
+  redução de proteção. Demais apps continuam em verificação.
+
 - Defeito crítico de foco corrigido no incremento: uma rodada intermediária da
   Calculadora divergiu no encerramento; revalidação final adicionada. Dois ensaios
   posteriores9/9sem divergência. Categoria/marco seguem bloqueados por cobertura.
