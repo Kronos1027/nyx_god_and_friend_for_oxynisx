@@ -101,30 +101,44 @@ ACTIONABLE = r"""function(editable) {
         ['file','hidden','checkbox','radio','button','submit','reset','range','color'].includes(this.type)))
         throw new Error('Campo não aceita digitação de texto.');
     this.scrollIntoView({block:'center', inline:'center', behavior:'instant'});
-    const r = this.getBoundingClientRect(), s = getComputedStyle(this);
-    const x = (Math.max(0,r.left) + Math.min(innerWidth,r.right))/2;
-    const y = (Math.max(0,r.top) + Math.min(innerHeight,r.bottom))/2;
+    const owner=this.ownerDocument.defaultView;
+    const r = this.getBoundingClientRect(), s = owner.getComputedStyle(this);
+    const x = (Math.max(0,r.left) + Math.min(owner.innerWidth,r.right))/2;
+    const y = (Math.max(0,r.top) + Math.min(owner.innerHeight,r.bottom))/2;
     let root=this.getRootNode();
     while (root.host) {
         if (root.mode!=='open') throw new Error('UNVERIFIED: Shadow DOM fechado.');
         root=root.host.getRootNode();
     }
-    let hit=this.ownerDocument.elementFromPoint(x,y);
-    while (hit && hit.shadowRoot) {
-        const inner=hit.shadowRoot.elementFromPoint(x,y);
-        if (!inner || inner===hit) break;
-        hit=inner;
-    }
+    const deepHit=(doc,x,y)=>{
+        let hit=doc.elementFromPoint(x,y);
+        for (let depth=0;depth<16 && hit && hit.shadowRoot;depth++) {
+            const inner=hit.shadowRoot.elementFromPoint(x,y);
+            if (!inner || inner===hit) break;
+            hit=inner;
+        }
+        return hit;
+    };
+    const within=(ancestor,node)=>{
+        for(let depth=0;depth<100 && node;depth++) {
+            if (node===ancestor) return true;
+            node=node.parentNode || node.getRootNode().host;
+        }
+        return false;
+    };
+    const hit=deepHit(this.ownerDocument,x,y);
     if (r.width <= 0 || r.height <= 0 || s.visibility !== 'visible' || s.display === 'none' ||
-        !hit || !(hit === this || this.contains(hit))) throw new Error('Alvo oculto, coberto ou fora da tela.');
+        !hit || !within(this,hit)) throw new Error('Alvo oculto, coberto ou fora da tela.');
     let globalX=x, globalY=y, win=this.ownerDocument.defaultView;
     while (win!==win.top) {
         const frame=win.frameElement;
         if (!frame) throw new Error('UNVERIFIED: iframe de outra origem exige transporte próprio.');
         const bounds=frame.getBoundingClientRect();
+        if (Math.abs(bounds.width-frame.offsetWidth)>1 || Math.abs(bounds.height-frame.offsetHeight)>1)
+            throw new Error('UNVERIFIED: iframe transformado exige projeção de coordenadas.');
         globalX+=bounds.left+frame.clientLeft; globalY+=bounds.top+frame.clientTop;
         const parent=frame.ownerDocument;
-        const over=parent.elementFromPoint(globalX,globalY);
+        const over=deepHit(parent,globalX,globalY);
         if (over!==frame) throw new Error('UNVERIFIED: iframe coberto ou fora da tela.');
         win=parent.defaultView;
     }

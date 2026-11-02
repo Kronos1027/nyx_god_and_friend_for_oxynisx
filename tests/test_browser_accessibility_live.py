@@ -17,7 +17,16 @@ window.typed=false;window.clicked=false;
 document.querySelector('#f').oninput=e=>window.typed=e.isTrusted;
 document.querySelector('#go').onclick=e=>window.clicked=e.isTrusted;
 </script>'''
-EXTRA = b'''<iframe id="child" title="Frame fixture" src="/frame" style="display:block;margin-top:60px;width:450px;height:180px"></iframe>'''
+EXTRA = b'''<iframe id="child" title="Frame fixture" src="/frame" style="display:block;margin-top:60px;width:450px;height:180px"></iframe>
+<label for="choose">Escolha</label><select id="choose"><option value="a">A</option><option value="disabled" disabled>Disabled</option><option value="b">B</option></select>
+<button aria-label="Hover fixture" id="hover">Hover</button>
+<input aria-label="Tecla fixture" id="key"><output id="key-result">pending</output>
+<script>
+window.trustedKey=false;window.trustedHover=false;window.trustedSelection=false;
+document.querySelector('#choose').onchange=e=>window.trustedSelection=e.isTrusted;
+document.querySelector('#hover').onmouseenter=e=>window.trustedHover=e.isTrusted;
+document.querySelector('#key').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();window.trustedKey=e.isTrusted;document.querySelector('#key-result').textContent='Tecla confirmada';}};
+</script>'''
 
 
 @pytest.fixture(scope='module')
@@ -35,7 +44,7 @@ def ax_browser():
             pass
     server = http.server.ThreadingHTTPServer(('127.0.0.1',0), Handler)
     threading.Thread(target=server.serve_forever,daemon=True).start()
-    browser = BrowserSession(headless=True,timeout=8)
+    browser = BrowserSession(headless=True,persistent_profile=None,timeout=8)
     try:
         yield browser, f'http://127.0.0.1:{server.server_port}/'
     finally:
@@ -118,3 +127,39 @@ def test_password_refs_and_scoped_password_typing_are_blocked(ax_browser):
     result = make_browser_tool_func(browser)({'action':'type',
         'locator':{'shadow':['#panel','#nested'],'css':'#secret'},'text':'forbidden'})
     assert not result.ok
+    assert result.meta['error_code'] == 'PERMISSION'
+
+
+@pytest.mark.parametrize('run', range(3))
+def test_select_hover_and_press_by_refs_are_real_and_verified_conservatively(ax_browser, run):
+    from core.verifier import ActionVerifier
+    browser, url = ax_browser
+    browser.open(url+f'?actions={run}')
+    info = browser.inspect_page()
+    tool = make_browser_tool_func(browser)
+    selected = tool({'action':'select', **reference(info,'Escolha','combobox'), 'value':'b'})
+    assert selected.ok and selected.meta['verified']
+    hovered = tool({'action':'hover', **reference(info,'Hover fixture','button')})
+    assert hovered.ok and hovered.meta['verified']
+    typed = tool({'action':'type', **reference(info,'Tecla fixture','textbox'), 'text':'real','submit':True})
+    assert typed.ok and typed.meta['field_verified'] and not typed.meta['verified']
+    assert not ActionVerifier().verify('browser', {'action':'type'}, typed).verified
+    pressed = tool({'action':'press', **reference(info,'Tecla fixture','textbox'), 'key':'Enter','expected_text':'Tecla confirmada'})
+    assert pressed.ok and pressed.meta['verified']
+    observed = browser._evaluate("""({value:document.querySelector('#choose').value,
+        field:document.querySelector('#key').value,selection:window.trustedSelection,
+        hover:window.trustedHover,key:window.trustedKey})""")
+    assert observed == {'value':'b','field':'real','selection':True,'hover':True,'key':True}
+
+
+def test_select_ambiguity_disabled_and_invalid_key_do_not_mutate(ax_browser):
+    browser, url = ax_browser
+    browser.open(url)
+    browser._evaluate("document.querySelector('#choose').insertAdjacentHTML('beforeend','<option value=a>Duplicate</option>')")
+    info = browser.inspect_page()
+    for value in ('a','disabled','absent'):
+        with pytest.raises(BrowserError):
+            browser.select(reference(info,'Escolha','combobox'),value)
+    with pytest.raises(BrowserError):
+        browser.press(reference(info,'Tecla fixture','textbox'), 'Ctrl+Shift+J')
+    assert browser._evaluate('window.trustedSelection || window.trustedKey') is False

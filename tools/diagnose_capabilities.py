@@ -63,7 +63,7 @@ def main():
             from tools.ui_tool import UITool
             from tools.browser_tool import BrowserSession
             ui = UITool(screenshots_dir=Path("build/diagnostic/screenshots"))
-            browser = BrowserSession(headless=True)
+            browser = BrowserSession(headless=True, persistent_profile=None)
             ui.browser_session = browser
         for name in APPS:
             attempts = []

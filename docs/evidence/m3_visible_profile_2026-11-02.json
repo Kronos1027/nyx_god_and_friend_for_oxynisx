@@ -1,0 +1,22 @@
+{
+  "scope": "owned visible default browser, local HTTP fixture, own storage only",
+  "rows": [
+    {
+      "run": 1,
+      "visible_default": true,
+      "persistent_default": true,
+      "isolated_profile_marker": true,
+      "own_storage_retained": true,
+      "startup_s": 0.719
+    },
+    {
+      "run": 2,
+      "visible_default": true,
+      "persistent_default": true,
+      "isolated_profile_marker": true,
+      "own_storage_retained": true,
+      "startup_s": 0.61
+    }
+  ],
+  "passed": true
+}

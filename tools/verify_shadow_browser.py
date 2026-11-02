@@ -30,7 +30,7 @@ def main():
             pass
     server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    session = BrowserSession(headless=True,timeout=8)
+    session = BrowserSession(headless=True,persistent_profile=None,timeout=8)
     tool = make_browser_tool_func(session)
     report = {'scope': 'production CDP adapter, independent fixture state check, no LLM', 'rows': []}
     sampler = ResourceSampler()

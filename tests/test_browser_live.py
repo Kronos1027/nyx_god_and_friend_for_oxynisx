@@ -70,7 +70,7 @@ def browser():
 
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    session = BrowserSession(timeout=8)
+    session = BrowserSession(headless=True, persistent_profile=None, timeout=8)
     try:
         yield session, f"http://127.0.0.1:{server.server_port}"
     finally:
@@ -140,8 +140,8 @@ def test_wait_interrupts_and_latches_emergency(browser):
 def test_isolated_profile_retains_own_session_after_restart(browser, tmp_path):
     _, url = browser
     profile = tmp_path / "browser"
-    first = BrowserSession(timeout=8, persistent_profile=profile)
-    second = BrowserSession(timeout=8, persistent_profile=profile)
+    first = BrowserSession(headless=True, timeout=8, persistent_profile=profile)
+    second = BrowserSession(headless=True, timeout=8, persistent_profile=profile)
     try:
         first.open(url)
         first._evaluate("localStorage.setItem('nyx-test','retained')")

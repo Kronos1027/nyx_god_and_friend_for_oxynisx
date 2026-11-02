@@ -3,6 +3,14 @@ import pytest
 from tools.browser_profile import BrowserProfile
 
 
+def test_session_defaults_visible_owned_persistent_and_allows_explicit_ephemeral():
+    from tools.browser_tool import BrowserSession, default_profile_path
+    normal = BrowserSession()
+    assert not normal.headless and normal.persistent_profile == default_profile_path()
+    fixture = BrowserSession(headless=True, persistent_profile=None)
+    assert fixture.headless and fixture.persistent_profile is None
+
+
 def test_persistent_profile_is_exclusive_and_preserved(tmp_path):
     path = tmp_path / "owned"
     profile = BrowserProfile(path)

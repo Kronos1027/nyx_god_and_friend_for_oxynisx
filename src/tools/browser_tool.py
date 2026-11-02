@@ -32,7 +32,18 @@ MAX_TEXT_CHARS = 8000
 MAX_SELECTOR_CHARS = 500
 MAX_TYPE_CHARS = 2000
 ALLOWED_SCHEMES = ("http://", "https://")
-SENSITIVE_ACTIONS = {"click", "type"}
+SENSITIVE_ACTIONS = {"click", "type", "select", "hover", "press"}
+_DEFAULT_PROFILE = object()
+
+
+def default_profile_path():
+    from app_paths import is_frozen, user_data_dir
+    return user_data_dir() / ('browser_profiles/default' if is_frozen() else 'data/browser_profiles/default')
+
+
+def requires_external_confirmation(params):
+    action = str(params.get('action') or '').strip().lower()
+    return action in {'select','press'} or (action=='type' and params.get('submit') is True)
 
 _BROWSER_CANDIDATES = (
     os.environ.get("NYX_BROWSER_PATH", ""),
@@ -80,15 +91,15 @@ class BrowserSession:
     def __init__(
         self,
         browser_path: Path | str | None = None,
-        headless: bool = True,
+        headless: bool = False,
         timeout: float = 25.0,
         control=None,
-        persistent_profile: Path | None = None,
+        persistent_profile=_DEFAULT_PROFILE,
     ) -> None:
         self.browser_path = Path(browser_path) if browser_path else find_browser()
         self.headless = headless
         self.timeout = timeout
-        self.persistent_profile = persistent_profile
+        self.persistent_profile = default_profile_path() if persistent_profile is _DEFAULT_PROFILE else persistent_profile
         self._profile_lease = None
         from core.operation_control import OperationControl
         self.control = control or OperationControl()
@@ -520,15 +531,83 @@ class BrowserSession:
         finally:
             self._release_element(object_id)
 
-    def wait_for(self, selector: str, timeout: float = 10.0) -> bool:
-        selector = _clean_selector(selector)
+    def hover(self, selector) -> bool:
+        object_id = self._resolve(selector)
+        try:
+            point = self._target_point(object_id)
+            self._call('Input.dispatchMouseEvent', {'type':'mouseMoved', **point})
+            return bool(self._on_element(object_id, "function() { return this.isConnected && this.matches(':hover'); }"))
+        finally:
+            self._release_element(object_id)
+
+    @staticmethod
+    def _key_parameters(key):
+        keys = {'Enter':13, 'Tab':9, 'Escape':27, 'Backspace':8, 'Delete':46,
+                'ArrowLeft':37, 'ArrowUp':38, 'ArrowRight':39, 'ArrowDown':40,
+                'Home':36, 'End':35, 'PageUp':33, 'PageDown':34, 'Space':32}
+        if key == 'Ctrl+A':
+            return {'key':'a','code':'KeyA','windowsVirtualKeyCode':65,'modifiers':2}
+        if key not in keys:
+            raise BrowserError('Tecla não suportada; use Enter, Tab, Escape, setas, Home/End, PageUp/PageDown, Space ou Ctrl+A.')
+        return {'key':' ' if key=='Space' else key, 'code':key, 'windowsVirtualKeyCode':keys[key]}
+
+    def _dispatch_key(self, key):
+        params = self._key_parameters(key)
+        self._call('Input.dispatchKeyEvent', {'type':'keyDown', **params})
+        self._call('Input.dispatchKeyEvent', {'type':'keyUp', **params})
+
+    def press(self, selector, key):
+        self._key_parameters(key)
+        object_id = self._resolve(selector)
+        try:
+            self._target_point(object_id)
+            if self._on_element(object_id, "function() { return this.type==='password'; }"):
+                raise BrowserError('Campo protegido; use entrada humana no navegador.', 'PERMISSION')
+            if not self._on_element(object_id, FOCUS):
+                raise BrowserError('O controle não recebeu foco; nenhuma tecla enviada.')
+            self._dispatch_key(key)
+        finally:
+            self._release_element(object_id)
+
+    def select(self, selector, value):
+        if not isinstance(value,str) or len(value)>MAX_TYPE_CHARS:
+            raise BrowserError('Informe o valor exato de uma opção com até2000caracteres.')
+        object_id = self._resolve(selector)
+        try:
+            self._target_point(object_id)
+            choice = self._on_element(object_id, """function(value) {
+                if (this.tagName!=='SELECT' || this.multiple) throw new Error('UNVERIFIED: seleção requer SELECT simples.');
+                const matches=Array.from(this.options).filter(o=>o.value===value);
+                if (matches.length!==1) throw new Error(matches.length?'AMBIGUOUS: valor de opção duplicado.':'NOT_FOUND: opção não encontrada.');
+                const enabled=Array.from(this.options).filter(o=>!o.disabled && !o.parentElement.disabled && !o.hidden && getComputedStyle(o).display!=='none');
+                const index=enabled.indexOf(matches[0]);
+                if (index<0 || index>200) throw new Error('UNVERIFIED: opção indisponível ou além do limite seguro.');
+                return {index};
+            }""", value)
+            if not self._on_element(object_id, FOCUS):
+                raise BrowserError('O seletor não recebeu foco; nenhuma opção alterada.')
+            self._dispatch_key('Home')
+            for _ in range(choice['index']):
+                self._dispatch_key('ArrowDown')
+            self._dispatch_key('Tab')
+            if not self._on_element(object_id, 'function(value) { return this.isConnected && this.value===value; }', value):
+                raise BrowserError('Seleção enviada, mas o valor final não corresponde; não repeti a alteração.')
+            return value
+        finally:
+            self._release_element(object_id)
+
+    def wait_for(self, selector, timeout: float = 10.0) -> bool:
         deadline = time.monotonic() + min(max(1.0, timeout), 60.0)
-        expression = "document.querySelector(%s) !== null" % json.dumps(selector)
         while time.monotonic() < deadline:
-            if self._evaluate(expression):
+            try:
+                object_id = self._resolve(selector)
+                self._release_element(object_id)
                 return True
+            except BrowserError as exc:
+                if exc.code != 'NOT_FOUND':
+                    raise
             time.sleep(0.15)
-        raise BrowserError(f"O elemento {selector!r} não apareceu a tempo.")
+        raise BrowserError('O elemento não apareceu a tempo.', 'TIMEOUT')
 
     def screenshot(self, path: Path) -> Path:
         result = self._call("Page.captureScreenshot", {"format": "png"})
@@ -656,6 +735,7 @@ class BrowserSession:
         if not self.started:
             self.start()
         target = validate_url(url) if url and url != "about:blank" else "about:blank"
+        self.accessibility.invalidate()
         data = self._devtools_put("/json/new?about:blank")
         ws_url = str(data.get("webSocketDebuggerUrl") or "")
         if not ws_url:
@@ -687,6 +767,7 @@ class BrowserSession:
                        and str(item.get("id")) == clean_id), None)
         if not target:
             raise BrowserError(f"Aba {clean_id} não encontrada.")
+        self.accessibility.invalidate()
         ws_url = str(target.get("webSocketDebuggerUrl") or "")
         if not ws_url:
             raise BrowserError("Aba selecionada não suporta conexão de depuração.")
@@ -718,6 +799,7 @@ class BrowserSession:
             target_id = str(current.get("id") or "")
         if target_id not in {str(page.get("id")) for page in pages}:
             raise BrowserError("Aba não pertence à sessão controlada.")
+        self.accessibility.invalidate()
         try:
             self._devtools(f"/json/close/{target_id}")
         except Exception as exc:
@@ -749,6 +831,17 @@ def _clean_selector(selector: object) -> str:
     if len(text) > MAX_SELECTOR_CHARS:
         raise BrowserError("Seletor longo demais.")
     return text
+
+
+def _action_locator(params):
+    count = sum((params.get('locator') is not None, 'ref' in params, bool(params.get('selector'))))
+    if count > 1:
+        raise BrowserError('Use somente locator, ref+snapshot ou selector; nenhum alvo foi escolhido.', 'AMBIGUOUS')
+    if params.get('locator') is not None:
+        return params['locator']
+    if 'ref' in params:
+        return {'ref':params['ref'],'snapshot':params.get('snapshot')}
+    return _clean_selector(params.get('selector'))
 
 
 def is_sensitive_action(action: object) -> bool:
@@ -785,7 +878,7 @@ def browser_self_check() -> dict:
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{server.server_address[1]}/"
-    session = BrowserSession(headless=True)
+    session = BrowserSession(headless=True, persistent_profile=None)
     report: dict = {"browser": str(find_browser() or ""), "url": url, "ok": False}
     try:
         session.open(url)
@@ -831,7 +924,7 @@ def make_browser_tool_func(session: BrowserSession, allowed_roots: list[Path] | 
                                         "title": info.get("title", ""), "chars": info.get("chars", 0),
                                         "truncated": info.get("truncated", False)})
             if action == "click":
-                selector = params.get("locator") or _clean_selector(params.get("selector"))
+                selector = _action_locator(params)
                 session.click(selector)
                 expected_text = params.get("expected_text")
                 if expected_text:
@@ -841,12 +934,39 @@ def make_browser_tool_func(session: BrowserSession, allowed_roots: list[Path] | 
                                         "dispatched": True, "verified": bool(expected_text),
                                         "check": "expected_text" if expected_text else "dispatch_only"})
             if action == "type":
-                selector = params.get("locator") or _clean_selector(params.get("selector"))
+                selector = _action_locator(params)
+                if 'submit' in params and type(params['submit']) is not bool:
+                    raise BrowserError('submit precisa ser verdadeiro ou falso; nenhuma digitação realizada.')
                 session.type_text(selector, str(params.get("text") or ""))
+                if params.get('submit') is True:
+                    session.press(selector, 'Enter')
+                    expected = str(params.get('expected_text') or '')
+                    if expected:
+                        session.wait_for_text(expected, float(params.get('timeout') or 10))
+                    return ToolResult(True, 'Texto conferido e envio solicitado; confirme o resultado da página.',
+                        meta={'action':'type','verified':bool(expected),'field_verified':True,
+                              'dispatched':True,'check':'expected_text' if expected else 'submission_dispatched'})
                 return ToolResult(True, f"Texto digitado e conferido em {selector}.",
                                   meta={"action": "type", "verified": True, "check": "field_value"})
+            if action == 'select':
+                value = session.select(_action_locator(params), params.get('value'))
+                return ToolResult(True, f'Opção selecionada e conferida: {value}',
+                                  meta={'action':action,'verified':True,'check':'selected_value'})
+            if action == 'hover':
+                verified = session.hover(_action_locator(params))
+                return ToolResult(True, 'Ponteiro enviado ao controle; estado de hover observado.' if verified else
+                                  'Ponteiro enviado, mas hover não confirmado.',
+                                  meta={'action':action,'verified':verified,'check':'hover_state'})
+            if action == 'press':
+                session.press(_action_locator(params), str(params.get('key') or ''))
+                expected = str(params.get('expected_text') or '')
+                if expected:
+                    session.wait_for_text(expected, float(params.get('timeout') or 10))
+                return ToolResult(True, 'Tecla enviada; confira a pós-condição da página.',
+                                  meta={'action':action,'verified':bool(expected),'dispatched':True,
+                                        'check':'expected_text' if expected else 'dispatch_only'})
             if action == "wait":
-                selector = _clean_selector(params.get("selector"))
+                selector = _action_locator(params)
                 session.wait_for(selector, float(params.get("timeout") or 10))
                 return ToolResult(True, f"Elemento {selector} disponível.", meta={"action": "wait"})
             if action == "screenshot":

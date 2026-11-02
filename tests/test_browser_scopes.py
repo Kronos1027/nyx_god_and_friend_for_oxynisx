@@ -19,3 +19,22 @@ def test_accessibility_refs_require_snapshot_and_never_mix_locator_types():
                 {'ref':'e1','snapshot':'a'*32,'shadow':['x']}]:
         with pytest.raises(ValueError):
             clean_locator(bad)
+
+
+def test_new_external_effect_actions_always_require_confirmation():
+    from tools.browser_tool import requires_external_confirmation, is_sensitive_action
+    from tools.registry import ToolSpec
+    spec = ToolSpec('browser','fixture',destructive_probe=requires_external_confirmation)
+    for params in ({'action':'press','key':'Enter'},{'action':'select','value':'a'},
+                   {'action':'type','text':'exact','submit':True}):
+        assert spec.is_destructive_for(params)
+    assert not spec.is_destructive_for({'action':'type','submit':False})
+    assert not spec.is_destructive_for({'action':'hover'})
+    assert all(is_sensitive_action(action) for action in ('select','hover','press'))
+
+
+def test_press_and_hover_do_not_gain_success_from_nonempty_dispatch_text():
+    from core.verifier import ActionVerifier
+    from tools.registry import ToolResult
+    for action in ('press','hover','select'):
+        assert not ActionVerifier().verify('browser',{'action':action},ToolResult(True,'sent',meta={'verified':False})).verified
