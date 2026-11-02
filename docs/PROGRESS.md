@@ -19,6 +19,11 @@
 | M8 Aceitação final | pendente | | bench 3× completo · soak 2 h · falso sucesso = 0 | |
 
 ## Log (mais recente primeiro)
+- 02/11/2026 — Incremento integrado publicado em nyx-2:5c7aa33, sem force;
+  M3/HUD anteriormente enviados57e68ec/ad8bb6a. Scanner passou após auditoria
+  pontual de uma fingerprint SHA256 da árvore-fonte (não credencial), mantendo
+  detectores ativos. Logs/bancos/capturas/instância pessoal não publicados nem
+  reiniciados. Main/backups preservados. Próximo marco exato no cabeçalho.
 - 02/11/2026 — HUD ad8bb6a e M3 57e68ec integrados/publicados. Roteador semântico
   17/18inicial→72/72em24pedidos×3; conversas TaskRunner2/2, HUD4B primeirodelta
   0,672s, HUD3B0,391s com aviso visível. Textos incluem imprecisões factuais,
@@ -29,7 +34,7 @@
   2repetições bloqueadas por reset, sem encerrar app. Detalhes/testes em
   evidence/runtime_hud_integration_2026-11-02.md e integration_gate_2026-11-02.json.
   Gate final987passes/65skips/0falhas,47,432s; live39passes/26skips/0falhas;
-  Ruff limpo, QA integrado9/9/0cortes medidos. Publicar incremento em nyx-2.
+  Ruff limpo, QA integrado9/9/0cortes medidos. Publicação confirmada no registro acima.
 - 02/11/2026 — Abertura e foco separados na ferramenta/guarda final; bench
   instalado 12/15, quatro pré-existentes bloqueados por reset manual seguro.
   Ruff limpo; regressão padrão 960/61pulados/0falhas,50,083s. Nova bateria fria

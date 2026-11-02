@@ -4,8 +4,9 @@
 
 ## Integração atual — HUD, navegador e runtime
 
-- Entregas M7/M3 integradas e publicadas até ad8bb6a; próximos commits incluem
-  roteador/perfil/grounding e evidência da integração. Pet/overlay preservados.
+- Entregas M7/M3 e incremento roteador/perfil/grounding publicados em nyx-2,
+  5c7aa33, sem force. Pet/overlay, main e backups preservados. Instância pessoal
+  não reiniciada; validações usam fonte/interface isolada, não executável instalado.
 - HUD real+modelo4B: streaming em0,672s; modelo3B com aviso visível0,391s.
   Classificador semântico72/72na amostra, erro inicial17/18preservado.
 - Normal automático na faixa de carga fria observada; Conservador/modelo menor
