@@ -1,0 +1,60 @@
+{
+  "scope": "Adaptador WebTool em HTTP real local; sem modelo/HUD",
+  "rows": [
+    {
+      "run": 1,
+      "case": "article",
+      "ok": true,
+      "empty_accepted": false,
+      "structured_source_count": 0,
+      "has_article_text": true,
+      "script_omitted": true
+    },
+    {
+      "run": 1,
+      "case": "empty",
+      "ok": true,
+      "empty_accepted": true,
+      "structured_source_count": 0,
+      "has_article_text": false,
+      "script_omitted": true
+    },
+    {
+      "run": 2,
+      "case": "article",
+      "ok": true,
+      "empty_accepted": false,
+      "structured_source_count": 0,
+      "has_article_text": true,
+      "script_omitted": true
+    },
+    {
+      "run": 2,
+      "case": "empty",
+      "ok": true,
+      "empty_accepted": true,
+      "structured_source_count": 0,
+      "has_article_text": false,
+      "script_omitted": true
+    },
+    {
+      "run": 3,
+      "case": "article",
+      "ok": true,
+      "empty_accepted": false,
+      "structured_source_count": 0,
+      "has_article_text": true,
+      "script_omitted": true
+    },
+    {
+      "run": 3,
+      "case": "empty",
+      "ok": true,
+      "empty_accepted": true,
+      "structured_source_count": 0,
+      "has_article_text": false,
+      "script_omitted": true
+    }
+  ],
+  "reference": "701c059"
+}

@@ -1,0 +1,68 @@
+{
+  "scope": "Busca real, sem modelo; encontrar URLs não comprova conteúdo/fatos.",
+  "rows": [
+    {
+      "run": 1,
+      "case": "official_python_search",
+      "ok": true,
+      "count": 0,
+      "elapsed_seconds": 0.2087,
+      "urls": [],
+      "titles": [],
+      "statuses": [],
+      "providers": [
+        {
+          "provider": "duckduckgo",
+          "state": "challenge"
+        },
+        {
+          "provider": "wikipedia",
+          "state": "empty"
+        }
+      ],
+      "returned_uncertainty": true
+    },
+    {
+      "run": 2,
+      "case": "official_python_search",
+      "ok": true,
+      "count": 0,
+      "elapsed_seconds": 0.2194,
+      "urls": [],
+      "titles": [],
+      "statuses": [],
+      "providers": [
+        {
+          "provider": "duckduckgo",
+          "state": "challenge"
+        },
+        {
+          "provider": "wikipedia",
+          "state": "empty"
+        }
+      ],
+      "returned_uncertainty": true
+    },
+    {
+      "run": 3,
+      "case": "official_python_search",
+      "ok": true,
+      "count": 0,
+      "elapsed_seconds": 0.1696,
+      "urls": [],
+      "titles": [],
+      "statuses": [],
+      "providers": [
+        {
+          "provider": "duckduckgo",
+          "state": "challenge"
+        },
+        {
+          "provider": "wikipedia",
+          "state": "empty"
+        }
+      ],
+      "returned_uncertainty": true
+    }
+  ]
+}
