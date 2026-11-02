@@ -4,6 +4,7 @@ import io
 import json
 import sys
 from types import SimpleNamespace
+from email.message import Message
 
 import pytest
 
@@ -14,10 +15,21 @@ from tools.ui_tool import UITool
 @pytest.fixture(autouse=True)
 def network_fixture(monkeypatch):
     """Known payloads test parsing/routing, not current external availability."""
+    class Response(io.BytesIO):
+        def __init__(self, body, url, content_type):
+            super().__init__(body)
+            self.url = url
+            self.headers = Message()
+            self.headers['Content-Type'] = content_type
+            self.headers['Content-Length'] = str(len(body))
+
+        def geturl(self):
+            return self.url
+
     def response(request, **kwargs):
         url = request.full_url
         if "duckduckgo" in url:
-            return io.BytesIO(b"<html></html>")
+            return Response(b"<html></html>", url, 'text/html')
         if "wikipedia" in url:
             data = ["Python", ["Python"], ["Fixture language"], ["https://example.test/python"]]
         elif "ipapi" in url:
@@ -26,8 +38,8 @@ def network_fixture(monkeypatch):
             data = {"current_condition": [{"temp_C": "21"}], "nearest_area": [{"areaName": [{"value": "Fixture City"}]}]}
         else:
             raise AssertionError("Unexpected endpoint: " + url)
-        return io.BytesIO(json.dumps(data).encode())
-    monkeypatch.setattr("urllib.request.urlopen", response)
+        return Response(json.dumps(data).encode(), url, 'application/json')
+    monkeypatch.setattr("tools.web_transport.open_url", response)
 
 
 def test_web_tool_initialization():
@@ -55,7 +67,7 @@ def test_web_tool_dispatch():
 def test_network_failure_never_invents_a_city(monkeypatch):
     def unavailable(*args, **kwargs):
         raise OSError("offline fixture")
-    monkeypatch.setattr("urllib.request.urlopen", unavailable)
+    monkeypatch.setattr("tools.web_transport.open_url", unavailable)
     result = WebTool().get_location()
     assert not result.ok and not result.meta.get("city")
 

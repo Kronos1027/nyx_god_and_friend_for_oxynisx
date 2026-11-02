@@ -19,11 +19,13 @@ from core.verifier import ActionVerifier
 from tools.registry import ToolRegistry, ToolSpec, ToolResult
 
 
-def test_adversarial_placeholder_detection():
+def test_adversarial_placeholder_detection(monkeypatch):
     """Detecta placeholders alucinados em lista fechada conhecida."""
     # Simula chamada de ferramenta com placeholder proibido
     from tools.web_tool import WebTool
     tool = WebTool()
+    monkeypatch.setattr(tool, '_read', lambda *args, **kwargs:
+                        {'text': '<html></html>', 'url': 'https://example.test/', 'content_type': 'text/html', 'bytes': 13})
 
     # Query contendo placeholder [localização]
     res = tool.search({"query": "qual o tempo em [localização]"})
