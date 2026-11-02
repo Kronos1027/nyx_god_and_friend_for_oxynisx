@@ -32,7 +32,7 @@ MAX_TEXT_CHARS = 8000
 MAX_SELECTOR_CHARS = 500
 MAX_TYPE_CHARS = 2000
 ALLOWED_SCHEMES = ("http://", "https://")
-SENSITIVE_ACTIONS = {"click", "type", "select", "hover", "press"}
+SENSITIVE_ACTIONS = {"click", "type", "select", "hover", "press", "media_play", "media_pause"}
 _DEFAULT_PROFILE = object()
 
 
@@ -43,7 +43,7 @@ def default_profile_path():
 
 def requires_external_confirmation(params):
     action = str(params.get('action') or '').strip().lower()
-    return action in {'select','press'} or (action=='type' and params.get('submit') is True)
+    return action in {'select','press','download'} or (action=='type' and params.get('submit') is True)
 
 _BROWSER_CANDIDATES = (
     os.environ.get("NYX_BROWSER_PATH", ""),
@@ -104,6 +104,7 @@ class BrowserSession:
         from core.operation_control import OperationControl
         self.control = control or OperationControl()
         self._process: subprocess.Popen | None = None
+        self._process_created = None
         self._profile: str | None = None
         self._port = 0
         self._ws = None
@@ -157,6 +158,8 @@ class BrowserSession:
                 stderr=subprocess.DEVNULL,
                 creationflags=creation,
             )
+            import psutil
+            self._process_created = psutil.Process(self._process.pid).create_time()
         except OSError as exc:
             self.close()
             raise BrowserError(f"Falha ao iniciar o navegador: {exc}") from exc
@@ -164,6 +167,7 @@ class BrowserSession:
             self._wait_for_devtools()
             self._started = True
             self._open_tab()
+            self._call('Browser.setDownloadBehavior', {'behavior':'deny'})
         except Exception:
             self.close()
             raise
@@ -192,6 +196,7 @@ class BrowserSession:
         # Chromium can leave renderer/GPU children behind when the root exits;
         # they all carry the unique profile path, so clean those up precisely.
         self._kill_profile_orphans()
+        self._process_created = None
         if self._profile_lease is not None:
             self._profile_lease.close()
             self._profile_lease = None
@@ -203,25 +208,22 @@ class BrowserSession:
             import psutil
 
             parent = psutil.Process(process.pid)
+            if self._process_created is None or parent.create_time() != self._process_created:
+                return
             for child in parent.children(recursive=True):
                 try:
-                    child.terminate()
+                    created = child.create_time()
+                    if created >= self._process_created and child.create_time() == created:
+                        child.terminate()
                 except psutil.Error:
                     pass
             parent.terminate()
             parent.wait(timeout=8)
         except Exception:
-            try:
-                process.terminate()
-                process.wait(timeout=8)
-            except Exception:
-                try:
-                    process.kill()
-                except Exception:
-                    log.debug("Não foi possível encerrar o navegador", exc_info=True)
+            log.debug('Cleanup sem prova de criação não encerra processos por PID.', exc_info=True)
 
     def _kill_profile_orphans(self) -> None:
-        if not self._profile:
+        if not self._profile or self._process_created is None:
             return
         try:
             import psutil
@@ -236,7 +238,9 @@ class BrowserSession:
                 continue
             if name in {"msedge.exe", "chrome.exe", "chromium", "chromium-browser"} and f"--user-data-dir={marker}" in args:
                 try:
-                    proc.kill()
+                    created = proc.create_time()
+                    if created >= self._process_created and proc.create_time() == created:
+                        proc.kill()
                 except psutil.Error:
                     pass
 
@@ -449,6 +453,45 @@ class BrowserSession:
         return {"state": "playing" if advancing else "not_confirmed" if second else "unavailable",
                 "playback_verified": bool(advancing), "advancing": advancing, "elements": second,
                 "scope": "Tempo de mídia HTML avançando e não mutado; não confirma áudio nos alto-falantes."}
+
+    def control_media(self, command, selector=None):
+        if command not in {'play','pause'}:
+            raise BrowserError('Comando de mídia inválido.')
+        if selector is not None:
+            target = self._resolve(selector)
+        else:
+            # Native media need not expose visual controls. Do not relax the
+            # visibility/hit-test checks used by click/type for this purpose.
+            result = self._call('Runtime.evaluate', {'expression':
+                "(()=>{const m=document.querySelectorAll('audio,video');if(m.length!==1)throw Error(m.length?'AMBIGUOUS: escolha uma mídia.':'NOT_FOUND: nenhuma mídia HTML.');return m[0]})()",
+                'returnByValue':False})
+            if result.get('exceptionDetails'):
+                raise self._script_error(result['exceptionDetails'].get('exception',{}).get('description','Mídia indisponível.'))
+            target = result.get('result',{}).get('objectId')
+            if not target:
+                raise BrowserError('Não foi possível identificar uma mídia única.')
+        sample = "function(){return {source:this.currentSrc,time:this.currentTime,paused:this.paused,ended:this.ended,muted:this.muted,volume:this.volume,ready:this.readyState,connected:this.isConnected};}"
+        try:
+            applied = self._call('Runtime.callFunctionOn', {'objectId':target,
+                'functionDeclaration':"async function(command){if(!(this instanceof HTMLMediaElement))throw Error('Alvo não é mídia');if(command==='play')await this.play();else this.pause();return true;}",
+                'arguments':[{'value':command}],'returnByValue':True,'awaitPromise':True,'userGesture':True})
+            if applied.get('exceptionDetails'):
+                raise self._script_error(applied['exceptionDetails'].get('exception',{}).get('description','Controle de mídia recusado.'))
+            first = self._on_element(target,sample)
+            time.sleep(.35)
+            self.control.check()
+            second = self._on_element(target,sample)
+        finally:
+            self._release_element(target)
+        if not isinstance(first,dict) or not isinstance(second,dict):
+            raise BrowserError('Estado de mídia não pôde ser observado.')
+        stable = second.get('connected') and first.get('source')==second.get('source') and bool(second.get('source'))
+        verified = bool(stable and (second.get('paused') and abs(second['time']-first['time'])<.05
+            if command=='pause' else not second.get('paused') and not second.get('ended') and not second.get('muted')
+            and second.get('volume',0)>0 and second.get('ready',0)>=2 and second['time']>first['time']+.05))
+        return {'state':'paused' if verified and command=='pause' else 'playing' if verified else 'not_confirmed',
+            'verified':verified,'time':second.get('time'),'check':'media_paused_stable' if command=='pause' else 'media_time_advancing',
+            'scope':'Estado do elemento HTML observado; não confirma alto-falantes.'}
 
     def _resolve(self, selector) -> str:
         try:
@@ -913,6 +956,21 @@ def make_browser_tool_func(session: BrowserSession, allowed_roots: list[Path] | 
 
         action = str(params.get("action") or "").strip().lower()
         try:
+            requested = params.get('url')
+            if requested and action not in {'open','navigate','new_tab','download'}:
+                actual = session.status().get('url','')
+                if str(requested) != actual:
+                    raise BrowserError('Esta ação não navega. Use open com a URL primeiro e depois read, tables ou inspect na página carregada.',
+                        'UNVERIFIED', ['Execute browser action=open com a URL solicitada; só depois leia/inspecione.'])
+            if action == 'download':
+                from tools.browser_download import download_target, save_browser_resource
+                target = download_target(params.get('path'), roots)
+                info = save_browser_resource(session, str(params.get('url') or ''), target)
+                return ToolResult(True, json.dumps(info,ensure_ascii=False), meta={'action':action,**info})
+            if action in {'media_play','media_pause'}:
+                locator = _action_locator(params) if any(params.get(key) is not None for key in ('selector','locator','ref')) else None
+                info = session.control_media('play' if action=='media_play' else 'pause',locator)
+                return ToolResult(True,json.dumps(info,ensure_ascii=False),meta={'action':action,**info,'media_state':info['state']})
             if action in {"open", "navigate"}:
                 info = session.open(str(params.get("url") or ""))
                 return ToolResult(True, json.dumps(info, ensure_ascii=False),
@@ -995,7 +1053,7 @@ def make_browser_tool_func(session: BrowserSession, allowed_roots: list[Path] | 
             if action == "media_status":
                 info = session.media_status()
                 return ToolResult(True, json.dumps(info, ensure_ascii=False),
-                                  meta={"action": action, "verified": info["playback_verified"], "check": "media_time_advancing"})
+                                  meta={"action": action, "verified": info["playback_verified"], "check": "media_time_advancing",'media_state':info['state']})
             if action in {"links", "extract_links"}:
                 selector = params.get("selector")
                 limit = int(params.get("limit") or 50)

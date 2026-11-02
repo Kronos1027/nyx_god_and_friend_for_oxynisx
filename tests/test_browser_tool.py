@@ -115,6 +115,12 @@ def test_read_returns_page_text():
     assert result.meta["title"] == "Example"
 
 
+def test_read_url_cannot_silently_read_unrelated_current_page():
+    session=FakeSession()
+    result=tool(session)({'action':'read','url':'https://other.test'})
+    assert not result.ok and 'não navega' in result.error and not session.calls
+
+
 def test_click_and_type_dispatch_with_selector():
     session = FakeSession()
     runner = tool(session)

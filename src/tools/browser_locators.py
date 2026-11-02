@@ -17,7 +17,7 @@ def clean_locator(value):
             raise ValueError('Referência inválida; use a ref numerada da inspeção.')
         snapshot = value['snapshot']
         if not isinstance(snapshot,str) or not re.fullmatch(r'[a-f0-9]{32}',snapshot):
-            raise ValueError('Snapshot inválido; inspecione a página novamente.')
+            raise ValueError('Informe o snapshot exato retornado pelo inspect junto da ref; token ausente não significa que expirou. Alternativa: locator por label ou role/name observado.')
         return {'ref':ref,'snapshot':snapshot}
     scopes = {}
     for key in ('shadow','frame'):
