@@ -101,12 +101,34 @@ def main():
     parser.add_argument('--profile', choices=['conservative', 'normal', 'game', 'focus'], default='conservative')
     parser.add_argument('--output', type=Path)
     parser.add_argument('--list', action='store_true', help='Listar manifesto e cobertura, sem inferência.')
+    parser.add_argument('--precheck', action='store_true', help='Só inventário e instruções de reset; não abre apps nem chama o modelo.')
     parser.add_argument('--resume', action='store_true', help='Retomar relatório explicitamente, somente rotas de leitura/conversa.')
     args = parser.parse_args()
     selected = [case for case in cases() if 'all' in args.categories or case.category in args.categories]
+    catalog_app_count = sum(case.category=='apps' for case in selected)
     if args.list:
         print(json.dumps([case.to_dict() for case in selected], ensure_ascii=True, indent=2))
         return 0
+    inventory, excluded = None, []
+    if any(case.category=='apps' for case in selected):
+        from bench.app_inventory import installed_inventory, installed_cases
+        inventory = installed_inventory()
+        selected, excluded = installed_cases(selected,inventory)
+    if args.precheck:
+        from bench.app_inventory import precheck_running
+        targets = [case.target for case in selected if case.category=='apps']
+        blocked = precheck_running(targets) if targets else []
+        preflight = {'scope':'read-only installed-app inventory and reset precheck; no model or app launch',
+                     'catalog_app_count':catalog_app_count,'installed_app_count':len(targets),
+                     'denominator_apps':len(targets),'inventory':inventory,'excluded_apps':excluded,
+                     'close_before_running':blocked,'no_personal_process_closed':True}
+        if args.output:
+            if args.output.exists():
+                parser.error('O relatório já existe; escolha outro --output.')
+            args.output.parent.mkdir(parents=True,exist_ok=True)
+            atomic_write(args.output,preflight)
+        print(json.dumps(preflight,ensure_ascii=True,indent=2))
+        return 2 if blocked or any(row['reason']=='INVENTORY_UNKNOWN' for row in excluded) else 0
     output = args.output or ROOT / 'docs/evidence' / f'bench_{datetime.now(timezone.utc):%Y-%m-%d}_M0.json'
     output = output.resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -120,7 +142,8 @@ def main():
     report = {'schema_version': 1, 'scope': 'production TaskRunner with independent verifiers; personal UI not operated',
               'model': args.model, 'profile': args.profile, 'runs': args.runs, 'milestone_complete': False,
               'environment': desktop_probe(), 'manifest': [case.to_dict() for case in selected], 'rows': [],
-              'limitations': ['Safe routes currently cover conversation, numeric files and twelve native apps through an owned production Qt UI.',
+              'app_inventory':inventory,'excluded_apps':excluded,
+              'limitations': ['App denominator uses installed targets only; unknown inventory remains an environment limitation.',
                               'Blocked harness coverage is not proof that Nyx lacks the capability.',
                               'No M0-M8 milestone is completed by this partial runner alone.',
                               'GPU peaks are system samples, not exclusive Nyx allocation.']}
@@ -190,8 +213,11 @@ def main():
             atomic_write(output, report)
             print(case.id, run, result['status'], flush=True)
     report['summary'] = summarize(report['rows'], args.runs)
-    report['passed'] = all(category['category_gate_passed'] for category in report['summary'].values())
-    report['run_state'] = 'FINISHED'
+    unknown_inventory = any(row['reason']=='INVENTORY_UNKNOWN' for row in excluded)
+    report['passed'] = bool(report['summary']) and not unknown_inventory and all(
+        category['category_gate_passed'] for category in report['summary'].values())
+    environment_blocked = unknown_inventory or any(row['status'] in {'BLOCKED_ENVIRONMENT','BLOCKED_RUNTIME'} for row in report['rows'])
+    report['run_state'] = 'PARTIAL_ENVIRONMENT' if environment_blocked else 'FINISHED'
     atomic_write(output, report)
     output.with_suffix('.md').write_text(markdown_report(report), encoding='utf-8')
     return 0 if report['passed'] else 1

@@ -1,5 +1,22 @@
 # LIMITACOES.md — limitações reais, sem contorno silencioso
 
+## Atualização de 02/11/2026
+
+- M0/M1 **parcial: bloqueado por ambiente**, sem travar M7/M3. Abertura de app
+  e foco agora são resultados separados; negar foreground não nega uma janela
+  visível/identificada. Apps elevados continuam com limitação de foco conhecida.
+- Inventário real confirmou 12/15 apps do catálogo. Ausentes saem do denominador;
+  estado desconhecido bloqueia o gate. Pré-existentes são sinalizados, nunca
+  encerrados pelo nome. Falta ownership suficiente para reset automático dos
+  apps lançados via startfile; ainda não validada bateria de aberturas novas.
+- 960 testes padrão passaram, 61 pulados; isso não constitui aceite live. Detalhes:
+  docs/evidence/apps_policy_2026-11-02.md. CI remoto 72c6080 passou; falhas de
+  fixtures Linux descritas abaixo são histórico, não bloqueio atual.
+- Normal condicional, medição de RAM fria e classificador semântico ainda em
+  implementação. Não foi medido mínimo real que justifique o piso de 2,5GiB.
+
+As seções anteriores abaixo preservam evidência sob os critérios da época.
+
 ## Atualização de 01/11/2026
 
 - Checkpoint já está no GitHub. CI Linux inicial encontrou três fixtures a

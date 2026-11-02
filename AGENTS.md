@@ -12,6 +12,7 @@ Windows 11 · Ryzen 7 5700X · **16 GiB RAM** · **RTX 3060 12 GiB**. O mesmo PC
 - Perfil **Normal**: pico de VRAM da Nyx ≤ ~9,5 GiB; processo da UI ≤ 180 MiB RAM e < 1% CPU ocioso.
 - Perfil **Jogo/Live**: VRAM ≤ ~5 GiB (modelo menor ou CPU), nenhuma tarefa de fundo, nunca disputar GPU com o jogo/NVENC.
 - Dependência nova só com medição de tamanho do pacote, VRAM/RAM e tempo de inicialização. Preferir CPU para embeddings/OCR.
+- Normal deve ser o padrão quando RAM/VRAM permitirem, com degradação explícita para modelo menor. Medir RAM mínima real de carga fria antes de manter piso fixo de2,5GiB.
 
 ## 3. Definição de PRONTO (vale para qualquer marco)
 Um item só está pronto quando **todos** forem verdadeiros:
@@ -22,9 +23,16 @@ Um item só está pronto quando **todos** forem verdadeiros:
 5. Nenhum falso "sucesso": a Nyx só afirma o que a pós-condição observada confirma.
 Falso sucesso encontrado = defeito crítico que bloqueia o marco.
 
+### Ajuste de rumo aprovado pelo usuário em02/11/2026
+- Gate bloqueado por ambiente (foco Windows, RAM, harness sem reset) não trava o projeto. Registrar evidência e decisão, marcar **parcial: bloqueado por ambiente**, avançar e retornar depois. Isso não transforma falha ou ausência de validação em aprovação.
+- Abrir app e ganhar foco são resultados distintos. Abertura no bench exige janela nova, visível, sem cloaking e identidade confirmada. Foco é métrica separada; se negado, informar que abriu, mas não conseguiu trazer para frente. Apps elevados têm limitação de foco conhecida.
+- Denominador Apps: somente apps instalados neste PC. Bench só pode fechar processos comprovadamente iniciados por ele, com PID/criação validados; nos demais casos, pré-checagem com os apps a fechar antes da rodada.
+- Conversa geral deve usar classificador de intenção conversa×tarefa e streaming de texto livre, substituindo o roteador por regex de saudações.
+
 ## 4. Protocolo de trabalho de longa duração
-- Trabalhe por **marcos** (M0…M8 do prompt mestre), em ordem, **sem parar para pedir aprovação** entre eles. Decisão reversível: decida, registre em `docs/DECISOES.md` (contexto, opções, escolha, motivo, como reverter) e siga.
+- Prioridade atual do usuário: **M7 Nyx HUD e M3 navegador em paralelo, em worktrees**. Não manter o projeto preso em M0/CI/higiene. Decisão reversível: decida, registre em `docs/DECISOES.md` (contexto, opções, escolha, motivo, como reverter) e siga.
 - Após cada marco: rode o **gate** (ver skill `nyx-windows-live-verify`), commite (um assunto por commit, `feat|fix|test|docs(escopo): ...`), atualize `docs/PROGRESS.md`. Trabalhe na branch `nyx-2`; nunca force-push; nunca commit em `main` sem pedido.
+- Worktrees de implementação podem usar branches codex/; integração e publicação em nyx-2. Dar push ao concluir cada marco ou a cada aproximadamente4horas, conforme autorização vigente do usuário. Não enviar dados privados.
 - `docs/PROGRESS.md` é a sua memória externa (o contexto é compactado): sempre registre marco atual, próximo passo exato, comandos para retomar, bloqueios.
 - Diffs pequenos e revisáveis. Refatore só com testes de regressão antes. Não misture refatoração com mudança de comportamento no mesmo commit.
 - Se travar: duas abordagens diferentes, depois registre o erro exato em `LIMITACOES.md` e siga para o próximo item. Nunca invente contorno nem afrouxe teste/verificador para passar.

@@ -1,6 +1,19 @@
 # Nyx — estado verificado
 
-Última atualização: 2026-11-01
+Última atualização: 2026-11-02
+
+## Direção atual — M7 e M3 em paralelo
+
+- M0/M1 **parcial: bloqueado por ambiente**; não impedem avanço do HUD/navegador.
+- Abertura confirmada e foco separados; bench exige janela nova e registra foco
+  à parte. Inventário real: 15 entradas → 12 instaladas, quatro apps pedem
+  fechamento manual antes da rodada, sem encerrar processos pessoais.
+- Regressão padrão: 960 aprovados, 61 pulados, zero falhas, 50,083s; Ruff limpo.
+  Nova bateria fria ainda não validada: docs/evidence/apps_policy_2026-11-02.md.
+- CI remoto do checkpoint 72c6080 passou. HUD e segundo incremento M3 continuam
+  em worktrees; Normal condicional/carga fria e classificador vêm na sequência.
+
+Os registros abaixo são históricos; os critérios atuais estão em AGENTS.md.
 
 ## Progresso enviado ao GitHub
 

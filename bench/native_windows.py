@@ -26,6 +26,11 @@ APPS = {
                     'aliases':('gerenciador de tarefas','taskmgr','task manager'), 'processes':('taskmgr.exe',)},
     'terminal': {'prompt':'Abre o Terminal.', 'aliases':('terminal','windows terminal','wt'),
                  'processes':('windowsterminal.exe',)},
+    'chrome': {'prompt':'Abre o Chrome.', 'aliases':('chrome','google chrome'), 'processes':('chrome.exe',)},
+    'spotify': {'prompt':'Abre o Spotify.', 'aliases':('spotify',), 'processes':('spotify.exe',)},
+    'whatsapp': {'prompt':'Abre o WhatsApp.', 'aliases':('whatsapp','zap'), 'processes':('whatsapp.exe',)},
+    'vscode': {'prompt':'Abre o Visual Studio Code.', 'aliases':('visual studio code','vs code','vscode','code'),
+               'processes':('code.exe',)},
 }
 
 

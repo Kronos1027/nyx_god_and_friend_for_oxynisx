@@ -17,6 +17,7 @@ sys.path[:0] = [str(ROOT), str(ROOT/'src')]
 from bench.native_windows import APPS, fold, verify_app  # noqa: E402
 from bench.environment import desktop_probe, ResourceSampler  # noqa: E402
 from bench.checkpoint import atomic_write  # noqa: E402
+from bench.app_inventory import precheck_running  # noqa: E402
 
 
 def main():
@@ -132,6 +133,14 @@ def main():
     try:
         for run in range(1,args.runs+1):
             for key in args.apps:
+                precheck = precheck_running([key])
+                if precheck:
+                    report['rows'].append({'app':key,'run':run,'ok':False,'status':'BLOCKED_ENVIRONMENT',
+                        'elapsed_s':0,'false_success':False,'error_code':'PRECHECK_CLOSE_APP',
+                        'error':precheck[0]['message'],'cold_start_prechecked':False,
+                        'resources':{},'trace_path':None,'focus_verified':False})
+                    atomic_write(args.output,report)
+                    continue
                 current['key'] = key
                 approvals.clear()
                 denials.clear()
@@ -156,12 +165,16 @@ def main():
                 finished = next((row['state'] for row in reversed(events) if row['event']=='task_finished'),None)
                 claimed_verified = any(s['tool']=='ui_action' and s['params'].get('action')=='open_app' and s['verified']
                                        for s in loop.task_runner.steps)
-                postcondition = verdict['ok'] and verdict['foreground_match']
+                claimed_opened = any(s['tool']=='ui_action' and s['params'].get('action')=='open_app' and s.get('opened')
+                                     for s in loop.task_runner.steps)
+                postcondition = verdict['ok'] and not before['ok'] and claimed_opened
                 passed = postcondition and finished=='finished' and not denials and not timed_out
                 row = {'app':key,'run':run,'ok':passed,'elapsed_s':round(time.monotonic()-started,3),
                        'already_visible_before':before['ok'],'verifier':verdict,'workflow_state':finished,
+                       'new_visible_window':postcondition,'focus_verified':verdict['foreground_match'],
+                       'cold_start_prechecked':True,
                        'confirmations_approved':len(approvals),'confirmations_denied':len(denials),
-                       'false_success':bool(claimed_verified and not postcondition),
+                       'false_success':bool(claimed_verified and not verdict['ok']),
                        'error_code':('RESOURCE_PRESSURE' if loop.task_runner.resource_pressure else
                                      'TIMEOUT' if timed_out else None if passed else 'UNVERIFIED'),
                        'actions':len(loop.task_runner.steps),'resources':sampler.report(),

@@ -1,5 +1,19 @@
 # DECISOES — registro de decisões reversíveis (uma entrada por decisão)
 
+## D-009 · Prioridades e aceite separados por ambiente · 02/11/2026
+
+Contexto: usuário revisou nyx-2 e determinou avanço apesar de limites ambientais.
+Escolha: M0/M1 ficam parciais por foco/RAM/reset; M7 e M3 iniciados em worktrees
+isoladas, integração em nyx-2 e push a cada marco/~4h. Abertura é prova de janela
+nova visível/identificada/sem cloak; foco tem indicador e aviso próprios. Apps
+ausentes saem do denominador com inventário explícito; processo pré-existente
+não é encerrado, bench pede fechar antes. Código só fecha processos próprios
+com PID/criação e origem comprovados. Normal condicional, medição fria e
+classificador conversa×tarefa entram na sequência, sem regex de saudações.
+Motivo: instrução expressa, evita transformar limitações do PC em paralisação.
+Reversão: mudanças por commits; métricas anteriores permanecem históricas e não
+são recalculadas como aprovação. Não altera pet, permissões R2/R3 ou backups.
+
 ## D-008 · Publicação sanitizada com histórico preservado · 01/11/2026
 
 Contexto: usuário pediu envio imediato do progresso; branch nyx-2 ainda não

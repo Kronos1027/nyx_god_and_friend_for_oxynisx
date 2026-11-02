@@ -401,6 +401,10 @@ class TaskRunner:
         if output and result.verified:
             if action.type == 'ui_action' and output.meta.get('launch_kind') == 'native':
                 step['native_app_target'] = {key:output.meta.get(key) for key in ('executable','app_id')}
+                step['app_name'] = output.meta.get('app') or action.params.get('app') or 'O aplicativo'
+                step['already_open'] = bool(output.meta.get('already_open'))
+                step['opened'] = bool(output.meta.get('opened'))
+                step['focus_verified'] = bool(output.meta.get('focus_verified', output.meta.get('foreground_verified')))
             if action.type == 'read_file' and isinstance(output.meta.get('path'), str):
                 step['resolved_path'] = output.meta['path']
             if action.type == 'calculator' and isinstance(output.meta.get('result'), str):
@@ -446,6 +450,7 @@ class TaskRunner:
                 final_check = {'verified':False, 'error_code':'UNVERIFIED',
                                'details':'A leitura final da janela do aplicativo falhou: ' + str(exc)[:300]}
             self.loop.audit.log_event('final_postcondition', task_id=self.task_id, **final_check)
+            self.steps[-1]['final_postcondition'] = final_check
             if not final_check['verified']:
                 state = 'stopped'
                 self.steps[-1]['verified'] = False
@@ -453,6 +458,20 @@ class TaskRunner:
                 result.verified = False
                 result.response.speech_output = ('A abertura foi tentada, mas não posso confirmar a conclusão: '
                     + final_check['details'] + ' Nenhuma nova abertura foi enviada. Confira a janela antes de repetir.')
+            elif final_check.get('focus_verified') is False:
+                step = self.steps[-1]
+                app_name = step.get('app_name') or 'O aplicativo'
+                note = (f'{app_name} já estava aberto' if step.get('already_open') else f'Abri {app_name}')
+                note += ', mas não consegui trazer pra frente.'
+                step['focus_verified'] = False
+                # A simple opening workflow has one deterministic final outcome.
+                # Other task summaries retain their content and get a current
+                # observation, without turning focus denial into opening failure.
+                if all(item['tool']=='ui_action' and item['params'].get('action') in {
+                    'open_app','launch','list_windows','list_installed_apps','get_active_window'} for item in self.steps):
+                    result.response.speech_output = note
+                else:
+                    result.response.speech_output += '\nObservação final: ' + note
         self.active = False
         self.pending = None
         if self.uncertain or self.inflight:

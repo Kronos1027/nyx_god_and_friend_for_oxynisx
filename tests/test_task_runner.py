@@ -26,7 +26,7 @@ def make_runner(tmp_path, responses, **kwargs):
 
 
 @pytest.mark.parametrize('final_verified', [False, True])
-def test_native_app_focus_is_rechecked_after_final_model_response(tmp_path, monkeypatch, final_verified):
+def test_native_app_window_is_rechecked_after_final_model_response(tmp_path, monkeypatch, final_verified):
     runner, loop, registry = make_runner(tmp_path, [reply('ui_action', {'action':'open_app','app':'Fixture'}),
                                                   reply(speech='Janela aberta e em foco.')])
     target = {'executable':'C:/Fixture/app.exe', 'app_id':None}
@@ -36,7 +36,7 @@ def test_native_app_focus_is_rechecked_after_final_model_response(tmp_path, monk
     def recheck(observed):
         checks.append(observed)
         return {'verified':final_verified, 'error_code':None if final_verified else 'UNVERIFIED',
-                'details':'Foco mudou durante a resposta.'}
+                'details':'Janela desapareceu durante a resposta.'}
     monkeypatch.setattr('tools.installed_apps.native_app_postcondition', recheck)
     result = runner.start('Abra Fixture.')
     assert checks == [target] and len(runner.steps) == 1
@@ -45,9 +45,24 @@ def test_native_app_focus_is_rechecked_after_final_model_response(tmp_path, monk
         assert result.response.speech_output == 'Janela aberta e em foco.'
     else:
         assert 'não posso confirmar' in result.response.speech_output
-        assert 'Foco mudou durante a resposta.' in result.response.speech_output
+        assert 'Janela desapareceu durante a resposta.' in result.response.speech_output
     event = next(row for row in reversed(loop.audit.read_all()) if row['event']=='task_finished')
     assert event['state'] == ('finished' if final_verified else 'stopped')
+
+
+def test_native_app_focus_denial_does_not_fail_observed_opening(tmp_path, monkeypatch):
+    runner, loop, registry = make_runner(tmp_path, [reply('ui_action', {'action':'open_app','app':'Fixture'}),
+                                                  reply(speech='Aplicativo aberto e focado.')])
+    registry.register(ToolSpec('ui_action','ui'), lambda params:ToolResult(True, 'Abri Fixture; foco negado.',
+        meta={'app':'Fixture','executable':'C:/Fixture/app.exe','app_id':None,'focus_verified':False,
+              'verified':True,'windows':[{'hwnd':42}],'launch_kind':'native','check':'installed_app_window'}))
+    monkeypatch.setattr('tools.installed_apps.native_app_postcondition', lambda target:{
+        'verified':True,'focus_verified':False,'error_code':None,'details':'Janela visível e identificada.'})
+    result = runner.start('Abra Fixture.')
+    assert runner.steps[-1]['verified'] and not runner.steps[-1]['focus_verified']
+    assert result.response.speech_output == 'Abri Fixture, mas não consegui trazer pra frente.'
+    event = next(row for row in reversed(loop.audit.read_all()) if row['event']=='task_finished')
+    assert event['state'] == 'finished'
 
 
 def test_native_app_final_read_error_is_honest_and_never_reopens(tmp_path, monkeypatch):

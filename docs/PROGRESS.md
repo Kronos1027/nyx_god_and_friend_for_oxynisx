@@ -1,24 +1,35 @@
 # PROGRESS — memória externa do trabalho (atualize ao fim de cada passo relevante)
 
-**Marco atual:** M0 (integração e baseline ampliado) · **Branch:** nyx-2 · **Base preservada:** 5fc8ee5
-**Próximo passo exato:** enviar correção das três fixtures identificadas no CI Linux e verificar novo job até concluir. Código/checkpoint já no GitHub (nyx-2,58693f6). Depois seguir M0 por lacuna independente; foco/RAM continuam bloqueios medidos, sem repetir tentativas cegas.
+**Marco atual:** M7 HUD + M3 navegador em paralelo, por prioridade do usuário · **Branch de integração:** nyx-2
+**Próximo passo exato:** integrar entregas das worktrees codex/nyx-m7-hud e codex/nyx-m3-browser. Root separa abertura/foco e inventário/reset do bench; depois Normal condicional/carga fria e classificador semântico. CI/higiene só quando necessário. Push a cada marco/~4h.
 **Como retomar:** `git switch nyx-2` · ler AGENTS.md, este arquivo e docs/DECISOES.md · rodar `python -m pytest -q`
 **Bloqueios:**35cenários do harness sem setup/verificador seguro, sem inferir incapacidade da Nyx. Apps não são fechados/resetados e há falhas medidas de foco/RAM. Login Spotify adiado pelo usuário. Migração privada/remoção remota fora do escopo aprovado. Requalificação de arquivos passou3/3; recusas anteriores permanecem como histórico.
 
 ## Marcos
 | Marco | Status | Evidência | Gate (limiares) | Notas |
 |---|---|---|---|---|
-| M0 Fundação e baseline | em andamento | evidence/diagnosis_phase0.md | baseline ampliado/independente pendente | P1–P12 já avaliados; higiene parcial |
-| M1 Destravar | parcial herdado | evidence/diagnosis_phase0.md | Apps ≥ 95% · Desktop ≥ 90% | 13/15 nomes, dois web; falta bateria independente completa |
+| M0 Fundação e baseline | parcial: bloqueado por ambiente | evidence/apps_expansion_2026-11-01.md | baseline ampliado/reset pendentes | Avançar por instrução do usuário |
+| M1 Destravar | parcial: bloqueado por ambiente | evidence/apps_expansion_2026-11-01.md | Apps instalados ≥ 95% · foco separado | RAM/foco/reset medidos; retornar depois |
 | M2 Cérebro e recursos | parcial herdado | evidence/resource_profiles_2026-10-31.md; evidence/conversation_stream_2026-10-31.md | 1º token < 1,5 s · multi-etapa ≥ 80% · VRAM ≤ 9,5 GiB | Perfis/saudações medidos; não conclui o gate |
-| M3 Navegador e pesquisa | pendente | | Navegador ≥ 85% · Pesquisa ≥ 85% | |
+| M3 Navegador e pesquisa | em implementação paralela | | Navegador ≥ 85% · Pesquisa ≥ 85% | codex/nyx-m3-browser |
 | M4 Desktop robusto e habilidades | pendente | | Desktop ≥ 90% · 10 apps com habilidade validada | |
 | M5 Confiança graduada | pendente | | tarefa de 6 passos com ≤ 1 confirmação; R3 sempre confirma | |
 | M6 Presença, memória e voz | pendente | | Presença/memória ≥ 90% · voz < 2,5 s | |
-| M7 Interface Nyx HUD | pendente | | QA visual + check_ui + perf | |
+| M7 Interface Nyx HUD | em implementação paralela | | QA visual + check_ui + perf | codex/nyx-m7-hud; pet congelado |
 | M8 Aceitação final | pendente | | bench 3× completo · soak 2 h · falso sucesso = 0 | |
 
 ## Log (mais recente primeiro)
+- 02/11/2026 — Abertura e foco separados na ferramenta/guarda final; bench
+  instalado 12/15, quatro pré-existentes bloqueados por reset manual seguro.
+  Ruff limpo; regressão padrão 960/61pulados/0falhas,50,083s. Nova bateria fria
+  não validada. evidence/apps_policy_2026-11-02.md; M0/M1 parciais por ambiente.
+  Integrados pausa de contexto sem apagar consentimento/histórico e M3 Shadow/AX
+  inicial (36f1678). HUD/segundo M3 retomados nas worktrees preservadas.
+- 02/11/2026 — Direção revisada pelo usuário, registrada em AGENTS/D-009.
+  Dois agentes autorizados iniciaram M7/M3 em worktrees próprias, deps compartilhadas
+  por junctions no volume do projeto. Sem nova cópia de venv/modelos no C.
+  M0/M1 parciais por ambiente; abertura/foco passam a métricas independentes.
+  Root coordena integração/docs/push e ajustes de bench/perfil/conversa.
 - 01/11/2026 — Push confirmado por Git/API:35commits na branch nyx-2,58693f6,
   main/backups intactos, sem force.21blobs documentais históricos sanitizados;
   árvore final idêntica e referência original local preservada. Scanner passou.

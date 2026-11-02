@@ -215,10 +215,12 @@ def native_app_postcondition(target):
     else:
         windows = matching_windows(Path(target['executable']))
     foreground = win32gui.GetForegroundWindow()
-    verified = any(window['hwnd'] == foreground for window in windows)
-    return {'verified':verified, 'error_code':None if verified else 'UNVERIFIED',
-            'details':'Janela do aplicativo continua em primeiro plano.' if verified else
-                      'A janela do aplicativo não está em primeiro plano no encerramento.'}
+    verified = bool(windows)
+    focus_verified = any(window['hwnd'] == foreground for window in windows)
+    return {'verified':verified, 'focus_verified':focus_verified,
+            'error_code':None if verified else 'UNVERIFIED',
+            'details':'Janela do aplicativo continua visível e identificada.' if verified else
+                      'A janela do aplicativo não está visível e identificada no encerramento.'}
 
 
 def _matching_owner(process, executable):

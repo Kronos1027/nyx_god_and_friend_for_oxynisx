@@ -494,18 +494,29 @@ class UITool:
         # Splash/launcher windows may disappear while the real app takes focus.
         # Only a freshly observed window owned by this installed app is proof.
         owner_still_matches = bool(current)
-        verified = (any(window['hwnd'] == foreground for window in current)
-                    and not focused.meta.get('outcome_unknown'))
+        focus_verified = bool(any(window['hwnd'] == foreground for window in current)
+                              and not focused.meta.get('outcome_unknown'))
+        verified = owner_still_matches
         meta = {'app':app.name, 'executable':str(app.path), 'windows':current,
                 'app_id':app.app_id,
-                'hwnd':foreground if verified else hwnd, 'already_open':already_open, 'foreground_verified':verified,
+                'hwnd':foreground if focus_verified else current[0]['hwnd'] if current else hwnd,
+                'already_open':already_open, 'opened':verified and not already_open,
+                'foreground_verified':focus_verified, 'focus_verified':focus_verified,
                 'verified':verified, 'check':'installed_app_window', 'launch_kind':'native'}
         if not verified:
-            meta.update(error_code='UNVERIFIED' if owner_still_matches else 'ELEMENT_STALE',
+            meta.update(error_code='ELEMENT_STALE',
                         outcome_unknown=focused.meta.get('outcome_unknown', False),
                         suggestions=['Consulte list_windows para escolher a janela ou um diálogo modal.'])
-            detail = f'{app.name}: janela observada, mas foco não confirmado. ' + (focused.error or 'A identidade da janela mudou.')
-            return ToolResult(owner_still_matches, output=detail, error=focused.error, meta=meta)
+            detail = f'{app.name}: a janela não permaneceu visível e identificada após a tentativa.'
+            return ToolResult(False, output=detail, error=detail, meta=meta)
+        if not focus_verified:
+            meta.update(focus_error=focused.error, focus_outcome_unknown=bool(focused.meta.get('outcome_unknown')),
+                        focus_error_code='PERMISSION' if focused.error and any(
+                            word in focused.error.casefold() for word in ('acesso negado','access denied')) else 'UNVERIFIED')
+            detail = (f'{app.name} já estava aberto' if already_open else f'Abri {app.name}') + ', mas não consegui trazer pra frente.'
+            if focused.error:
+                detail += ' Último erro de foco: ' + focused.error
+            return ToolResult(True, output=detail, meta=meta)
         return ToolResult(True, f'{app.name}: ' + ('já estava aberto; ' if already_open else '')
                           + 'janela e foco confirmados.', meta=meta)
 

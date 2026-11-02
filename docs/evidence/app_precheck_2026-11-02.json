@@ -1,0 +1,156 @@
+{
+  "scope": "read-only installed-app inventory and reset precheck; no model or app launch",
+  "catalog_app_count": 15,
+  "installed_app_count": 12,
+  "denominator_apps": 12,
+  "inventory": {
+    "complete": true,
+    "apps": {
+      "calculator": {
+        "installed": true,
+        "methods": [
+          "registered_app",
+          "windows_binary"
+        ]
+      },
+      "notepad": {
+        "installed": true,
+        "methods": [
+          "registered_app",
+          "windows_binary"
+        ]
+      },
+      "paint": {
+        "installed": true,
+        "methods": [
+          "registered_app"
+        ]
+      },
+      "edge": {
+        "installed": true,
+        "methods": [
+          "registered_app"
+        ]
+      },
+      "explorer": {
+        "installed": true,
+        "methods": [
+          "windows_binary",
+          "visible_app_identity"
+        ]
+      },
+      "settings": {
+        "installed": true,
+        "methods": [
+          "registered_app"
+        ]
+      },
+      "discord": {
+        "installed": true,
+        "methods": [
+          "registered_app"
+        ]
+      },
+      "steam": {
+        "installed": true,
+        "methods": [
+          "registered_app"
+        ]
+      },
+      "obs": {
+        "installed": true,
+        "methods": [
+          "registered_app"
+        ]
+      },
+      "antigravity": {
+        "installed": true,
+        "methods": [
+          "registered_app"
+        ]
+      },
+      "taskmanager": {
+        "installed": true,
+        "methods": [
+          "registered_app",
+          "windows_binary",
+          "visible_app_identity"
+        ]
+      },
+      "terminal": {
+        "installed": true,
+        "methods": [
+          "registered_app"
+        ]
+      },
+      "chrome": {
+        "installed": false,
+        "methods": []
+      },
+      "spotify": {
+        "installed": false,
+        "methods": []
+      },
+      "whatsapp": {
+        "installed": false,
+        "methods": []
+      },
+      "vscode": {
+        "installed": false,
+        "methods": []
+      }
+    },
+    "errors": [],
+    "scope": "Menu Iniciar/App Paths/binários Windows/janelas identificadas; sem varredura recursiva de disco."
+  },
+  "excluded_apps": [
+    {
+      "id": "apps-03",
+      "targets": [
+        "chrome"
+      ],
+      "reason": "NOT_INSTALLED"
+    },
+    {
+      "id": "apps-08",
+      "targets": [
+        "spotify"
+      ],
+      "reason": "NOT_INSTALLED"
+    },
+    {
+      "id": "apps-15",
+      "targets": [
+        "whatsapp"
+      ],
+      "reason": "NOT_INSTALLED"
+    }
+  ],
+  "close_before_running": [
+    {
+      "app": "edge",
+      "error_code": "PRECHECK_CLOSE_APP",
+      "message": "Feche edge antes de rodar este caso.",
+      "ownership": "pre-existing or unproven; no process was closed"
+    },
+    {
+      "app": "explorer",
+      "error_code": "PRECHECK_CLOSE_APP",
+      "message": "Feche explorador antes de rodar este caso.",
+      "ownership": "pre-existing or unproven; no process was closed"
+    },
+    {
+      "app": "steam",
+      "error_code": "PRECHECK_CLOSE_APP",
+      "message": "Feche steam antes de rodar este caso.",
+      "ownership": "pre-existing or unproven; no process was closed"
+    },
+    {
+      "app": "taskmanager",
+      "error_code": "PRECHECK_CLOSE_APP",
+      "message": "Feche gerenciador de tarefas antes de rodar este caso.",
+      "ownership": "pre-existing or unproven; no process was closed"
+    }
+  ],
+  "no_personal_process_closed": true
+}

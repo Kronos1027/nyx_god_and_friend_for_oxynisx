@@ -113,7 +113,7 @@ def test_existing_app_must_receive_focus_without_relaunch(tmp_path, monkeypatch)
 
 
 @pytest.mark.parametrize('stale', [False, True])
-def test_existing_app_focus_failure_is_never_verified(tmp_path, monkeypatch, stale):
+def test_window_and_focus_are_separate_outcomes(tmp_path, monkeypatch, stale):
     monkeypatch.setattr('tools.windows_targets.foreground_window_handle', lambda:99)
     app = apps.InstalledApp('Steam', tmp_path/'steam.exe', 'fixture')
     monkeypatch.setattr(apps, 'resolve_app', lambda name: app)
@@ -122,9 +122,20 @@ def test_existing_app_focus_failure_is_never_verified(tmp_path, monkeypatch, sta
     tool = UITool(tmp_path/'shots')
     monkeypatch.setattr(tool, 'focus_window', lambda params: ToolResult(False, error='real focus error'))
     result = tool.open_app({'app':'Steam'})
-    assert result.ok == (not stale) and not result.meta['verified']
-    assert result.meta['error_code'] == ('ELEMENT_STALE' if stale else 'UNVERIFIED')
-    assert 'real focus error' in result.error
+    assert result.ok == (not stale) and result.meta['verified'] == (not stale)
+    assert not result.meta['focus_verified']
+    if stale:
+        assert result.meta['error_code'] == 'ELEMENT_STALE'
+    else:
+        assert result.error is None and result.meta['focus_error'] == 'real focus error'
+        assert 'já estava aberto, mas não consegui trazer pra frente' in result.output
+
+
+def test_app_postcondition_keeps_window_success_when_focus_is_elsewhere(monkeypatch):
+    monkeypatch.setattr(apps, 'matching_windows', lambda path:[{'hwnd':42}])
+    monkeypatch.setitem(sys.modules, 'win32gui', SimpleNamespace(GetForegroundWindow=lambda:99))
+    result = apps.native_app_postcondition({'executable':'C:/Fixture/app.exe','app_id':None})
+    assert result['verified'] and not result['focus_verified'] and result['error_code'] is None
 
 
 def test_launcher_handoff_accepts_only_freshly_owned_foreground_window(tmp_path, monkeypatch):

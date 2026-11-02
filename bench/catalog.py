@@ -12,6 +12,7 @@ class Case:
     timeout_s: int
     risk: str
     route: str = ''
+    target: str = ''
 
     def to_dict(self):
         return asdict(self)
@@ -54,7 +55,7 @@ def cases():
                         'resident_local_model', 'independent_first_delta_and_no_action', 120, 'R0', 'greeting'),
                    Case('conversation-02', 'conversation', 'Quem é você?',
                         'resident_local_model', 'independent_identity_text', 120, 'R0', 'identity')])
-    return [replace(case,route='native_app_ui') if case.id in NATIVE_CASES else case for case in result]
+    return [replace(case,route='native_app_ui',target=NATIVE_CASES[case.id]) if case.id in NATIVE_CASES else case for case in result]
 
 
 THRESHOLDS = {'apps': .95, 'desktop': .90, 'browser': .85, 'multi_step': .80,
@@ -62,4 +63,5 @@ THRESHOLDS = {'apps': .95, 'desktop': .90, 'browser': .85, 'multi_step': .80,
 
 NATIVE_CASES = {'apps-01':'calculator', 'apps-02':'notepad', 'apps-04':'edge', 'apps-05':'explorer',
                 'apps-06':'settings', 'apps-07':'discord', 'apps-09':'steam', 'apps-10':'obs',
-                'apps-11':'antigravity', 'apps-12':'paint', 'apps-13':'taskmanager', 'apps-14':'terminal'}
+                'apps-11':'antigravity', 'apps-12':'paint', 'apps-13':'taskmanager', 'apps-14':'terminal',
+                'apps-03':'chrome', 'apps-08':'spotify', 'apps-15':'whatsapp'}

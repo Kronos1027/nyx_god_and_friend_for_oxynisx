@@ -33,6 +33,7 @@ def test_native_bench_preserves_child_resource_failure_instead_of_only_exit_code
             'error_code':'RESOURCE_PRESSURE', 'error':'RAM livre insuficiente; nenhuma geração enviada.'}}))
         return SimpleNamespace(returncode=1)
     monkeypatch.setattr(native_suite.subprocess, 'run', child)
+    monkeypatch.setattr(native_suite, 'precheck_running', lambda keys:[])
     selected = [case for case in cases() if case.id == 'apps-01']
     rows = native_suite.run_native_cases(tmp_path, selected, 3, 'fixture', 'normal', tmp_path)
     assert len(rows) == 3 and all(row['status']=='BLOCKED_RUNTIME' for row in rows)
