@@ -79,6 +79,29 @@ def test_new_task_cannot_clear_emergency_latch(tmp_path):
     assert not runner.active
 
 
+@pytest.mark.parametrize('app,wrong_tool,wrong_params', [('Edge','browser',{'action':'open','url':'https://example.test'}),
+                                                       ('Terminal','shell',{'template':'GET_PROCESS'}),
+                                                       ('Discord','browser',{'action':'open','url':'https://discord.com'})])
+def test_named_app_is_not_replaced_by_unrequested_navigation_or_command(tmp_path, app, wrong_tool, wrong_params):
+    runner, _, registry = make_runner(tmp_path, [reply(wrong_tool, wrong_params),
+        reply('ui_action', {'action':'open_app','app':app}), reply(speech='Aplicativo aberto.')])
+    registry.register(ToolSpec('browser','browser'), lambda params:pytest.fail('Unrequested site navigation'))
+    registry.register(ToolSpec('shell','shell'), lambda params:pytest.fail('Process listing does not open Terminal'))
+    calls = []
+    registry.register(ToolSpec('ui_action','ui'), lambda params:calls.append(params) or ToolResult(True, 'observed',
+        meta={'verified':True,'windows':[{'hwnd':42}],'check':'installed_app_window'}))
+    result = runner.start(f'Abre o {app}.')
+    assert result.response.speech_output == 'Aplicativo aberto.' and runner.replans == 1
+    assert calls == [{'action':'open_app','app':app}]
+
+
+@pytest.mark.parametrize('goal', ['Abra o Edge em https://example.test', 'Abra o Edge e pesquise astronomia',
+                                'Abra a página do Edge', 'Pesquise Chrome'])
+def test_browser_grounding_preserves_navigation_and_multi_step_requests(goal):
+    from core.app_grounding import explicit_app_issue
+    assert explicit_app_issue(goal, 'browser', {'action':'open'}) is None
+
+
 def test_explicit_no_delegation_filters_catalog_and_blocks_rogue_proposal(tmp_path):
     runner, loop, registry = make_runner(tmp_path, [])
     calls, catalogs = [], []

@@ -305,8 +305,10 @@ class TaskRunner:
                 self._check()
                 proposed = parse_response(raw)
                 if proposed.parse_ok:
+                    from core.app_grounding import explicit_app_issue
                     from core.arithmetic_grounding import calculator_issue, final_sum_issue, source_issue
-                    issue = (source_issue(self.goal, self.steps, proposed.action.type, proposed.action.params)
+                    app_issue = explicit_app_issue(self.goal, proposed.action.type, proposed.action.params)
+                    issue = (app_issue or source_issue(self.goal, self.steps, proposed.action.type, proposed.action.params)
                              or calculator_issue(self.goal, self.steps, proposed.action.type, proposed.action.params)
                              or final_sum_issue(self.goal, self.steps, proposed))
                     if issue:
@@ -315,7 +317,7 @@ class TaskRunner:
                         self.replans += 1
                         self.planning_feedback = issue
                         self.loop.audit.log_event('task_replan', task_id=self.task_id,
-                            reason='arithmetic_grounding', attempt=self.replans, detail=issue)
+                            reason='app_grounding' if app_issue else 'arithmetic_grounding', attempt=self.replans, detail=issue)
                         continue
                 if proposed.parse_ok and proposed.action.type != "none":
                     signature = self._signature(proposed.action.type, proposed.action.params)

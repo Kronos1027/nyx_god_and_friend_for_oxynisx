@@ -487,12 +487,18 @@ class UITool:
         """Opening an app includes observed focus, including an existing window."""
         hwnd = windows[0]['hwnd']
         focused = self.focus_window({'hwnd': hwnd})
+        self.control.check()
         current = observe()
-        owner_still_matches = any(window['hwnd'] == hwnd for window in current)
-        verified = bool(focused.ok and focused.meta.get('verified') and owner_still_matches)
+        from tools.windows_targets import foreground_window_handle
+        foreground = foreground_window_handle()
+        # Splash/launcher windows may disappear while the real app takes focus.
+        # Only a freshly observed window owned by this installed app is proof.
+        owner_still_matches = bool(current)
+        verified = (any(window['hwnd'] == foreground for window in current)
+                    and not focused.meta.get('outcome_unknown'))
         meta = {'app':app.name, 'executable':str(app.path), 'windows':current,
                 'app_id':app.app_id,
-                'hwnd':hwnd, 'already_open':already_open, 'foreground_verified':verified,
+                'hwnd':foreground if verified else hwnd, 'already_open':already_open, 'foreground_verified':verified,
                 'verified':verified, 'check':'installed_app_window', 'launch_kind':'native'}
         if not verified:
             meta.update(error_code='UNVERIFIED' if owner_still_matches else 'ELEMENT_STALE',

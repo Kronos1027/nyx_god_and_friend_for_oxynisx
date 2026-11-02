@@ -21,7 +21,7 @@ ALIASES = {"edge": "msedge", "microsoft edge": "msedge", "google chrome": "chrom
            "paint": "mspaint", "bloco de notas": "notepad", "vscode": "code",
            "vs code": "code", "visual studio code": "code", "obs": "obs64",
            "explorador": "explorer", "explorador de arquivos": "explorer",
-           "terminal": "wt", "gerenciador de tarefas": "taskmgr", "zap": "whatsapp"}
+           "terminal": "wt", "windows terminal": "wt", "gerenciador de tarefas": "taskmgr", "zap": "whatsapp"}
 
 
 def normalized_name(value):
@@ -156,7 +156,10 @@ def resolve_app(query):
     key = ALIASES.get(key, key)
     matches = [app for app in catalog if key == normalized_name(app.name)
                or (not app.app_id and key == normalized_name(app.path.stem))]
-    if key in ('calculadora', 'configuracoes'):
+    if key == 'wt':
+        matches.extend(app for app in catalog if app.app_id and app.app_id.casefold() in {
+            'microsoft.windowsterminal_8wekyb3d8bbwe!app', 'microsoft.windowsterminalpreview_8wekyb3d8bbwe!app'})
+    if key in ('calculadora', 'configuracoes', 'wt'):
         packaged = [app for app in matches if app.app_id]
         if packaged:
             matches = packaged
@@ -187,6 +190,10 @@ def matching_windows(executable):
         try:
             if not window_is_uncloaked(window._hWnd):
                 continue
+            if executable.name.casefold() == 'explorer.exe':
+                import win32gui
+                if win32gui.GetClassName(window._hWnd) not in {'CabinetWClass', 'ExploreWClass'}:
+                    continue
             _, pid = win32process.GetWindowThreadProcessId(window._hWnd)
             process = psutil.Process(pid)
             owner = _matching_owner(process, executable)

@@ -58,8 +58,32 @@ def test_alias_does_not_choose_between_distinct_installations(monkeypatch):
     assert error.value.code == 'AMBIGUOUS'
 
 
+@pytest.mark.parametrize('query', ['Terminal','o Terminal','Windows Terminal','wt'])
+def test_terminal_prefers_registered_package_over_wt_forwarder(monkeypatch, query):
+    stub = apps.InstalledApp('wt', Path('C:/WindowsApps/wt.exe'), 'Windows App Paths')
+    package = apps.InstalledApp('Terminal', Path('C:/Windows/explorer.exe'), 'Windows AppsFolder',
+                                'Microsoft.WindowsTerminal_8wekyb3d8bbwe!App')
+    monkeypatch.setattr(apps, 'installed_apps', lambda:[stub,package])
+    assert apps.resolve_app(query) == package
+
+
+@pytest.mark.parametrize('window_class,expected', [('Progman',False),('WorkerW',False),('CabinetWClass',True)])
+def test_explorer_owner_requires_a_real_file_window(tmp_path, monkeypatch, window_class, expected):
+    executable = tmp_path/'explorer.exe'
+    process = ProcessFixture(2, executable)
+    monkeypatch.setattr('tools.app_catalog.window_is_uncloaked', lambda hwnd:True)
+    monkeypatch.setitem(sys.modules, 'pygetwindow', SimpleNamespace(
+        getAllWindows=lambda:[SimpleNamespace(visible=True,title='fixture',_hWnd=1)]))
+    monkeypatch.setitem(sys.modules, 'pywintypes', SimpleNamespace(error=OSError))
+    monkeypatch.setitem(sys.modules, 'win32gui', SimpleNamespace(GetClassName=lambda hwnd:window_class))
+    monkeypatch.setitem(sys.modules, 'win32process', SimpleNamespace(GetWindowThreadProcessId=lambda hwnd:(1,2)))
+    monkeypatch.setattr('psutil.Process', lambda pid:process)
+    assert bool(apps.matching_windows(executable)) == expected
+
+
 @pytest.mark.parametrize("key", ["app", "name", "app_name", "path"])
 def test_open_installed_app_alias_and_verified_window(key, tmp_path, monkeypatch):
+    monkeypatch.setattr('tools.windows_targets.foreground_window_handle', lambda:42)
     app = apps.InstalledApp("Steam", tmp_path / "steam.exe", "fixture")
     monkeypatch.setattr(apps, "resolve_app", lambda name: app if name == "Steam" else pytest.fail(name))
     windows = [{"hwnd": 42, "title": "Steam", "pid": 123}]
@@ -74,6 +98,7 @@ def test_open_installed_app_alias_and_verified_window(key, tmp_path, monkeypatch
 
 
 def test_existing_app_must_receive_focus_without_relaunch(tmp_path, monkeypatch):
+    monkeypatch.setattr('tools.windows_targets.foreground_window_handle', lambda:42)
     app = apps.InstalledApp('Spotify', tmp_path/'spotify.exe', 'fixture')
     monkeypatch.setattr(apps, 'resolve_app', lambda name: app)
     monkeypatch.setattr(apps, 'matching_windows', lambda path: [{'hwnd':42}])
@@ -89,6 +114,7 @@ def test_existing_app_must_receive_focus_without_relaunch(tmp_path, monkeypatch)
 
 @pytest.mark.parametrize('stale', [False, True])
 def test_existing_app_focus_failure_is_never_verified(tmp_path, monkeypatch, stale):
+    monkeypatch.setattr('tools.windows_targets.foreground_window_handle', lambda:99)
     app = apps.InstalledApp('Steam', tmp_path/'steam.exe', 'fixture')
     monkeypatch.setattr(apps, 'resolve_app', lambda name: app)
     observations = iter([[{'hwnd':42}], [] if stale else [{'hwnd':42}]])
@@ -99,6 +125,18 @@ def test_existing_app_focus_failure_is_never_verified(tmp_path, monkeypatch, sta
     assert result.ok == (not stale) and not result.meta['verified']
     assert result.meta['error_code'] == ('ELEMENT_STALE' if stale else 'UNVERIFIED')
     assert 'real focus error' in result.error
+
+
+def test_launcher_handoff_accepts_only_freshly_owned_foreground_window(tmp_path, monkeypatch):
+    app = apps.InstalledApp('Discord', tmp_path/'discord.exe', 'fixture')
+    monkeypatch.setattr(apps, 'resolve_app', lambda name:app)
+    observations = iter([[{'hwnd':42}], [{'hwnd':43}]])
+    monkeypatch.setattr(apps, 'matching_windows', lambda path:next(observations))
+    monkeypatch.setattr('tools.windows_targets.foreground_window_handle', lambda:43)
+    tool = UITool(tmp_path/'shots')
+    monkeypatch.setattr(tool, 'focus_window', lambda params:ToolResult(False,error='old splash closed'))
+    result = tool.open_app({'app':'Discord'})
+    assert result.ok and result.meta['verified'] and result.meta['hwnd'] == 43
 
 
 @pytest.mark.parametrize('name', ['Spotify', 'o Spotify', 'WhatsApp', 'zap'])
