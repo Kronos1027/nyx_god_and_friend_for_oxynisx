@@ -5,6 +5,9 @@ from pathlib import Path
 repo = Path(SPECPATH).resolve().parent
 datas = [(str(repo / "src/core/schema.gbnf"), "src/core")]
 datas += [(str(repo / "assets/oxynisx/spritesheet.png"), "assets/oxynisx")]
+datas += [(str(repo / 'src/ui/hud/design-tokens.json'), 'src/ui/hud')]
+for folder in ('assets/fonts', 'assets/icons'):
+    datas += [(str(path),folder) for path in (repo/folder).iterdir() if path.is_file()]
 binaries = []
 hiddenimports = [
     "PyQt6.QtCore",

@@ -10,6 +10,21 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Dict
+import json
+from functools import lru_cache
+
+from app_paths import resource_path
+
+
+@lru_cache(maxsize=1)
+def hud_design_tokens():
+    """Bundled Midnight Signal specification: the HUD's source of truth."""
+    return json.loads(resource_path('src/ui/hud/design-tokens.json').read_text(encoding='utf-8'))
+
+
+def hud_palette(theme='midnight'):
+    themes = hud_design_tokens()['themes']
+    return dict(themes.get(theme, themes['midnight']))
 
 
 @dataclass(frozen=True)

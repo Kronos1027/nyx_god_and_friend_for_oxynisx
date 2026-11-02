@@ -17,8 +17,8 @@ from ui.overlay import OverlayWindow  # noqa: E402
 
 def test_control_center_routes_to_existing_panels(desktop):
     window, _, _ = desktop
-    assert window.pages.currentIndex() == 4
-    assert window.nav_buttons[4].isChecked()
+    assert window.pages.currentIndex() == 0
+    assert window.nav_buttons[0].isChecked()
     for route, title in (("tasks", "Tarefas"), ("memory", "Memória e interesses"),
                          ("privacy", "Observação e iniciativa")):
         window.control_center.route_buttons[route].click()
@@ -112,12 +112,12 @@ def test_global_stop_blocks_actions_and_resume_requires_user_control(desktop, mo
     window.emergency_button.click()
     assert control.is_cancelled()
     assert "interrompidas" in window.control_center.status.text()
-    assert window.control_center.resume_button.isVisible()
+    assert window.hud_resume_button.isVisible()
     monkeypatch.setattr("psutil.virtual_memory", lambda: (_ for _ in ()).throw(OSError("fixture")))
     window._refresh_status()
     assert "interrompidas" in window.control_center.status.text()
     assert window.control_center.values["resources"].text() == "Indisponível"
-    window.control_center.resume_button.click()
+    window.hud_resume_button.click()
     app.processEvents()
     assert not control.is_cancelled()
 
@@ -141,7 +141,7 @@ def test_compact_layout_keeps_global_controls_visible(desktop):
     window, app, _ = desktop
     window.resize(920, 680)
     app.processEvents()
-    assert not window.model_badge.isVisible()
+    assert window.model_badge.isVisible()  # Model remains in the compact HUD strip.
     assert not window.activity_dock.isVisible()
     assert window.emergency_button.isVisible()
     assert window.page_title.width() > 100
@@ -149,7 +149,7 @@ def test_compact_layout_keeps_global_controls_visible(desktop):
     window.resize(1320, 860)
     app.processEvents()
     assert window.model_badge.isVisible()
-    assert window.activity_dock.isVisible()
+    assert not window.activity_dock.isVisible()  # Activity is an optional drawer in HUD.
 
 
 def test_center_opens_projects_and_real_telemetry(desktop, tmp_path, monkeypatch):
@@ -224,6 +224,7 @@ def test_browser_preferences_authorize_only_separate_profile(desktop):
     window, _, _ = desktop
     browser = BrowserSession()
     window.controller.loop.registry.browser_session = browser
+    window.browser_persist_check.setChecked(False)
     window._update_browser_preferences()
     assert not browser.headless and browser.persistent_profile is None
     window.browser_persist_check.setChecked(True)
@@ -639,14 +640,16 @@ def test_rail_mode_shrinks_the_library_and_persists(desktop):
     app.processEvents()
 
     assert window._rail is True
-    assert window.nav_buttons[0].text() == "◌"
+    assert window.nav_buttons[0].text() == ''
+    assert not window.nav_buttons[0].icon().isNull()
+    assert window.nav_buttons[0].accessibleName() == 'Conversa'
     assert window.chat_list.isVisible() is False
     assert window.settings.value("sidebar_rail", type=bool) is True
 
     window._set_rail(False)
     app.processEvents()
 
-    assert window.nav_buttons[0].text() == "◌  Conversa"
+    assert window.nav_buttons[0].text() == 'Conversa'
     assert window.chat_list.isVisible() is True
 
 
@@ -690,7 +693,101 @@ def test_rail_width_animates_instead_of_snapping(desktop):
 
     window._set_rail(False)
     deadline = time.monotonic() + 3
-    while window.sidebar.width() < 240 and time.monotonic() < deadline:
+    while window.sidebar.width() < 195 and time.monotonic() < deadline:
         app.processEvents()
         time.sleep(0.01)
-    assert window.sidebar.width() >= 240
+    assert 195 <= window.sidebar.width() <= 205
+
+
+def test_hud_private_pauses_without_deleting_and_restores_prior_choices(desktop):
+    window, _, _ = desktop
+    window.speech_check.setChecked(False)
+    window.initiative_check.setChecked(True)
+    permissions = window._context.permissions()
+    event = window._context.emit('own_tasks','task_complete','owned','Fixture')
+    window.private_button.setChecked(True)
+    assert window._context.is_paused and not window.initiative_check.isChecked()
+    assert not window.speech_check.isChecked()
+    assert window._context.permissions() == permissions
+    with window._context.connect() as database:
+        assert database.execute('SELECT id FROM context_events WHERE id=?',(event,)).fetchone()
+    window.private_button.setChecked(False)
+    assert not window._context.is_paused and window.initiative_check.isChecked()
+    assert not window.speech_check.isChecked()
+
+
+def test_inline_confirmation_is_exact_and_denies_changed_payload(desktop):
+    from PyQt6.QtCore import QTimer
+    window, _, _ = desktop
+    pending = {'type':'write_file','params':{'text':'ação exata 🌙','path':'fixture.txt'}}
+    def mutate_then_click():
+        assert window._pending_confirm_card.pending_action['params']['text'] == 'ação exata 🌙'
+        pending['params']['text'] = 'changed'
+        window._pending_confirm_card.btn_approve.click()
+    QTimer.singleShot(0,mutate_then_click)
+    assert not window.request_confirmation(pending)
+
+
+def test_inline_confirmation_needs_explicit_click_and_stop_denies(desktop):
+    from PyQt6.QtCore import QTimer
+    window, _, _ = desktop
+    pending = {'type':'ui_action','params':{'action':'open_app','app':'Fixture'}}
+    QTimer.singleShot(0,lambda:window._pending_confirm_card.btn_approve.click())
+    assert window.request_confirmation(pending)
+    QTimer.singleShot(0,window._emergency_stop)
+    assert not window.request_confirmation(pending)
+    assert window.controller.loop.registry.control.is_cancelled()
+
+
+def test_action_receipt_separates_confirmed_window_from_focus_denial(qapp):
+    from ui.hud.action_card import ActionCard
+    from PyQt6.QtWidgets import QLabel
+    card = ActionCard({'step':1,'tool':'ui_action','ok':True,'verified':True},
+                      {'params':{'action':'open_app'},'focus_verified':False})
+    labels = [label.text() for label in card.findChildren(QLabel)]
+    assert 'Janela confirmada' in labels
+    assert 'Aberto, mas não foi possível trazer para frente' in labels
+    card.deleteLater()
+
+
+def test_hud_hiding_stops_visual_polling_and_keeps_backup_service(desktop):
+    window, app, _ = desktop
+    window.hide()
+    app.processEvents()
+    assert not window.telemetry_timer.isActive()
+    assert not window.research_timer.isActive()
+    assert not window.initiative_timer.isActive()
+    assert window.backup_timer.isActive()  # Backup policy is outside the HUD redesign.
+
+
+def test_reduced_motion_keeps_typing_indicator_static(desktop):
+    window, app, _ = desktop
+    window.motion_check.setChecked(False)
+    window._on_processing(True)
+    app.processEvents()
+    assert window._typing_row is not None
+    assert window._typing_anim.state().name == 'Stopped'
+    window._on_processing(False)
+
+
+def test_resolved_confirmation_cards_keep_minimum_layout_height(desktop):
+    from PyQt6.QtCore import QTimer
+    window, app, _ = desktop
+    pending = {'type':'ui_action','params':{'action':'open_app','app':'Fixture'}}
+    for _ in range(3):
+        QTimer.singleShot(0,lambda:window._pending_confirm_card.btn_deny.click())
+        assert not window.request_confirmation(pending)
+    app.processEvents()
+    from ui.hud.confirm_card import ConfirmCard
+    for card in window.feed.findChildren(ConfirmCard):
+        assert card.height() >= card.minimumSizeHint().height()
+
+
+def test_palette_fuzzy_typo_finds_existing_action(desktop):
+    window, app, _ = desktop
+    window.open_palette()
+    window.palette.input.setText('agnda')
+    app.processEvents()
+    assert any('Agenda' in entry for entry in window.palette.visible_commands)
+    window.palette._run_current()
+    assert window.pages.currentIndex() == 1

@@ -1,0 +1,97 @@
+{
+  "scope": "isolated actual Qt desktop, OfflineLLM; no personal state; no inference or GPU measurement",
+  "runs": [
+    {
+      "scale": "1",
+      "platform": "offscreen",
+      "first_paint_s": 0.9688,
+      "rss_mib": 112.28,
+      "idle_cpu_percent": 0.937,
+      "smoke": {
+        "midnight_deny": true,
+        "daylight_deny": true,
+        "approve": true,
+        "private_pause": true,
+        "private_restore": true,
+        "send": true,
+        "stop": true,
+        "escape_escape_stop": true,
+        "hidden_polling_stopped": true
+      },
+      "text_findings": 0,
+      "backup_timer_preserved": true
+    },
+    {
+      "scale": "1.25",
+      "platform": "offscreen",
+      "first_paint_s": 1.1164,
+      "rss_mib": 113.91,
+      "idle_cpu_percent": 0.625,
+      "smoke": {
+        "midnight_deny": true,
+        "daylight_deny": true,
+        "approve": true,
+        "private_pause": true,
+        "private_restore": true,
+        "send": true,
+        "stop": true,
+        "escape_escape_stop": true,
+        "hidden_polling_stopped": true
+      },
+      "text_findings": 0,
+      "backup_timer_preserved": true
+    },
+    {
+      "scale": "1.5",
+      "platform": "offscreen",
+      "first_paint_s": 0.6692,
+      "rss_mib": 116.32,
+      "idle_cpu_percent": 0.469,
+      "smoke": {
+        "midnight_deny": true,
+        "daylight_deny": true,
+        "approve": true,
+        "private_pause": true,
+        "private_restore": true,
+        "send": true,
+        "stop": true,
+        "escape_escape_stop": true,
+        "hidden_polling_stopped": true
+      },
+      "text_findings": 0,
+      "backup_timer_preserved": true
+    },
+    {
+      "scale": "1",
+      "platform": "windows",
+      "first_paint_s": 3.5408,
+      "rss_mib": 145.28,
+      "idle_cpu_percent": 0.312,
+      "smoke": {
+        "midnight_deny": true,
+        "daylight_deny": true,
+        "approve": true,
+        "private_pause": true,
+        "private_restore": true,
+        "send": true,
+        "stop": true,
+        "escape_escape_stop": true,
+        "hidden_polling_stopped": true
+      },
+      "text_findings": 0,
+      "backup_timer_preserved": true
+    }
+  ],
+  "text_measurement": "visible non-wrapped QLabel and QPushButton horizontal width, QTabBar width; not a proof of every scroll position, wrapped text or tab order",
+  "minimum_text_contrast": {
+    "midnight": 5.36,
+    "daylight": 4.599
+  },
+  "native_api_accepted": {
+    "dark_frame": true,
+    "mica": true,
+    "capture_excluded": true,
+    "supported": true
+  },
+  "full_gate": "partial: native first paint exceeds1.2s; fullsession/model/battery/OBS capture pending"
+}

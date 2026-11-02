@@ -1,0 +1,10 @@
+{
+  "asset_files": 21,
+  "asset_bytes": 1194205,
+  "font_registration_s": 0.016,
+  "font_registration_rss_delta_mib": 0.49,
+  "initial_icons_s": 0.109,
+  "rss_after_icons_mib": 40.66,
+  "runtime_dependencies_added": [],
+  "gpu": "offscreen software Qt rendering; no model inference; GPU allocation not measured"
+}

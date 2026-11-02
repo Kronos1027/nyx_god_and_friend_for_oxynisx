@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from typing import Callable, Iterable
+from difflib import SequenceMatcher
+import unicodedata
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QEvent, Qt
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QDialog,
@@ -50,10 +52,13 @@ class CommandPalette(QDialog):
         self.input.setObjectName("PaletteInput")
         self.input.setPlaceholderText("Digite um comando ou o nome de uma conversa…")
         self.input.setClearButtonEnabled(True)
+        self.input.setAccessibleName('Buscar comando, conversa ou configuração')
+        self.input.installEventFilter(self)
         layout.addWidget(self.input)
 
         self.list = QListWidget(panel)
         self.list.setObjectName("PaletteList")
+        self.list.setAccessibleName('Comandos encontrados')
         self.list.setFont(QFont("Segoe UI", 10))
         layout.addWidget(self.list)
 
@@ -96,12 +101,21 @@ class CommandPalette(QDialog):
 
     # -- internals ---------------------------------------------------------
     def _refresh(self, text: str) -> None:
-        query = text.strip().casefold()
+        def normalized(value):
+            return unicodedata.normalize('NFKD',value).encode('ascii','ignore').decode().casefold()
+        query = normalized(text.strip())
         self.list.clear()
-        for title, hint, callback in self._commands:
-            if query and query not in title.casefold() and query not in hint.casefold():
+        ranked = []
+        for order,(title,hint,callback) in enumerate(self._commands):
+            name = normalized(title+' '+hint)
+            score = 1 if not query or query in name else max(
+                (SequenceMatcher(None,query,word).ratio() for word in name.split()),default=0)
+            if query and score < .6:
                 continue
+            ranked.append((-score,order,title,hint,callback))
+        for _,_,title,hint,callback in sorted(ranked):
             item = QListWidgetItem(f"{title}    {hint}" if hint else title)
+            item.setToolTip(title+' '+hint)
             item.setData(Qt.ItemDataRole.UserRole, callback)
             self.list.addItem(item)
         if self.list.count():
@@ -122,6 +136,14 @@ class CommandPalette(QDialog):
             + self.hint.sizeHint().height()
             + self._panel_layout.spacing() * 2
         )
+
+    def eventFilter(self, watched, event):
+        if watched is self.input and event.type()==QEvent.Type.KeyPress and event.key() in {Qt.Key.Key_Down,Qt.Key.Key_Up}:
+            if self.list.count():
+                direction = 1 if event.key()==Qt.Key.Key_Down else -1
+                self.list.setCurrentRow((self.list.currentRow()+direction)%self.list.count())
+            return True
+        return super().eventFilter(watched,event)
 
     def _run_current(self) -> None:
         item = self.list.currentItem()

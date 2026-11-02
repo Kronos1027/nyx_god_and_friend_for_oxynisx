@@ -57,7 +57,9 @@ def main() -> None:
     app.setFont(QFont("Segoe UI", 10))
     destination = ROOT / "build" / "previews"
     destination.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="nyx-desktop-preview-") as directory:
+    state_directory = ROOT/'build/preview-state'
+    state_directory.mkdir(parents=True,exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="nyx-desktop-preview-",dir=state_directory) as directory:
         temporary = Path(directory)
         registry = ToolRegistry()
         registry.reminder_scheduler = ReminderScheduler(temporary / "schedule.db")
@@ -111,7 +113,7 @@ def main() -> None:
         window.research_timer.stop()  # Screenshots never initiate background network work.
         window.resize(1440, 920)
         window.show()
-        for theme in ("midnight", "daylight", "aurora"):
+        for theme in ('midnight','daylight'):
             window.theme_combo.setCurrentIndex(window.theme_combo.findData(theme))
             app.processEvents()
             window._refresh_status()

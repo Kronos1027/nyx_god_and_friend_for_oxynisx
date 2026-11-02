@@ -199,6 +199,9 @@ class PermissionDialog(QDialog):
         parent: QWidget | None = None,
     ) -> bool:
         """Exibe o diálogo modal e retorna True se aprovado."""
+        inline = getattr(parent,'request_confirmation',None)
+        if callable(inline):
+            return inline(pending_action,prompt,is_destructive)
         dialog = cls(pending_action, prompt=prompt, is_destructive=is_destructive, parent=parent)
         dialog.exec()
         return dialog.approved

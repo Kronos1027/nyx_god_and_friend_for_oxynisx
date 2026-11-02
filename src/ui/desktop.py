@@ -9,7 +9,7 @@ import time
 from datetime import datetime
 
 from PyQt6.QtCore import (
-    QDateTime, QEasingCurve, QPropertyAnimation, QRectF, QSettings, Qt, QTimer, QUrl,
+    QDateTime, QEventLoop, QEasingCurve, QPropertyAnimation, QRectF, QSettings, Qt, QTimer, QUrl,
     QVariantAnimation, pyqtSignal,
 )
 from PyQt6.QtGui import QCursor, QColor, QDesktopServices, QKeySequence, QPainter, QPen, QShortcut
@@ -27,6 +27,13 @@ from ui.command_palette import CommandPalette
 from ui.desktop_theme import ACCENTS, desktop_stylesheet
 from ui.sprite_renderer import SpriteRenderer
 from ui.toast import Toast
+from ui.hud.theme import register_fonts, native_window_style
+from ui.hud.icons import icon as hud_icon
+from ui.hud.status_strip import StatusStrip
+from ui.hud.agora_panel import AgoraPanel
+from ui.hud.action_card import ActionCard
+from ui.hud.confirm_card import ConfirmCard
+from ui.tokens import hud_palette, hud_design_tokens
 
 log = logging.getLogger(__name__)
 
@@ -166,10 +173,11 @@ class DesktopWindow(QMainWindow):
 
     def __init__(self, controller, store: ChatStore | None = None, settings: QSettings | None = None) -> None:
         super().__init__()
+        register_fonts()
         self.setObjectName("NyxDesktop")
         self.setWindowTitle("Nyx — sua companhia de trabalho")
-        self.resize(1320, 860)
-        self.setMinimumSize(920, 640)
+        self.resize(*hud_design_tokens()['layout']['defaultWindow'])
+        self.setMinimumSize(*hud_design_tokens()['layout']['minWindow'])
         self.controller = controller
         self.controller.interaction_parent = self
         self.controller.btn_close.setText("✕ Recolher")
@@ -182,6 +190,9 @@ class DesktopWindow(QMainWindow):
         self._activity_auto_hidden = False
         self.chat_id = ""
         self._busy = False
+        self._pending_confirm_card = None
+        self._private = False
+        self._private_saved = {}
         self._research_busy = False
         self._closing = False
         self._research_cancel = threading.Event()
@@ -211,10 +222,11 @@ class DesktopWindow(QMainWindow):
         self._build_companion()
         self._build_activity()
         self._build_menu()
+        self.learning_tabs.currentChanged.connect(self._sync_navigation)
         self._connect_controller()
         self._apply_preferences()
         self._restore_layout()
-        self._set_rail(bool(self.settings.value("sidebar_rail", False, type=bool)))
+        self._set_rail(bool(self.settings.value("sidebar_rail", True, type=bool)))
         self._reload_chats()
         chats = self.store.list_chats()
         selected = str(self.settings.value("last_chat", ""))
@@ -222,7 +234,8 @@ class DesktopWindow(QMainWindow):
         self.telemetry_timer = QTimer(self)
         self.telemetry_timer.setInterval(2000)
         self.telemetry_timer.timeout.connect(self._refresh_status)
-        self.telemetry_timer.start()
+        if self.isVisible():
+            self.telemetry_timer.start()
         self._refresh_status()
         self._backup_busy = False
         self.backup_finished.connect(self._backup_done)
@@ -245,7 +258,12 @@ class DesktopWindow(QMainWindow):
         QShortcut(QKeySequence("Ctrl+B"), self, activated=lambda: self._set_rail(not self._rail))
         QShortcut(QKeySequence("Ctrl+1"), self, activated=lambda: self.set_page(4))
         QShortcut(QKeySequence("Ctrl+2"), self, activated=lambda: self.set_page(0))
-        self.set_page(4)
+        QShortcut(QKeySequence("Ctrl+L"), self, activated=lambda:self._prefill(self.composer.toPlainText()))
+        QShortcut(QKeySequence("Ctrl+."), self, activated=self._toggle_agora)
+        QShortcut(QKeySequence("Ctrl+Shift+P"), self, activated=self.private_button.toggle)
+        QShortcut(QKeySequence("Esc, Esc"), self, activated=self._emergency_stop)
+        self.set_page(0)
+        self.private_button.setChecked(self.settings.value('private_mode',False,type=bool))
 
     @staticmethod
     def _muted(text: str) -> QLabel:
@@ -282,33 +300,33 @@ class DesktopWindow(QMainWindow):
         root = QVBoxLayout(central)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
+        self.hud_status = StatusStrip()
+        self.hud_status.requested.connect(self._hud_status_route)
+        self.hud_status.stop_requested.connect(self._emergency_stop)
+        root.addWidget(self.hud_status)
         bar = QFrame()
         bar.setObjectName("TopBar")
         header = QHBoxLayout(bar)
-        header.setContentsMargins(24, 15, 24, 15)
+        header.setContentsMargins(16, 8, 16, 8)
         self.page_title = QLabel("Conversa")
         self.page_title.setObjectName("PageTitle")
         self.page_title.setMinimumWidth(0)
         self.page_title.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         header.addWidget(self.page_title, 1)
-        self.model_badge = QLabel(self._model_name())
-        self.model_badge.setObjectName("Badge")
+        self.model_badge = self.hud_status.items['model']
         self.model_badge.setToolTip(getattr(getattr(getattr(self.controller, "loop", None), "llm", None), "unavailable_reason", "Modelo executado neste computador."))
-        header.addWidget(self.model_badge)
         self.panel_button = QToolButton()
-        self.panel_button.setText("Painéis  ▾")
+        self.panel_button.setText('Painéis')
+        self.panel_button.setAccessibleName('Painéis da interface')
+        self.panel_button.setToolTip('Painéis da interface')
         self.panel_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         header.addWidget(self.panel_button)
-        self.focus_button = QPushButton("Foco")
+        self.focus_button = QPushButton('Concentrar')
         self.focus_button.setCheckable(True)
         self.focus_button.setToolTip("Recolher painéis para ampliar a conversa")
         self.focus_button.toggled.connect(self._toggle_focus)
         header.addWidget(self.focus_button)
-        self.emergency_button = QPushButton("Parar ações")
-        self.emergency_button.setObjectName("Danger")
-        self.emergency_button.setAccessibleName("Interromper todas as ações da Nyx")
-        self.emergency_button.clicked.connect(self._emergency_stop)
-        header.addWidget(self.emergency_button)
+        self.emergency_button = self.hud_status.stop
         root.addWidget(bar)
         self.pages = QStackedWidget()
         root.addWidget(self.pages, 1)
@@ -333,6 +351,8 @@ class DesktopWindow(QMainWindow):
                 dock.setVisible(visible)
 
     def _emergency_stop(self):
+        if self._pending_confirm_card is not None:
+            self._pending_confirm_card.decide(False)
         loop = self.controller.loop
         loop.registry.control.stop(emergency=True)
         self.controller.cancel_task()
@@ -343,6 +363,81 @@ class DesktopWindow(QMainWindow):
         loop.audit.log_event("kill_switch_triggered", source="desktop_emergency_button")
         self._add_activity("Interrupção geral solicitada; operações em curso podem precisar terminar.")
         self._refresh_status()
+
+    def _hud_status_route(self, route):
+        if route == 'permission':
+            self._open_center_route('privacy')
+        elif route == 'presence':
+            self._toggle_agora()
+        else:
+            self.set_page(2)
+            title = 'Modelo e recursos'
+            for index in range(self.settings_tabs.count()):
+                if self.settings_tabs.tabText(index) == title:
+                    self.settings_tabs.setCurrentIndex(index)
+                    break
+
+    def _toggle_agora(self):
+        self.companion_dock.setVisible(not self.companion_dock.isVisible())
+
+    def _set_private(self, enabled):
+        self._private = bool(enabled)
+        pause = getattr(self._context, 'set_paused', None)
+        if callable(pause):
+            pause(enabled)
+        controls = {'voice':self.speech_check, 'initiative':self.initiative_check, 'research':self.research_check}
+        if enabled:
+            saved = self.settings.value('private_restore',None)
+            self._private_saved = saved if isinstance(saved,dict) else {name:control.isChecked() for name,control in controls.items()}
+            self.settings.setValue('private_restore',self._private_saved)
+            for control in controls.values():
+                control.setChecked(False)
+                control.setEnabled(False)
+            self.controller.tts.stop_current()
+            self._research_cancel.set()
+        else:
+            for name,control in controls.items():
+                control.setEnabled(True)
+                control.setChecked(self._private_saved.get(name, False))
+            self._private_saved = {}
+            self.settings.remove('private_restore')
+        self.settings.setValue('private_mode',enabled)
+        self.agora.set_private(enabled)
+        self.private_button.setToolTip('Modo Privado: pausa percepção, iniciativa, estudos e voz. O histórico local permanece.'
+                                      if callable(pause) else 'Pausa parcial: voz, iniciativa e estudos. Sensores sem API de pausa; histórico local permanece.')
+        self._refresh_status()
+
+    def request_confirmation(self, pending_action, prompt=None, is_destructive=False):
+        """Keep the exact approval in its original chat; closing always denies."""
+        if self._closing or self._pending_confirm_card is not None:
+            return False
+        self.set_page(0)
+        card = ConfirmCard(pending_action, prompt, is_destructive, self.feed)
+        self._pending_confirm_card = card
+        self.hero.hide()
+        self.feed_layout.insertWidget(self.feed_layout.count()-1,card)
+        self._cards.append(card)
+        result = [False]
+        loop = QEventLoop(self)
+        def decided(approved):
+            result[0] = approved
+            loop.quit()
+        card.decided.connect(decided)
+        card.edit_requested.connect(lambda:self.composer.setPlainText('Corrija o pedido anterior: '))
+        enabled = self.composer.isEnabled()
+        self.composer.setEnabled(False)
+        self.new_button.setEnabled(False)
+        self._scroll_to_latest()
+        card.btn_deny.setFocus()
+        loop.exec()
+        self._pending_confirm_card = None
+        self.composer.setEnabled(enabled)
+        self.new_button.setEnabled(True)
+        loop.deleteLater()
+        if result[0] and pending_action != card.pending_action:
+            card.prompt.setText('A ação mudou durante a revisão. Negada; solicite uma nova confirmação.')
+            return False
+        return result[0]
 
     def _open_center_route(self, route):
         if route == "tool_health":
@@ -405,6 +500,14 @@ class DesktopWindow(QMainWindow):
 
     def _build_chat_page(self) -> None:
         page, layout = self._page()
+        self.stop_banner = QFrame()
+        stopped = QHBoxLayout(self.stop_banner)
+        stopped.addWidget(QLabel('Ações interrompidas. Retome somente quando estiver pronta para continuar.'))
+        self.hud_resume_button = QPushButton('Retomar ferramentas')
+        self.hud_resume_button.clicked.connect(lambda:self._open_center_route('resume'))
+        stopped.addWidget(self.hud_resume_button)
+        self.stop_banner.hide()
+        layout.addWidget(self.stop_banner)
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.feed = QWidget()
@@ -430,9 +533,9 @@ class DesktopWindow(QMainWindow):
         hero_layout.addWidget(self._muted("Converse, pesquise ou transforme uma ideia em trabalho.\nA Nyx usa os modelos e as ferramentas disponíveis no seu computador."))
         hero_layout.addSpacing(22)
         suggestions = (
-            ("◈  Entender meu computador", "Verifique o uso de CPU, RAM e GPU deste computador e explique o estado atual."),
-            ("⌕  Explorar uma ideia", "Quero pesquisar uma ideia. Primeiro me ajude a definir a pergunta e o que precisamos descobrir."),
-            ("✧  Trabalhar com microagentes", "Use dois microagentes para investigar separadamente o estado do sistema e os arquivos de trabalho permitidos."),
+            ('Entender meu computador', "Verifique o uso de CPU, RAM e GPU deste computador e explique o estado atual."),
+            ('Explorar uma ideia', "Quero pesquisar uma ideia. Primeiro me ajude a definir a pergunta e o que precisamos descobrir."),
+            ('Investigar com especialistas', "Use dois microagentes para investigar separadamente o estado do sistema e os arquivos de trabalho permitidos."),
         )
         for caption, prompt in suggestions:
             button = QPushButton(caption)
@@ -459,7 +562,8 @@ class DesktopWindow(QMainWindow):
         self.composer.submitted.connect(self.send_prompt)
         composition.addWidget(self.composer)
         controls = QHBoxLayout()
-        self.voice_button = QPushButton("◉  Conversar por voz")
+        self.voice_button = QPushButton('Voz')
+        self.voice_button.setAccessibleName('Conversar por voz')
         self.voice_button.clicked.connect(self.controller._on_mic_clicked)
         controls.addWidget(self.voice_button)
         controls.addStretch()
@@ -467,7 +571,7 @@ class DesktopWindow(QMainWindow):
         self.cancel_task_button.setEnabled(False)
         self.cancel_task_button.clicked.connect(self.controller.cancel_task)
         controls.addWidget(self.cancel_task_button)
-        self.send_button = QPushButton("Enviar  ↑")
+        self.send_button = QPushButton('Enviar')
         self.send_button.setObjectName("Primary")
         self.send_button.clicked.connect(self.send_prompt)
         controls.addWidget(self.send_button)
@@ -480,7 +584,14 @@ class DesktopWindow(QMainWindow):
         dock = QDockWidget(title, self)
         dock.setObjectName(name)
         body.setObjectName("DockBody")
-        dock.setWidget(body)
+        if name == 'companion':
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setFrameShape(QFrame.Shape.NoFrame)
+            scroll.setWidget(body)
+            dock.setWidget(scroll)
+        else:
+            dock.setWidget(body)
         dock.setMinimumWidth(210)
         self.addDockWidget(area, dock)
         return dock
@@ -503,18 +614,21 @@ class DesktopWindow(QMainWindow):
         self.new_button.clicked.connect(self.new_chat)
         layout.addWidget(self.new_button)
         self.nav_buttons = []
-        self._nav_labels = ("Conversa", "Agenda", "Personalizar", "Aprendizado", "Central")
-        self._nav_glyphs = ("◌", "◷", "⚙", "✧", "▦")
-        for index, (glyph, title) in enumerate(zip(self._nav_glyphs, self._nav_labels, strict=False)):
-            button = QPushButton(f"{glyph}  {title}")
+        self._nav_labels = ('Conversa','Tarefas','Agora','Memória','Apps e habilidades','Configurações')
+        self._nav_glyphs = ('message-circle','list-checks','panel-right','brain','book-open','settings')
+        self._nav_pages = (0,3,None,3,3,2)
+        routes = (lambda:self.set_page(0), lambda:self._open_center_route('tasks'), self._toggle_agora,
+                  lambda:self._open_center_route('memory'), lambda:self._show_skills(), lambda:self.set_page(2))
+        for index, (glyph, title) in enumerate(zip(self._nav_glyphs, self._nav_labels, strict=True)):
+            button = QPushButton(title)
             button.setObjectName("Nav")
-            button.setCheckable(True)
+            button.setAccessibleName(title)
+            button.setProperty('hud_icon',glyph)
+            button.setCheckable(index != 2)
             button.setChecked(index == 0)
-            button.clicked.connect(lambda checked=False, i=index: self.set_page(i))
+            button.clicked.connect(routes[index])
             layout.addWidget(button)
             self.nav_buttons.append(button)
-        layout.removeWidget(self.nav_buttons[4])
-        layout.insertWidget(3, self.nav_buttons[4])
         layout.addSpacing(12)
         self.search = QLineEdit()
         self.search.setPlaceholderText("Buscar conversas  Ctrl+F")
@@ -527,16 +641,35 @@ class DesktopWindow(QMainWindow):
         self.chat_list.itemClicked.connect(lambda item: self.activate_chat(item.data(Qt.ItemDataRole.UserRole)))
         self.chat_list.itemDoubleClicked.connect(self._rename_chat)
         layout.addWidget(self.chat_list, 1)
-        self.remove_button = QPushButton("Excluir conversa selecionada")
+        self.remove_button = QPushButton('Excluir conversa')
         self.remove_button.setObjectName("Quiet")
         self.remove_button.clicked.connect(self._delete_chat)
         layout.addWidget(self.remove_button)
+        self.private_button = QPushButton('Modo Privado')
+        self.private_button.setObjectName('Nav')
+        self.private_button.setProperty('hud_icon','shield')
+        self.private_button.setAccessibleName('Modo Privado: pausar percepção e voz')
+        self.private_button.setCheckable(True)
+        self.private_button.toggled.connect(self._set_private)
+        layout.addWidget(self.private_button)
         self.sidebar = self._dock("Biblioteca", "library", body, Qt.DockWidgetArea.LeftDockWidgetArea)
+        self.sidebar.setTitleBarWidget(QWidget())
+
+    def _show_skills(self):
+        self.set_page(3)
+        for index in range(self.learning_tabs.count()):
+            if 'habilidade' in self.learning_tabs.tabText(index).casefold():
+                self.learning_tabs.setCurrentIndex(index)
+                break
 
     def _build_companion(self) -> None:
         body = QWidget()
         layout = QVBoxLayout(body)
         layout.setContentsMargins(18, 4, 18, 18)
+        self.agora = AgoraPanel()
+        self.agora.privacy_requested.connect(lambda:self._open_center_route('privacy'))
+        self.agora.cancel_requested.connect(self.controller.cancel_task)
+        layout.addWidget(self.agora)
         self.companion = CompanionStage()
         layout.addWidget(self.companion)
         self.companion_state = QLabel("Pronta para ajudar")
@@ -560,7 +693,15 @@ class DesktopWindow(QMainWindow):
         layout.addWidget(self.ram_bar)
         self.queue_label = self._muted("Inferência local livre")
         layout.addWidget(self.queue_label)
-        self.companion_dock = self._dock("Companhia e sistema", "companion", body, Qt.DockWidgetArea.RightDockWidgetArea)
+        self.companion_dock = self._dock("Agora", "companion", body, Qt.DockWidgetArea.RightDockWidgetArea)
+        self.companion_dock.setMinimumWidth(260)
+        self.companion_dock.setMaximumWidth(360)
+        self.companion_dock.visibilityChanged.connect(self._sync_companion_layout)
+        for widget in (self.ram_label,self.ram_bar,self.queue_label):
+            widget.hide()
+
+    def _sync_companion_layout(self, *_args):
+        self.hero_companion.setVisible(not self.companion_dock.isVisible())
 
     def _tab_section(self, tabs: QTabWidget, title: str) -> QVBoxLayout:
         section, layout = self._page()
@@ -1061,6 +1202,7 @@ class DesktopWindow(QMainWindow):
         self.activity_dock = self._dock("Atividade real", "activity", body, Qt.DockWidgetArea.RightDockWidgetArea)
         self.splitDockWidget(self.companion_dock, self.activity_dock, Qt.Orientation.Vertical)
         self.resizeDocks([self.sidebar, self.companion_dock], [245, 270], Qt.Orientation.Horizontal)
+        self.activity_dock.hide()
 
     def _build_agenda_page(self) -> None:
         page, layout = self._page()
@@ -1103,14 +1245,16 @@ class DesktopWindow(QMainWindow):
         form = QFormLayout()
         form.setSpacing(18)
         self.theme_combo = QComboBox()
-        for caption, value in (("Noite", "midnight"), ("Aurora", "aurora"), ("Dia", "daylight")):
+        for caption, value in (("Midnight", "midnight"), ("Daylight", "daylight")):
             self.theme_combo.addItem(caption, value)
         self.theme_combo.setCurrentIndex(max(0, self.theme_combo.findData(self.settings.value("theme", "midnight"))))
         form.addRow("Aparência", self.theme_combo)
         self.accent_combo = QComboBox()
-        for caption, value in (("Violeta", "violet"), ("Ciano", "cyan"), ("Menta", "mint"), ("Âmbar", "amber")):
+        for caption, value in (("Dourado", "gold"), ("Turquesa", "teal")):
             self.accent_combo.addItem(caption, value)
-        self.accent_combo.setCurrentIndex(max(0, self.accent_combo.findData(self.settings.value("accent", "violet"))))
+        stored_accent = self.settings.value('accent','gold')
+        stored_accent = 'teal' if stored_accent in {'teal','cyan','mint'} else 'gold'
+        self.accent_combo.setCurrentIndex(max(0, self.accent_combo.findData(stored_accent)))
         form.addRow("Cor de destaque", self.accent_combo)
         self.font_slider = QSlider(Qt.Orientation.Horizontal)
         self.font_slider.setRange(12, 18)
@@ -1119,6 +1263,10 @@ class DesktopWindow(QMainWindow):
         self.motion_check = QCheckBox("Animações suaves e companhia em movimento")
         self.motion_check.setChecked(self.settings.value("motion", True, type=bool))
         form.addRow(self.motion_check)
+        self.capture_check = QCheckBox('Ocultar esta janela em transmissões e capturas do Windows')
+        self.capture_check.setChecked(self.settings.value('exclude_capture',True,type=bool))
+        self.capture_check.setToolTip('Aplica-se apenas à janela principal; o pet continua capturável. A disponibilidade depende do Windows.')
+        form.addRow(self.capture_check)
         self.speech_check = QCheckBox("Ler as respostas em voz alta")
         self.speech_check.setChecked(self.settings.value("speech", True, type=bool))
         layout.addLayout(form)
@@ -1177,7 +1325,7 @@ class DesktopWindow(QMainWindow):
         self.browser_visible_check.setChecked(self.settings.value("browser_visible", True, type=bool))
         form.addRow(self.browser_visible_check)
         self.browser_persist_check = QCheckBox("Manter logins no perfil isolado da Nyx")
-        self.browser_persist_check.setChecked(self.settings.value("browser_persistent", False, type=bool))
+        self.browser_persist_check.setChecked(self.settings.value("browser_persistent", True, type=bool))
         self.browser_persist_check.setToolTip("Ao ativar, autoriza guardar a sessão deste navegador localmente. Entre nas contas você mesmo. Nenhum dado do navegador pessoal é copiado. Desativar deixa de usar o perfil, sem apagar seus dados.")
         form.addRow(self.browser_persist_check)
         self.browser_preferences_note = QLabel("Mudanças valem na próxima abertura. Login é feito por você na janela do navegador.")
@@ -1290,6 +1438,9 @@ class DesktopWindow(QMainWindow):
         self.voice_combo.currentIndexChanged.connect(self._apply_preferences)
         self.speed_slider.valueChanged.connect(self._apply_preferences)
         self.volume_slider.valueChanged.connect(self._apply_preferences)
+        self.capture_check.toggled.connect(self._apply_preferences)
+        from ui.hud.settings import organize_settings
+        organize_settings(self,outer)
 
     def _show_resource_diagnostics(self):
         from ui.resource_diagnostics import ResourceDiagnosticsDialog
@@ -1374,6 +1525,18 @@ class DesktopWindow(QMainWindow):
         theme = self.theme_combo.currentData()
         accent = self.accent_combo.currentData()
         self.setStyleSheet(desktop_stylesheet(theme, accent, self.font_slider.value()))
+        p = hud_palette(theme)
+        for button in self.nav_buttons+[self.private_button]:
+            button.setIcon(hud_icon(button.property('hud_icon'),p['gold' if accent=='gold' else 'teal']))
+        for button,name in ((self.new_button,'plus'),(self.voice_button,'mic'),(self.send_button,'arrow-up'),
+                            (self.emergency_button,'square'),(self.panel_button,'panel-right')):
+            color = p['red'] if button is self.emergency_button else (p['onGold'] if accent=='gold' else p['onTeal']) if button.objectName()=='Primary' else p['text']
+            button.setIcon(hud_icon(name,color))
+        self._native_style = native_window_style(self, theme, self.capture_check.isChecked())
+        self.settings.setValue('exclude_capture',self.capture_check.isChecked())
+        self.capture_check.setToolTip('Exclusão de captura aplicada somente à janela principal; pet preservado.'
+                                     if self._native_style['capture_excluded'] else
+                                     'Exclusão de captura não confirmada neste ambiente. O pet não é alterado.')
         from ui.workspace_window import WorkspaceWindow
         if WorkspaceWindow._instance is not None:
             WorkspaceWindow._instance.setStyleSheet(self.styleSheet())
@@ -1385,6 +1548,9 @@ class DesktopWindow(QMainWindow):
         self.controller.set_motion(self.motion_check.isChecked())
         if not self.motion_check.isChecked():
             self._stop_transition()
+            self._stop_rail_animation()
+            if self._typing_anim is not None:
+                self._typing_anim.stop()
         options = QMainWindow.DockOption.AllowTabbedDocks | QMainWindow.DockOption.AllowNestedDocks
         if self.motion_check.isChecked():
             options |= QMainWindow.DockOption.AnimatedDocks
@@ -1410,6 +1576,9 @@ class DesktopWindow(QMainWindow):
             ("Abrir Estúdio", "", lambda: self._open_center_route("studio")),
             ("Memória e interesses", "", lambda: self._open_center_route("memory")),
             ("Sensores e privacidade", "", lambda: self._open_center_route("privacy")),
+            ('Painel Agora','Ctrl+.',self._toggle_agora),
+            ('Modo Privado: pausar percepção e voz','Ctrl+Shift+P',self.private_button.toggle),
+            ('Parar todas as ações','Esc Esc',self._emergency_stop),
             ("Nova conversa", "Ctrl+N", self.new_chat),
             ("Ir para Conversa", "", lambda: self.set_page(0)),
             ("Ir para Agenda", "", lambda: self.set_page(1)),
@@ -1437,15 +1606,19 @@ class DesktopWindow(QMainWindow):
     def _set_rail(self, enabled: bool) -> None:
         """Collapse the library into an icon rail to give the conversation room."""
         self._rail = bool(enabled)
-        self.brand.setText("✧" if self._rail else "nyx ✧")
+        self.brand.setText('N' if self._rail else 'NYX')
         self.brand_sub.setVisible(not self._rail)
-        self.new_button.setText("+" if self._rail else "+  Nova conversa")
+        self.new_button.setText('' if self._rail else 'Nova conversa')
+        self.new_button.setAccessibleName('Nova conversa')
+        self.new_button.setToolTip('Nova conversa · Ctrl+N')
         self.search.setVisible(not self._rail)
         self.chat_list.setVisible(not self._rail)
         self.remove_button.setVisible(not self._rail)
-        for button, glyph, label in zip(self.nav_buttons, self._nav_glyphs, self._nav_labels, strict=False):
-            button.setText(glyph if self._rail else f"{glyph}  {label}")
-            button.setToolTip(label if self._rail else "")
+        for button, label in zip(self.nav_buttons, self._nav_labels, strict=True):
+            button.setText('' if self._rail else label)
+            button.setToolTip(label)
+        self.private_button.setText('' if self._rail else 'Modo Privado')
+        self._sidebar_layout.setContentsMargins(4 if self._rail else 12,12,4 if self._rail else 12,12)
         if self._rail:
             if self._rail_spacer is None:
                 self._rail_spacer = QSpacerItem(
@@ -1460,7 +1633,7 @@ class DesktopWindow(QMainWindow):
         if body is not None and body.layout() is not None:
             body.layout().invalidate()
             body.layout().activate()
-        target = 78 if self._rail else 245
+        target = 56 if self._rail else 200
         if self.motion_check.isChecked() and self.isVisible():
             self._animate_rail(target)
         else:
@@ -1499,13 +1672,10 @@ class DesktopWindow(QMainWindow):
             self._stop_rail_animation()
 
     def _apply_rail_width(self, width: int, final: bool) -> None:
-        width = max(60, width)
+        width = max(56, width)
         self.sidebar.setMinimumWidth(width)
         self.sidebar.setMaximumWidth(width)
         self.resizeDocks([self.sidebar], [width], Qt.Orientation.Horizontal)
-        if final and not self._rail:
-            self.sidebar.setMinimumWidth(0)
-            self.sidebar.setMaximumWidth(16777215)
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -1522,7 +1692,7 @@ class DesktopWindow(QMainWindow):
             self.companion_dock.show()
             self._companion_auto_hidden = False
         compact = self.width() < 1180
-        self.model_badge.setVisible(not compact)
+        self.model_badge.setVisible(True)
         if hasattr(self, "activity_dock") and not self.focus_button.isChecked():
             if compact and self.activity_dock.isVisible() and not self.activity_dock.isFloating():
                 self.activity_dock.hide()
@@ -1554,8 +1724,7 @@ class DesktopWindow(QMainWindow):
             return
         self.pages.setCurrentIndex(index)
         self.page_title.setText(("Conversa", "Sua agenda", "Do seu jeito", "Aprendizado e recuperação", "Central da Nyx")[index])
-        for i, button in enumerate(self.nav_buttons):
-            button.setChecked(i == index)
+        self._sync_navigation()
         if index == 1:
             self._refresh_reminders()
         elif index == 3:
@@ -1577,6 +1746,14 @@ class DesktopWindow(QMainWindow):
             self._animation = animation
             self._animated_page = page
             animation.start()
+
+    def _sync_navigation(self, *_args):
+        page = self.pages.currentIndex()
+        tab = self.learning_tabs.tabText(self.learning_tabs.currentIndex()).casefold()
+        selected = 0 if page==0 else 5 if page==2 else 1 if page==3 and tab=='tarefas' else 3 if page==3 and 'memória' in tab else 4 if page==3 else -1
+        for index,button in enumerate(self.nav_buttons):
+            if button.isCheckable():
+                button.setChecked(index==selected)
 
     def _stop_transition(self) -> None:
         if self._animation:
@@ -1703,7 +1880,8 @@ class DesktopWindow(QMainWindow):
         animation.setKeyValueAt(0.5, 1.0)
         animation.setKeyValueAt(1.0, 0.45)
         animation.setEasingCurve(QEasingCurve.Type.InOutSine)
-        animation.start()
+        if self.motion_check.isChecked() and self.isVisible():
+            animation.start()
 
         self.feed_layout.insertWidget(self.feed_layout.count() - 1, row)
         self._typing_row = row
@@ -1750,6 +1928,7 @@ class DesktopWindow(QMainWindow):
         self._scroll_to_latest()
 
     def _on_task_progress(self, progress: dict) -> None:
+        self.agora.progress(progress)
         phase = progress["phase"]
         step = progress["step"]
         if phase == "planning":
@@ -1772,6 +1951,11 @@ class DesktopWindow(QMainWindow):
         elif phase == "confirmation":
             self.busy_label.setText(f"Etapa {step} · aguardando sua confirmação")
         elif phase == "observed":
+            runner = getattr(self.controller.loop,'task_runner',None)
+            observation = runner.steps[-1] if runner and runner.steps else None
+            receipt = ActionCard(progress, observation, self.feed)
+            self.feed_layout.insertWidget(self.feed_layout.count()-1,receipt)
+            self._cards.append(receipt)
             state = "Verificado" if progress.get("verified") else "Sem confirmação do resultado"
             if not progress.get("ok"):
                 state = "Falhou"
@@ -1785,6 +1969,7 @@ class DesktopWindow(QMainWindow):
                 self._context.resolve(self._pending_task_events.pop(key))
 
     def _on_processing(self, busy: bool) -> None:
+        self.agora.set_busy(busy)
         if not busy:
             self._refresh_tasks()
             self._refresh_center_tasks()
@@ -1945,8 +2130,11 @@ class DesktopWindow(QMainWindow):
         if hasattr(self, 'resource_profile_combo'):
             self.resource_profile_combo.setEnabled(not self._busy)
         self.model_badge.setText(self._model_name())
+        self.stop_banner.setVisible(self.controller.loop.registry.control.is_cancelled())
+        self.hud_status.update_state(model=self._model_name(), profile=self.resource_profile_combo.currentText(),
+                                     permission=self.controller.loop.mode_name,private=self._private)
         llm = getattr(getattr(self.controller, "loop", None), "llm", None)
-        self.model_badge.setToolTip(getattr(llm, "unavailable_reason", "") or "Modelo executado neste computador.")
+        self.model_badge.setToolTip(getattr(llm, "unavailable_reason", "") or self._model_name())
         if not self.isVisible():
             return
         from core.runtime_budget import INFERENCE_GATE
@@ -1961,6 +2149,13 @@ class DesktopWindow(QMainWindow):
             self.ram_label.setText(f"RAM · {memory.percent:.0f}% usada · {memory.available / 1024 ** 3:.1f} GiB livres")
             self.ram_bar.setValue(int(memory.percent))
             self.queue_label.setText(f"Inferência · {state['active']} ativa · {state['waiting']} aguardando")
+            from core.resource_governor import RESOURCE_GOVERNOR
+            snapshot = RESOURCE_GOVERNOR.telemetry().get('resources') or {}
+            vram = snapshot.get('vram_free_bytes')
+            gpu = f'{vram/1024**3:.1f} GiB VRAM livre' if isinstance(vram,int) else 'VRAM: sem medida recente'
+            self.agora.resources.setText(f'RAM livre {memory.available/1024**3:.1f} GiB\n{gpu}')
+            self.agora.resources.setToolTip('RAM consultada enquanto esta janela está visível. VRAM usa o último dado disponível do motor de inferência.')
+            self.agora.memory.setValue(int(memory.percent))
             if self.pages.currentIndex() == 4:
                 self.control_center.set_resources(cpu=psutil.cpu_percent(interval=None),
                                                    free_gib=memory.available / 1024 ** 3)
@@ -1975,7 +2170,30 @@ class DesktopWindow(QMainWindow):
         if self.pages.currentIndex() == 1:
             self._refresh_reminders()
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        if hasattr(self,'telemetry_timer') and not self._closing:
+            self.telemetry_timer.start()
+            if self.research_check.isChecked():
+                self.research_timer.start()
+            if self.initiative_check.isChecked():
+                self.initiative_timer.start()
+
+    def hideEvent(self, event):
+        for name in ('telemetry_timer','research_timer','initiative_timer'):
+            timer = getattr(self,name,None)
+            if timer is not None:
+                timer.stop()
+        self._stop_transition()
+        self._stop_rail_animation()
+        if self._typing_anim is not None:
+            self._typing_anim.stop()
+        self.toast.hide_toast()
+        super().hideEvent(event)
+
     def closeEvent(self, event) -> None:
+        if self._pending_confirm_card is not None:
+            self._pending_confirm_card.decide(False)
         self._closing = True
         self.controller.cancel_task()
         self.settings.setValue("geometry", self.saveGeometry())

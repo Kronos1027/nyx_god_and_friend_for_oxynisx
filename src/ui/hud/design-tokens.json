@@ -1,0 +1,31 @@
+{
+  "name": "midnight-signal",
+  "note": "Paleta derivada do mascote: azul-marinho do cabelo, vermelho do capuz, dourado do grampo, turquesa do olho. Semântica: dourado = foco/atividade, turquesa = percepção/ok, vermelho = parar/destrutivo.",
+  "themes": {
+    "midnight": {
+      "ink": "#070B1A", "surface1": "#0D1430", "surface2": "#141D45",
+      "line": "#22305F", "lineStrong": "#32457F",
+      "text": "#E8ECFA", "muted": "#8B97C4", "dim": "#6573A8",
+      "gold": "#F2B84B", "teal": "#2ED3C6", "red": "#FF5A6A",
+      "onGold": "#070B1A", "onTeal": "#070B1A", "onRed": "#070B1A"
+    },
+    "daylight": {
+      "ink": "#F4F6FB", "surface1": "#FFFFFF", "surface2": "#EEF1F9",
+      "line": "#D9DFEE", "lineStrong": "#B9C3DD",
+      "text": "#0D1430", "muted": "#4B5784", "dim": "#7C87AD",
+      "gold": "#8A5A00", "teal": "#0B7A72", "red": "#C62339",
+      "onGold": "#FFFFFF", "onTeal": "#FFFFFF", "onRed": "#FFFFFF"
+    }
+  },
+  "alpha": { "soft": 0.15, "hover": 0.08, "scrim": 0.55 },
+  "font": {
+    "ui": ["Inter", "Segoe UI Variable Text", "Segoe UI", "sans-serif"],
+    "mono": ["JetBrains Mono", "Cascadia Mono", "Consolas", "monospace"],
+    "size": { "micro": 11, "small": 12, "body": 14, "title": 16, "display": 22 },
+    "lineHeight": 1.45, "microTracking": 0.06
+  },
+  "space": [0, 4, 8, 12, 16, 24, 32, 48],
+  "radius": { "card": 8, "panel": 12, "chip": 999, "input": 10 },
+  "motion": { "fastMs": 120, "baseMs": 160, "slowMs": 220, "easing": "OutCubic", "pulseHzMax": 1 },
+  "layout": { "railCollapsed": 56, "railExpanded": 200, "agoraWidth": 300, "statusStrip": 36, "minWindow": [960, 640], "defaultWindow": [1180, 760] }
+}
