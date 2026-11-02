@@ -40,7 +40,15 @@ def _protect_profile(path):
 class BrowserProfile:
     def __init__(self, persistent_dir: Path | None = None):
         self.temporary = persistent_dir is None
-        self.path = Path(tempfile.mkdtemp(prefix="nyx-browser-")) if self.temporary else Path(persistent_dir).absolute()
+        self._temporary_root = None
+        if self.temporary:
+            from app_paths import is_frozen, user_data_dir
+            base = user_data_dir() / ('browser_profiles/temporary' if is_frozen() else 'build/browser-profiles')
+            base.mkdir(parents=True, exist_ok=True)
+            self._temporary_root = base.resolve()
+            self.path = Path(tempfile.mkdtemp(prefix='nyx-browser-', dir=base)).absolute()
+        else:
+            self.path = Path(persistent_dir).absolute()
         self._lock = None
         try:
             if _redirected(self.path) or any(_redirected(p) for p in self.path.parents):
@@ -82,5 +90,7 @@ class BrowserProfile:
             # Closing releases the OS lock even after a failed acquisition.
             self._lock.close()
             self._lock = None
-        if self.temporary:
+        if (self.temporary and self._temporary_root is not None and not _redirected(self.path)
+                and self.path.parent.resolve() == self._temporary_root and self.path.resolve() == self.path
+                and self.path.name.startswith('nyx-browser-')):
             shutil.rmtree(self.path, ignore_errors=True)

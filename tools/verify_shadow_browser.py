@@ -8,9 +8,10 @@ import threading
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / 'src'))
+sys.path[:0] = [str(ROOT),str(ROOT/'src')]
 
 from tools.browser_tool import BrowserSession, make_browser_tool_func  # noqa: E402
+from bench.environment import ResourceSampler  # noqa: E402
 
 
 def main():
@@ -29,9 +30,11 @@ def main():
             pass
     server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    session = BrowserSession(timeout=8)
+    session = BrowserSession(headless=True,timeout=8)
     tool = make_browser_tool_func(session)
     report = {'scope': 'production CDP adapter, independent fixture state check, no LLM', 'rows': []}
+    sampler = ResourceSampler()
+    sampler.__enter__()
     try:
         for number in range(1, 4):
             session.open(f'http://127.0.0.1:{server.server_port}/{number}')
@@ -54,6 +57,8 @@ def main():
                                    'observed': observed, 'passed': passed})
         report['passed'] = all(row['passed'] for row in report['rows'])
     finally:
+        sampler.__exit__(None,None,None)
+        report['resources'] = sampler.report()
         session.close()
         server.shutdown()
         server.server_close()

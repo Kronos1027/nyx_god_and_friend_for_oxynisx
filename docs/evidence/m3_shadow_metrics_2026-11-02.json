@@ -1,0 +1,60 @@
+{
+  "scope": "production CDP adapter, independent fixture state check, no LLM",
+  "rows": [
+    {
+      "iteration": 1,
+      "elapsed_s": 0.25,
+      "inspect_ok": true,
+      "type_ok": true,
+      "click_ok": true,
+      "errors": [],
+      "observed": {
+        "text": "Hello Nyx ação 🌙",
+        "external": "preservado",
+        "trustedInput": true,
+        "trustedClick": true
+      },
+      "passed": true
+    },
+    {
+      "iteration": 2,
+      "elapsed_s": 0.297,
+      "inspect_ok": true,
+      "type_ok": true,
+      "click_ok": true,
+      "errors": [],
+      "observed": {
+        "text": "Hello Nyx ação 🌙",
+        "external": "preservado",
+        "trustedInput": true,
+        "trustedClick": true
+      },
+      "passed": true
+    },
+    {
+      "iteration": 3,
+      "elapsed_s": 0.203,
+      "inspect_ok": true,
+      "type_ok": true,
+      "click_ok": true,
+      "errors": [],
+      "observed": {
+        "text": "Hello Nyx ação 🌙",
+        "external": "preservado",
+        "trustedInput": true,
+        "trustedClick": true
+      },
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "resources": {
+    "ram_peak_mib": 924.29296875,
+    "vram_peak_mib": 1268.72265625,
+    "samples": 10,
+    "sampling_interval_s": 0.25,
+    "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+    "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+    "measured_at": 1793589408.783419
+  }
+}

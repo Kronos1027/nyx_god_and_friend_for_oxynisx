@@ -21,7 +21,9 @@ import urllib.request
 from pathlib import Path
 
 from core.operation_control import OperationCancelled
-from tools.browser_locators import ACTIONABLE, RESOLVE, clean_locator
+from tools.browser_accessibility import AccessibilitySnapshot
+from tools.browser_errors import BrowserError
+from tools.browser_locators import ACTIONABLE, FOCUS, RESOLVE, SCOPE, clean_locator
 from tools.browser_profile import BrowserProfile
 
 log = logging.getLogger(__name__)
@@ -42,10 +44,6 @@ _BROWSER_CANDIDATES = (
     "/usr/bin/google-chrome",
     "/usr/bin/chromium",
 )
-
-
-class BrowserError(RuntimeError):
-    """A browser action failed; the message is safe to show to the user."""
 
 
 def find_browser() -> Path | None:
@@ -101,6 +99,7 @@ class BrowserSession:
         self._ws_url = ""
         self._message_id = 0
         self._started = False
+        self.accessibility = AccessibilitySnapshot(self)
 
     # -- lifecycle ---------------------------------------------------------
     @property
@@ -159,6 +158,7 @@ class BrowserSession:
             raise
 
     def close(self) -> None:
+        self.accessibility.invalidate()
         try:
             if self._ws is not None:
                 # Ask the owned browser to flush its profile before fallback termination.
@@ -327,6 +327,7 @@ class BrowserSession:
 
     # -- actions -----------------------------------------------------------
     def open(self, url: str) -> dict:
+        self.accessibility.invalidate()
         target = validate_url(url)
         self.start()
         self._call("Page.enable")
@@ -382,27 +383,33 @@ class BrowserSession:
         info["chars"] = len(text)
         return info
 
-    def inspect_page(self) -> dict:
+    def inspect_page(self, *, shadow=None, frame=None) -> dict:
         """Bounded form/control observations, without passwords or field values."""
-        result = self._evaluate("""(() => {
+        scope = clean_locator({'css':'*', **({'shadow':shadow} if shadow is not None else {}),
+                               **({'frame':frame} if frame is not None else {})})
+        result = self._evaluate(r"""(scope => {
+            const root=SCOPE(scope);
             const visible = e => { const r=e.getBoundingClientRect(); const s=getComputedStyle(e);
                 return r.width>0 && r.height>0 && s.visibility==='visible' && s.display!=='none'; };
             const caption = e => (e.getAttribute('aria-label') ||
+                (e.getAttribute('aria-labelledby') || '').split(/\s+/).map(id=>e.getRootNode().getElementById(id)?.textContent || '').join(' ') ||
                 Array.from(e.labels || []).map(l=>l.textContent).join(' ') || e.innerText ||
                 e.getAttribute('placeholder') || '').trim().slice(0,160);
-            const controls = Array.from(document.querySelectorAll('button,a,input,select,textarea,[role=button]'))
+            const controls = Array.from(root.querySelectorAll('button,a,input,select,textarea,[role=button]'))
                 .filter(visible).slice(0,80).map(e=>({tag:e.tagName.toLowerCase(), type:e.type || '',
                     name:caption(e), disabled:e.matches(':disabled') || e.getAttribute('aria-disabled')==='true',
                     selector:e.id ? '#'+CSS.escape(e.id) : null}));
             return {url:location.href, title:document.title, controls,
-                forms:Array.from(document.forms).slice(0,15).map(f=>({method:f.method,
+                forms:Array.from(root.querySelectorAll('form')).slice(0,15).map(f=>({method:f.method,
                     fields:Array.from(f.elements).slice(0,30).map(e=>({tag:e.tagName.toLowerCase(),
                         type:e.type || '', label:caption(e), required:!!e.required}))})),
                 login_indicators:controls.filter(e=>e.type==='password' ||
                     /^(log in|login|sign in|entrar|iniciar sess[aã]o)$/i.test(e.name)).map(e=>({type:e.type,name:e.name}))};
-        })()""")
+        })""".replace('SCOPE(scope)',SCOPE+'(scope)')+'('+json.dumps(scope)+')')
         if not isinstance(result, dict):
             raise BrowserError("Não consegui inspecionar a página.")
+        if shadow is None and frame is None:
+            result = {**self.accessibility.capture(), **result}
         return result
 
     def media_status(self) -> dict:
@@ -437,11 +444,13 @@ class BrowserSession:
             locator = clean_locator(selector)
         except ValueError as exc:
             raise BrowserError(str(exc)) from exc
+        if 'ref' in locator:
+            return self.accessibility.resolve(locator)
         result = self._call("Runtime.evaluate", {"expression": RESOLVE + "(" + json.dumps(locator) + ")",
                                                  "returnByValue": False})
         if result.get("exceptionDetails"):
             detail = result["exceptionDetails"].get("exception", {}).get("description", "Alvo indisponível.")
-            raise BrowserError(str(detail).split("\n")[0])
+            raise self._script_error(detail)
         object_id = result.get("result", {}).get("objectId")
         if not object_id:
             raise BrowserError("Não foi possível confirmar o alvo.")
@@ -452,8 +461,15 @@ class BrowserSession:
             "functionDeclaration": function, "arguments": [{"value": v} for v in args], "returnByValue": True})
         if result.get("exceptionDetails"):
             detail = result["exceptionDetails"].get("exception", {}).get("description", "Alvo indisponível.")
-            raise BrowserError(str(detail).split("\n")[0])
+            raise self._script_error(detail)
         return result.get("result", {}).get("value")
+
+    @staticmethod
+    def _script_error(detail):
+        message = str(detail).split('\n')[0]
+        code = next((code for code in ('NOT_FOUND','AMBIGUOUS','PERMISSION','ELEMENT_STALE','TIMEOUT')
+                     if code+':' in message), 'UNVERIFIED')
+        return BrowserError(message, code)
 
     def _target_point(self, object_id, editable=False):
         first = self._on_element(object_id, ACTIONABLE, editable)
@@ -489,7 +505,7 @@ class BrowserSession:
         object_id = self._resolve(selector)
         try:
             self._target_point(object_id, editable=True)
-            focused = self._on_element(object_id, "function() { this.focus(); return document.activeElement === this; }")
+            focused = self._on_element(object_id, FOCUS)
             if not focused:
                 raise BrowserError("O campo não recebeu foco.")
             self._call("Input.dispatchKeyEvent", {"type": "keyDown", "modifiers": 2, "key": "a", "code": "KeyA", "windowsVirtualKeyCode": 65})
@@ -853,7 +869,8 @@ def make_browser_tool_func(session: BrowserSession, allowed_roots: list[Path] | 
                 info = session.status()
                 return ToolResult(True, json.dumps(info, ensure_ascii=False), meta={"action": "status"})
             if action == "inspect":
-                info = session.inspect_page()
+                scope = {key:params[key] for key in ('shadow','frame') if key in params}
+                info = session.inspect_page(**scope)
                 return ToolResult(True, json.dumps(info, ensure_ascii=False), meta={"action": action})
             if action == "media_status":
                 info = session.media_status()
@@ -902,7 +919,8 @@ def make_browser_tool_func(session: BrowserSession, allowed_roots: list[Path] | 
                 return ToolResult(True, "Navegador encerrado.", meta={"action": "close"})
             return ToolResult(False, error=f"Ação de navegador desconhecida: {action!r}")
         except (BrowserError, OperationCancelled) as exc:
-            return ToolResult(False, error=str(exc), meta={"action": action})
+            return ToolResult(False, error=str(exc), meta={"action": action,
+                'error_code':getattr(exc,'code','UNVERIFIED'), 'suggestions':getattr(exc,'suggestions',[])})
         except (OSError, ValueError) as exc:
             return ToolResult(False, error=f"Falha no navegador: {exc}", meta={"action": action})
 
