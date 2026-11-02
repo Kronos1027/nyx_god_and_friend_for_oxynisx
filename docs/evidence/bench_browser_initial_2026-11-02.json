@@ -1,0 +1,1713 @@
+{
+  "schema_version": 1,
+  "scope": "production TaskRunner with independent verifiers; personal UI not operated",
+  "model": "qwen3.5:4b",
+  "profile": "normal",
+  "runs": 3,
+  "milestone_complete": false,
+  "environment": {
+    "windows": true,
+    "foreground_available": true,
+    "clipboard_accessible": true,
+    "clipboard_error_code": 0,
+    "interactive_probe_passed": true
+  },
+  "manifest": [
+    {
+      "id": "browser-01",
+      "category": "browser",
+      "prompt": "Abra a URL de teste",
+      "setup": "owned_http_fixture_per_case_run",
+      "verifier": "independent_raw_cdp_http_and_file_bytes",
+      "timeout_s": 120,
+      "risk": "R0-R2",
+      "route": "browser_ui",
+      "target": ""
+    },
+    {
+      "id": "browser-02",
+      "category": "browser",
+      "prompt": "Pesquise e abra o segundo resultado",
+      "setup": "owned_http_fixture_per_case_run",
+      "verifier": "independent_raw_cdp_http_and_file_bytes",
+      "timeout_s": 120,
+      "risk": "R0-R2",
+      "route": "browser_ui",
+      "target": ""
+    },
+    {
+      "id": "browser-03",
+      "category": "browser",
+      "prompt": "Leia a tabela da página",
+      "setup": "owned_http_fixture_per_case_run",
+      "verifier": "independent_raw_cdp_http_and_file_bytes",
+      "timeout_s": 120,
+      "risk": "R0-R2",
+      "route": "browser_ui",
+      "target": ""
+    },
+    {
+      "id": "browser-04",
+      "category": "browser",
+      "prompt": "Preencha o formulário local",
+      "setup": "owned_http_fixture_per_case_run",
+      "verifier": "independent_raw_cdp_http_and_file_bytes",
+      "timeout_s": 120,
+      "risk": "R0-R2",
+      "route": "browser_ui",
+      "target": ""
+    },
+    {
+      "id": "browser-05",
+      "category": "browser",
+      "prompt": "Preencha o campo no iframe",
+      "setup": "owned_http_fixture_per_case_run",
+      "verifier": "independent_raw_cdp_http_and_file_bytes",
+      "timeout_s": 120,
+      "risk": "R0-R2",
+      "route": "browser_ui",
+      "target": ""
+    },
+    {
+      "id": "browser-06",
+      "category": "browser",
+      "prompt": "Preencha o componente Shadow DOM",
+      "setup": "owned_http_fixture_per_case_run",
+      "verifier": "independent_raw_cdp_http_and_file_bytes",
+      "timeout_s": 120,
+      "risk": "R0-R2",
+      "route": "browser_ui",
+      "target": ""
+    },
+    {
+      "id": "browser-07",
+      "category": "browser",
+      "prompt": "Troque de aba",
+      "setup": "owned_http_fixture_per_case_run",
+      "verifier": "independent_raw_cdp_http_and_file_bytes",
+      "timeout_s": 120,
+      "risk": "R0-R2",
+      "route": "browser_ui",
+      "target": ""
+    },
+    {
+      "id": "browser-08",
+      "category": "browser",
+      "prompt": "Baixe o arquivo para a pasta permitida",
+      "setup": "owned_http_fixture_per_case_run",
+      "verifier": "independent_raw_cdp_http_and_file_bytes",
+      "timeout_s": 120,
+      "risk": "R0-R2",
+      "route": "browser_ui",
+      "target": ""
+    },
+    {
+      "id": "browser-09",
+      "category": "browser",
+      "prompt": "Reproduza e pause a mídia de teste",
+      "setup": "owned_http_fixture_per_case_run",
+      "verifier": "independent_raw_cdp_http_and_file_bytes",
+      "timeout_s": 120,
+      "risk": "R0-R2",
+      "route": "browser_ui",
+      "target": ""
+    },
+    {
+      "id": "browser-10",
+      "category": "browser",
+      "prompt": "Confira que a sessão persiste após reiniciar o navegador",
+      "setup": "owned_http_fixture_per_case_run",
+      "verifier": "independent_raw_cdp_http_and_file_bytes",
+      "timeout_s": 120,
+      "risk": "R0-R2",
+      "route": "browser_ui",
+      "target": ""
+    }
+  ],
+  "rows": [
+    {
+      "id": "browser-01",
+      "category": "browser",
+      "run": 1,
+      "ok": true,
+      "status": "PASS",
+      "false_success": false,
+      "elapsed_s": 8.453,
+      "verifier": {
+        "ok": true,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {},
+        "observed_pages": 1
+      },
+      "workflow_state": "finished",
+      "actions": 2,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": null,
+      "response": "O código da página é 4138. Pedido concluído.",
+      "prompt": "Abra <FIXTURE>/ e informe o código da página.",
+      "resources": {
+        "ram_peak_mib": 2460.74609375,
+        "vram_peak_mib": 4951.49609375,
+        "samples": 33,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628496.830066
+      },
+      "trace_path": "logs/traces/4f3c7cbbe74445e3a56bb3ba6f8eabb1.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 8.453,
+      "verificador": {
+        "ok": true,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {},
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": null,
+      "ram_pico_mib": 2460.74609375,
+      "vram_pico_mib": 4951.49609375
+    },
+    {
+      "id": "browser-01",
+      "category": "browser",
+      "run": 2,
+      "ok": true,
+      "status": "PASS",
+      "false_success": false,
+      "elapsed_s": 8.282,
+      "verifier": {
+        "ok": true,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {},
+        "observed_pages": 1
+      },
+      "workflow_state": "finished",
+      "actions": 2,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": null,
+      "response": "O código da página é 4175. O pedido foi concluído.",
+      "prompt": "Abra <FIXTURE>/ e informe o código da página.",
+      "resources": {
+        "ram_peak_mib": 4422.66796875,
+        "vram_peak_mib": 5021.90625,
+        "samples": 33,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628755.298458
+      },
+      "trace_path": "logs/traces/64c435d2beeb444e9576af437b22fa9e.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 8.282,
+      "verificador": {
+        "ok": true,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {},
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": null,
+      "ram_pico_mib": 4422.66796875,
+      "vram_pico_mib": 5021.90625
+    },
+    {
+      "id": "browser-01",
+      "category": "browser",
+      "run": 3,
+      "ok": true,
+      "status": "PASS",
+      "false_success": false,
+      "elapsed_s": 9.453,
+      "verifier": {
+        "ok": true,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {},
+        "observed_pages": 1
+      },
+      "workflow_state": "finished",
+      "actions": 2,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": null,
+      "response": "Página acessada e código 4212 confirmado. Pedido concluído.",
+      "prompt": "Abra <FIXTURE>/ e informe o código da página.",
+      "resources": {
+        "ram_peak_mib": 5498.8359375,
+        "vram_peak_mib": 5027.6171875,
+        "samples": 37,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628964.961756
+      },
+      "trace_path": "logs/traces/14a1e2f780b2484bac5e38bad0217fa7.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 9.453,
+      "verificador": {
+        "ok": true,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {},
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": null,
+      "ram_pico_mib": 5498.8359375,
+      "vram_pico_mib": 5027.6171875
+    },
+    {
+      "id": "browser-02",
+      "category": "browser",
+      "run": 1,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 19.531,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "search_request_observed": false,
+          "second_result_observed": false
+        },
+        "observed_pages": 1
+      },
+      "workflow_state": "stopped",
+      "actions": 4,
+      "confirmations_approved": 1,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "A mesma ação foi proposta novamente. Interrompi a repetição após duas tentativas de replanejamento.",
+      "prompt": "Na página <FIXTURE>/ pesquise Nyx no formulário, abra o segundo resultado e informe seu código.",
+      "resources": {
+        "ram_peak_mib": 2681.37109375,
+        "vram_peak_mib": 5017.8203125,
+        "samples": 75,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628517.0795434
+      },
+      "trace_path": "logs/traces/c45b88bd4f674a4289bdd06aedcf6326.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 19.531,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "search_request_observed": false,
+          "second_result_observed": false
+        },
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 2681.37109375,
+      "vram_pico_mib": 5017.8203125
+    },
+    {
+      "id": "browser-02",
+      "category": "browser",
+      "run": 2,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 20.344,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "search_request_observed": false,
+          "second_result_observed": false
+        },
+        "observed_pages": 1
+      },
+      "workflow_state": "stopped",
+      "actions": 4,
+      "confirmations_approved": 1,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "A mesma ação foi proposta novamente. Interrompi a repetição após duas tentativas de replanejamento.",
+      "prompt": "Na página <FIXTURE>/ pesquise Nyx no formulário, abra o segundo resultado e informe seu código.",
+      "resources": {
+        "ram_peak_mib": 4508.05078125,
+        "vram_peak_mib": 5023.56640625,
+        "samples": 78,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628776.2090118
+      },
+      "trace_path": "logs/traces/8e86dc43175748228533a59925cdc39f.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 20.344,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "search_request_observed": false,
+          "second_result_observed": false
+        },
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 4508.05078125,
+      "vram_pico_mib": 5023.56640625
+    },
+    {
+      "id": "browser-02",
+      "category": "browser",
+      "run": 3,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 21.328,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "search_request_observed": false,
+          "second_result_observed": false
+        },
+        "observed_pages": 1
+      },
+      "workflow_state": "stopped",
+      "actions": 4,
+      "confirmations_approved": 1,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "A mesma ação foi proposta novamente. Interrompi a repetição após duas tentativas de replanejamento.",
+      "prompt": "Na página <FIXTURE>/ pesquise Nyx no formulário, abra o segundo resultado e informe seu código.",
+      "resources": {
+        "ram_peak_mib": 5577.078125,
+        "vram_peak_mib": 5020.59375,
+        "samples": 82,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628987.3250535
+      },
+      "trace_path": "logs/traces/fa872075aa6642b4af846f9eaa24941d.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 21.328,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "search_request_observed": false,
+          "second_result_observed": false
+        },
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 5577.078125,
+      "vram_pico_mib": 5020.59375
+    },
+    {
+      "id": "browser-03",
+      "category": "browser",
+      "run": 1,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 43.297,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "table_exact": false,
+          "answer_values_present": false
+        },
+        "observed_pages": 0
+      },
+      "workflow_state": "finished",
+      "actions": 9,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "Não foi possível ler a tabela. O navegador carregou, mas não foram obtidos dados visíveis ou confirmados para os itens e quantidades solicitados. Encerro o processo.\nHá etapas sem sucesso ou sem verificação; consulte o painel de atividade.",
+      "prompt": "Leia a tabela de <FIXTURE>/ e informe os dois itens e suas quantidades exatas.",
+      "resources": {
+        "ram_peak_mib": 2764.421875,
+        "vram_peak_mib": 5011.7734375,
+        "samples": 165,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628560.8565314
+      },
+      "trace_path": "logs/traces/c309d7a374014feb9f84ec4b1673a099.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 43.297,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "table_exact": false,
+          "answer_values_present": false
+        },
+        "observed_pages": 0
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 2764.421875,
+      "vram_pico_mib": 5011.7734375
+    },
+    {
+      "id": "browser-03",
+      "category": "browser",
+      "run": 2,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 40.813,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "table_exact": false,
+          "answer_values_present": false
+        },
+        "observed_pages": 0
+      },
+      "workflow_state": "finished",
+      "actions": 5,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "Não consegui acessar a tabela de <FIXTURE>/. As tentativas de leitura e espera falharam sem retornar dados. Como não há progresso verificado, não posso informar os itens e quantidades solicitados.\nHá etapas sem sucesso ou sem verificação; consulte o painel de atividade.",
+      "prompt": "Leia a tabela de <FIXTURE>/ e informe os dois itens e suas quantidades exatas.",
+      "resources": {
+        "ram_peak_mib": 4542.3203125,
+        "vram_peak_mib": 5018.40625,
+        "samples": 155,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628817.7640543
+      },
+      "trace_path": "logs/traces/91b05de9bd2c42ad91cb19ba72da573c.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 40.813,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "table_exact": false,
+          "answer_values_present": false
+        },
+        "observed_pages": 0
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 4542.3203125,
+      "vram_pico_mib": 5018.40625
+    },
+    {
+      "id": "browser-03",
+      "category": "browser",
+      "run": 3,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 41.672,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "table_exact": false,
+          "answer_values_present": false
+        },
+        "observed_pages": 0
+      },
+      "workflow_state": "finished",
+      "actions": 8,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "Não foi possível ler uma tabela no endereço solicitado após várias tentativas. O navegador não retornou dados estruturados ou o conteúdo pode não ser acessível como texto. Por favor, verifique se o serviço está rodando e se os dados estão disponíveis em formato HTML.\nHá etapas sem sucesso ou sem verificação; consulte o painel de atividade.",
+      "prompt": "Leia a tabela de <FIXTURE>/ e informe os dois itens e suas quantidades exatas.",
+      "resources": {
+        "ram_peak_mib": 5829.03125,
+        "vram_peak_mib": 5020.4765625,
+        "samples": 159,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793629029.6654441
+      },
+      "trace_path": "logs/traces/dcedeb6d7ea141e0922db6990d1c5881.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 41.672,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "table_exact": false,
+          "answer_values_present": false
+        },
+        "observed_pages": 0
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 5829.03125,
+      "vram_pico_mib": 5020.4765625
+    },
+    {
+      "id": "browser-04",
+      "category": "browser",
+      "run": 1,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 28.375,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "trusted_submission": false,
+          "server_events": 0
+        },
+        "observed_pages": 1
+      },
+      "workflow_state": "stopped",
+      "actions": 7,
+      "confirmations_approved": 4,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "A mesma ação foi proposta novamente. Interrompi a repetição após duas tentativas de replanejamento.",
+      "prompt": "Abra <FIXTURE>/, preencha Nome com Nyx ação 1 e Mensagem com Olá mundo, e salve o cadastro local pelo botão.",
+      "resources": {
+        "ram_peak_mib": 3134.94921875,
+        "vram_peak_mib": 5018.5390625,
+        "samples": 108,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628589.8715804
+      },
+      "trace_path": "logs/traces/b56618face2549b1be10822cd20b945e.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 28.375,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "trusted_submission": false,
+          "server_events": 0
+        },
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 3134.94921875,
+      "vram_pico_mib": 5018.5390625
+    },
+    {
+      "id": "browser-04",
+      "category": "browser",
+      "run": 2,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 39.547,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "trusted_submission": false,
+          "server_events": 0
+        },
+        "observed_pages": 1
+      },
+      "workflow_state": "stopped",
+      "actions": 12,
+      "confirmations_approved": 4,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "Sem progresso verificado suficiente para continuar automaticamente. 12 ações registradas; confira as pendências.",
+      "prompt": "Abra <FIXTURE>/, preencha Nome com Nyx ação 2 e Mensagem com Olá mundo, e salve o cadastro local pelo botão.",
+      "resources": {
+        "ram_peak_mib": 4630.2265625,
+        "vram_peak_mib": 5022.9453125,
+        "samples": 150,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628858.2350214
+      },
+      "trace_path": "logs/traces/76cb4b0aad5947d2aa144ef5681bd5d2.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 39.547,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "trusted_submission": false,
+          "server_events": 0
+        },
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 4630.2265625,
+      "vram_pico_mib": 5022.9453125
+    },
+    {
+      "id": "browser-04",
+      "category": "browser",
+      "run": 3,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 30.719,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "trusted_submission": false,
+          "server_events": 0
+        },
+        "observed_pages": 1
+      },
+      "workflow_state": "stopped",
+      "actions": 7,
+      "confirmations_approved": 3,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "A mesma ação foi proposta novamente. Interrompi a repetição após duas tentativas de replanejamento.",
+      "prompt": "Abra <FIXTURE>/, preencha Nome com Nyx ação 3 e Mensagem com Olá mundo, e salve o cadastro local pelo botão.",
+      "resources": {
+        "ram_peak_mib": 6133.69921875,
+        "vram_peak_mib": 5038.97265625,
+        "samples": 117,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793629061.2084868
+      },
+      "trace_path": "logs/traces/1f876c89fad144b89f6a05c67732bb01.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 30.719,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "trusted_submission": false,
+          "server_events": 0
+        },
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 6133.69921875,
+      "vram_pico_mib": 5038.97265625
+    },
+    {
+      "id": "browser-05",
+      "category": "browser",
+      "run": 1,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 74.406,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "field_exact": false,
+          "trusted_input": false
+        },
+        "observed_pages": 1
+      },
+      "workflow_state": "stopped",
+      "actions": 11,
+      "confirmations_approved": 1,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "A mesma ação foi proposta novamente. Interrompi a repetição após duas tentativas de replanejamento.",
+      "prompt": "Abra <FIXTURE>/ e preencha o campo Destino iframe, dentro do quadro Cadastro, com Nyx ação 1.",
+      "resources": {
+        "ram_peak_mib": 4661.4609375,
+        "vram_peak_mib": 5017.4296875,
+        "samples": 282,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628665.0719757
+      },
+      "trace_path": "logs/traces/028bbf01dc624e6bb48afbc6d3e263e9.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 74.406,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "field_exact": false,
+          "trusted_input": false
+        },
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 4661.4609375,
+      "vram_pico_mib": 5017.4296875
+    },
+    {
+      "id": "browser-05",
+      "category": "browser",
+      "run": 2,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 21.953,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "field_exact": false,
+          "trusted_input": false
+        },
+        "observed_pages": 1
+      },
+      "workflow_state": "finished",
+      "actions": 6,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "O iframe de cadastro não apresenta campos para preenchimento. O pedido não pode ser concluído.",
+      "prompt": "Abra <FIXTURE>/ e preencha o campo Destino iframe, dentro do quadro Cadastro, com Nyx ação 2.",
+      "resources": {
+        "ram_peak_mib": 5361.59375,
+        "vram_peak_mib": 5026.11328125,
+        "samples": 84,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628880.7075455
+      },
+      "trace_path": "logs/traces/e5d82098740d430b9f75b5a9b51db09c.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 21.953,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "field_exact": false,
+          "trusted_input": false
+        },
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 5361.59375,
+      "vram_pico_mib": 5026.11328125
+    },
+    {
+      "id": "browser-05",
+      "category": "browser",
+      "run": 3,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 31.578,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "field_exact": false,
+          "trusted_input": false
+        },
+        "observed_pages": 1
+      },
+      "workflow_state": "stopped",
+      "actions": 8,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": "RESOURCE_PRESSURE",
+      "response": "Não consegui continuar o pedido: Falha no runtime local: RAM livre abaixo de 1 GiB (0.80 GiB livres); Nenhuma geração foi enviada. Consulte Personalizar → Modelo local → Diagnosticar memória para ver o consumo e escolher o que liberar.",
+      "prompt": "Abra <FIXTURE>/ e preencha o campo Destino iframe, dentro do quadro Cadastro, com Nyx ação 3.",
+      "resources": {
+        "ram_peak_mib": 6726.5234375,
+        "vram_peak_mib": 5030.4765625,
+        "samples": 120,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793629093.3429997
+      },
+      "trace_path": "logs/traces/85540050f07c48fbbe279aabe86a1214.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 31.578,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "field_exact": false,
+          "trusted_input": false
+        },
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "RESOURCE_PRESSURE",
+      "ram_pico_mib": 6726.5234375,
+      "vram_pico_mib": 5030.4765625
+    },
+    {
+      "id": "browser-06",
+      "category": "browser",
+      "run": 1,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 32.015,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "field_exact": false,
+          "trusted_input": false
+        },
+        "observed_pages": 1
+      },
+      "workflow_state": "stopped",
+      "actions": 8,
+      "confirmations_approved": 4,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "A mesma ação foi proposta novamente. Interrompi a repetição após duas tentativas de replanejamento.",
+      "prompt": "Abra <FIXTURE>/ e preencha o campo Nome da sombra do componente com Nyx ação 1.",
+      "resources": {
+        "ram_peak_mib": 4910.6328125,
+        "vram_peak_mib": 5054.8828125,
+        "samples": 122,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628697.9316542
+      },
+      "trace_path": "logs/traces/45daa54c3af94880b35b0548fefb5c28.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 32.015,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "field_exact": false,
+          "trusted_input": false
+        },
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 4910.6328125,
+      "vram_pico_mib": 5054.8828125
+    },
+    {
+      "id": "browser-06",
+      "category": "browser",
+      "run": 2,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 24.578,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "field_exact": false,
+          "trusted_input": false
+        },
+        "observed_pages": 1
+      },
+      "workflow_state": "stopped",
+      "actions": 6,
+      "confirmations_approved": 3,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "A mesma ação foi proposta novamente. Interrompi a repetição após duas tentativas de replanejamento.",
+      "prompt": "Abra <FIXTURE>/ e preencha o campo Nome da sombra do componente com Nyx ação 2.",
+      "resources": {
+        "ram_peak_mib": 5708.875,
+        "vram_peak_mib": 5025.34375,
+        "samples": 94,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628905.9500544
+      },
+      "trace_path": "logs/traces/1ec3e4ddc148417189aea597042afcd6.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 24.578,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "field_exact": false,
+          "trusted_input": false
+        },
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 5708.875,
+      "vram_pico_mib": 5025.34375
+    },
+    {
+      "id": "browser-06",
+      "category": "browser",
+      "run": 3,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 0.687,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "field_exact": false,
+          "trusted_input": false
+        },
+        "observed_pages": 0
+      },
+      "workflow_state": "stopped",
+      "actions": 0,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": "RESOURCE_PRESSURE",
+      "response": "Não consegui continuar o pedido: Falha no runtime local: RAM livre abaixo de 1 GiB (0.97 GiB livres); Nenhuma geração foi enviada. Consulte Personalizar → Modelo local → Diagnosticar memória para ver o consumo e escolher o que liberar.",
+      "prompt": "Abra <FIXTURE>/ e preencha o campo Nome da sombra do componente com Nyx ação 3.",
+      "resources": {
+        "ram_peak_mib": 6715.03515625,
+        "vram_peak_mib": 4910.40234375,
+        "samples": 4,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793629094.711309
+      },
+      "trace_path": "logs/traces/a1284f53b33b4163b7b2468847d00817.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 0.687,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "field_exact": false,
+          "trusted_input": false
+        },
+        "observed_pages": 0
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "RESOURCE_PRESSURE",
+      "ram_pico_mib": 6715.03515625,
+      "vram_pico_mib": 4910.40234375
+    },
+    {
+      "id": "browser-07",
+      "category": "browser",
+      "run": 1,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 22.812,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "origin_tab_visible": false
+        },
+        "observed_pages": 2
+      },
+      "workflow_state": "stopped",
+      "actions": 5,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "A mesma ação foi proposta novamente. Interrompi a repetição após duas tentativas de replanejamento.",
+      "prompt": "Troque para a aba Origem Nyx já aberta e informe seu código. Não crie outra aba.",
+      "resources": {
+        "ram_peak_mib": 5452.16796875,
+        "vram_peak_mib": 5057.41015625,
+        "samples": 87,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628722.3889747
+      },
+      "trace_path": "logs/traces/41b179ffe87547ccb0fc4726200e30da.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 22.812,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "origin_tab_visible": false
+        },
+        "observed_pages": 2
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 5452.16796875,
+      "vram_pico_mib": 5057.41015625
+    },
+    {
+      "id": "browser-07",
+      "category": "browser",
+      "run": 2,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 3.172,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "origin_tab_visible": false
+        },
+        "observed_pages": 2
+      },
+      "workflow_state": "stopped",
+      "actions": 0,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "Não consegui continuar o pedido: BLOCKED_POLICY: ensaio limitado à fixture e ao arquivo escolhido.\nA operação browser começou, mas seu resultado não foi confirmado. Confira o estado antes de repetir.",
+      "prompt": "Troque para a aba Origem Nyx já aberta e informe seu código. Não crie outra aba.",
+      "resources": {
+        "ram_peak_mib": 6097.8515625,
+        "vram_peak_mib": 5019.96875,
+        "samples": 13,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628910.5270252
+      },
+      "trace_path": "logs/traces/eb4cadc1d84f4619a229366d6315037d.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 3.172,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "origin_tab_visible": false
+        },
+        "observed_pages": 2
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 6097.8515625,
+      "vram_pico_mib": 5019.96875
+    },
+    {
+      "id": "browser-07",
+      "category": "browser",
+      "run": 3,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 0.156,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "origin_tab_visible": false
+        },
+        "observed_pages": 2
+      },
+      "workflow_state": "stopped",
+      "actions": 0,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": "RESOURCE_PRESSURE",
+      "response": "Não consegui continuar o pedido: RAM livre abaixo de 1 GiB (0.66 GiB livres); Nenhuma geração foi enviada. Consulte Personalizar → Modelo local → Diagnosticar memória para ver o consumo e escolher o que liberar.",
+      "prompt": "Troque para a aba Origem Nyx já aberta e informe seu código. Não crie outra aba.",
+      "resources": {
+        "ram_peak_mib": 7022.12109375,
+        "vram_peak_mib": 5028.26171875,
+        "samples": 2,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793629096.74005
+      },
+      "trace_path": "logs/traces/05d40948067c4c009337c2396c09bb8d.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 0.156,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "origin_tab_visible": false
+        },
+        "observed_pages": 2
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "RESOURCE_PRESSURE",
+      "ram_pico_mib": 7022.12109375,
+      "vram_pico_mib": 5028.26171875
+    },
+    {
+      "id": "browser-08",
+      "category": "browser",
+      "run": 1,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 3.625,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "file_exact": false,
+          "bytes": 0,
+          "sha256_matches": false
+        },
+        "observed_pages": 0
+      },
+      "workflow_state": "stopped",
+      "actions": 0,
+      "confirmations_approved": 0,
+      "confirmations_denied": 1,
+      "error_code": "UNVERIFIED",
+      "response": "Ação recusada. As etapas anteriores permanecem registradas.",
+      "prompt": "Abra <FIXTURE>/ e baixe o arquivo do link para <WORK>\\download.txt. Não execute o arquivo.",
+      "resources": {
+        "ram_peak_mib": 4037.36328125,
+        "vram_peak_mib": 4973.73828125,
+        "samples": 15,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628726.761236
+      },
+      "trace_path": "logs/traces/298eab7b7b5145a3ba44abc91c27b1b8.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 3.625,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "file_exact": false,
+          "bytes": 0,
+          "sha256_matches": false
+        },
+        "observed_pages": 0
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 4037.36328125,
+      "vram_pico_mib": 4973.73828125
+    },
+    {
+      "id": "browser-08",
+      "category": "browser",
+      "run": 2,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 3.406,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "file_exact": false,
+          "bytes": 0,
+          "sha256_matches": false
+        },
+        "observed_pages": 0
+      },
+      "workflow_state": "stopped",
+      "actions": 0,
+      "confirmations_approved": 0,
+      "confirmations_denied": 1,
+      "error_code": "UNVERIFIED",
+      "response": "Ação recusada. As etapas anteriores permanecem registradas.",
+      "prompt": "Abra <FIXTURE>/ e baixe o arquivo do link para <WORK>\\download.txt. Não execute o arquivo.",
+      "resources": {
+        "ram_peak_mib": 4841.55078125,
+        "vram_peak_mib": 4976.23828125,
+        "samples": 14,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628914.4958625
+      },
+      "trace_path": "logs/traces/a0649e19fe014381b3c0c1b064d43a43.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 3.406,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "file_exact": false,
+          "bytes": 0,
+          "sha256_matches": false
+        },
+        "observed_pages": 0
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 4841.55078125,
+      "vram_pico_mib": 4976.23828125
+    },
+    {
+      "id": "browser-08",
+      "category": "browser",
+      "run": 3,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 0.063,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "file_exact": false,
+          "bytes": 0,
+          "sha256_matches": false
+        },
+        "observed_pages": 0
+      },
+      "workflow_state": "stopped",
+      "actions": 0,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": "RESOURCE_PRESSURE",
+      "response": "Não consegui continuar o pedido: RAM livre abaixo de 1 GiB (0.91 GiB livres); Nenhuma geração foi enviada. Consulte Personalizar → Modelo local → Diagnosticar memória para ver o consumo e escolher o que liberar.",
+      "prompt": "Abra <FIXTURE>/ e baixe o arquivo do link para <WORK>\\download.txt. Não execute o arquivo.",
+      "resources": {
+        "ram_peak_mib": 6204.94140625,
+        "vram_peak_mib": 4910.40234375,
+        "samples": 2,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793629097.320085
+      },
+      "trace_path": "logs/traces/be757847c34544deb116a21897ce3b00.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 0.063,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "file_exact": false,
+          "bytes": 0,
+          "sha256_matches": false
+        },
+        "observed_pages": 0
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "RESOURCE_PRESSURE",
+      "ram_pico_mib": 6204.94140625,
+      "vram_pico_mib": 4910.40234375
+    },
+    {
+      "id": "browser-09",
+      "category": "browser",
+      "run": 1,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 8.844,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "time_advanced_independently": false,
+          "finally_paused": false,
+          "samples": 15
+        },
+        "observed_pages": 1
+      },
+      "workflow_state": "finished",
+      "actions": 2,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "A mídia está pausada no início. Estado final: áudio pausado, volume 0.01.\nHá etapas sem sucesso ou sem verificação; consulte o painel de atividade.",
+      "prompt": "Abra <FIXTURE>/, reproduza a mídia de teste, confira que está tocando e depois pause. Informe o estado final observado.",
+      "resources": {
+        "ram_peak_mib": 4773.2578125,
+        "vram_peak_mib": 5023.671875,
+        "samples": 35,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628736.300261
+      },
+      "trace_path": "logs/traces/353b914300ab4cf2bec30aa70fc2a5aa.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 8.844,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "time_advanced_independently": false,
+          "finally_paused": false,
+          "samples": 15
+        },
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 4773.2578125,
+      "vram_pico_mib": 5023.671875
+    },
+    {
+      "id": "browser-09",
+      "category": "browser",
+      "run": 2,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 29.562,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "time_advanced_independently": false,
+          "finally_paused": false,
+          "samples": 74
+        },
+        "observed_pages": 1
+      },
+      "workflow_state": "finished",
+      "actions": 8,
+      "confirmations_approved": 4,
+      "confirmations_denied": 0,
+      "error_code": "UNVERIFIED",
+      "response": "A mídia está pausada. O estado final é: pausado.\nHá etapas sem sucesso ou sem verificação; consulte o painel de atividade.",
+      "prompt": "Abra <FIXTURE>/, reproduza a mídia de teste, confira que está tocando e depois pause. Informe o estado final observado.",
+      "resources": {
+        "ram_peak_mib": 5955.4140625,
+        "vram_peak_mib": 5042.42578125,
+        "samples": 113,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628944.4564435
+      },
+      "trace_path": "logs/traces/521fec272ce0423db1a9b35c77f0603d.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 29.562,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "time_advanced_independently": false,
+          "finally_paused": false,
+          "samples": 74
+        },
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "UNVERIFIED",
+      "ram_pico_mib": 5955.4140625,
+      "vram_pico_mib": 5042.42578125
+    },
+    {
+      "id": "browser-09",
+      "category": "browser",
+      "run": 3,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 0.063,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "time_advanced_independently": false,
+          "finally_paused": false,
+          "samples": 0
+        },
+        "observed_pages": 0
+      },
+      "workflow_state": "stopped",
+      "actions": 0,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": "RESOURCE_PRESSURE",
+      "response": "Não consegui continuar o pedido: RAM livre abaixo de 1 GiB (0.87 GiB livres); Nenhuma geração foi enviada. Consulte Personalizar → Modelo local → Diagnosticar memória para ver o consumo e escolher o que liberar.",
+      "prompt": "Abra <FIXTURE>/, reproduza a mídia de teste, confira que está tocando e depois pause. Informe o estado final observado.",
+      "resources": {
+        "ram_peak_mib": 6245.44140625,
+        "vram_peak_mib": 4910.40234375,
+        "samples": 2,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793629098.063686
+      },
+      "trace_path": "logs/traces/b4914df8d67b442c97c89bb2b617bdeb.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 0.063,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "time_advanced_independently": false,
+          "finally_paused": false,
+          "samples": 0
+        },
+        "observed_pages": 0
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "RESOURCE_PRESSURE",
+      "ram_pico_mib": 6245.44140625,
+      "vram_pico_mib": 4910.40234375
+    },
+    {
+      "id": "browser-10",
+      "category": "browser",
+      "run": 1,
+      "ok": true,
+      "status": "PASS",
+      "false_success": false,
+      "elapsed_s": 8.078,
+      "verifier": {
+        "ok": true,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "browser_restarted": true,
+          "server_received_persistent_session": true
+        },
+        "observed_pages": 1
+      },
+      "workflow_state": "finished",
+      "actions": 1,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": null,
+      "response": "A sessão local Nyx está completa e pronta. Nenhuma nova ação necessária para verificar persistência sem interação.",
+      "prompt": "Reabra <FIXTURE>/session e confira se a sessão local de teste persistiu após o navegador ter sido encerrado. Informe o estado observado.",
+      "resources": {
+        "ram_peak_mib": 4165.3125,
+        "vram_peak_mib": 5026.796875,
+        "samples": 32,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628746.5008438
+      },
+      "trace_path": "logs/traces/91fc1e3521dd48feb35b0f3e29b3793c.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 8.078,
+      "verificador": {
+        "ok": true,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "browser_restarted": true,
+          "server_received_persistent_session": true
+        },
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": null,
+      "ram_pico_mib": 4165.3125,
+      "vram_pico_mib": 5026.796875
+    },
+    {
+      "id": "browser-10",
+      "category": "browser",
+      "run": 2,
+      "ok": true,
+      "status": "PASS",
+      "false_success": false,
+      "elapsed_s": 8.235,
+      "verifier": {
+        "ok": true,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "browser_restarted": true,
+          "server_received_persistent_session": true
+        },
+        "observed_pages": 1
+      },
+      "workflow_state": "finished",
+      "actions": 1,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": null,
+      "response": "A sessão local de teste persistiu conforme esperado. O estado foi verificado como completo.",
+      "prompt": "Reabra <FIXTURE>/session e confira se a sessão local de teste persistiu após o navegador ter sido encerrado. Informe o estado observado.",
+      "resources": {
+        "ram_peak_mib": 5924.01171875,
+        "vram_peak_mib": 5028.9296875,
+        "samples": 33,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793628954.926934
+      },
+      "trace_path": "logs/traces/ff43ee54f6244188b420757e7b33862b.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 8.235,
+      "verificador": {
+        "ok": true,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "browser_restarted": true,
+          "server_received_persistent_session": true
+        },
+        "observed_pages": 1
+      },
+      "falso_sucesso": false,
+      "erro_tipado": null,
+      "ram_pico_mib": 5924.01171875,
+      "vram_pico_mib": 5028.9296875
+    },
+    {
+      "id": "browser-10",
+      "category": "browser",
+      "run": 3,
+      "ok": false,
+      "status": "FAIL",
+      "false_success": false,
+      "elapsed_s": 0.063,
+      "verifier": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "browser_restarted": true,
+          "server_received_persistent_session": false
+        },
+        "observed_pages": 0
+      },
+      "workflow_state": "stopped",
+      "actions": 0,
+      "confirmations_approved": 0,
+      "confirmations_denied": 0,
+      "error_code": "RESOURCE_PRESSURE",
+      "response": "Não consegui continuar o pedido: RAM livre abaixo de 1 GiB (0.93 GiB livres); Nenhuma geração foi enviada. Consulte Personalizar → Modelo local → Diagnosticar memória para ver o consumo e escolher o que liberar.",
+      "prompt": "Reabra <FIXTURE>/session e confira se a sessão local de teste persistiu após o navegador ter sido encerrado. Informe o estado observado.",
+      "resources": {
+        "ram_peak_mib": 6165.421875,
+        "vram_peak_mib": 4978.24609375,
+        "samples": 2,
+        "sampling_interval_s": 0.25,
+        "ram_scope": "harness and descendant process working sets, shared pages may repeat",
+        "vram_scope": "system GPU usage, not exclusive Nyx allocation",
+        "measured_at": 1793629100.1744225
+      },
+      "trace_path": "logs/traces/e3e6ce4d714f48f89af5929c4b59aa14.jsonl",
+      "observer_errors": [],
+      "reset": "own isolated profile per task/run",
+      "gate_eligible": true,
+      "tempo_s": 0.063,
+      "verificador": {
+        "ok": false,
+        "check": "Independent CDP DOM/visibility + HTTP fixture state + bytes on disk",
+        "details": {
+          "browser_restarted": true,
+          "server_received_persistent_session": false
+        },
+        "observed_pages": 0
+      },
+      "falso_sucesso": false,
+      "erro_tipado": "RESOURCE_PRESSURE",
+      "ram_pico_mib": 6165.421875,
+      "vram_pico_mib": 4978.24609375
+    }
+  ],
+  "app_inventory": null,
+  "excluded_apps": [],
+  "limitations": [
+    "App denominator uses installed targets only; unknown inventory remains an environment limitation.",
+    "Blocked harness coverage is not proof that Nyx lacks the capability.",
+    "No M0-M8 milestone is completed by this partial runner alone.",
+    "GPU peaks are system samples, not exclusive Nyx allocation."
+  ],
+  "runtime_fingerprint": "96b8d096efc7cedcd81195b034cf3e56e9a8ce57a5e6e88cf719732e97ee9c6c",
+  "run_state": "FINISHED",
+  "inflight": null,
+  "summary": {
+    "browser": {
+      "cases": 10,
+      "attempts": 30,
+      "executed": 30,
+      "blocked_harness": 0,
+      "blocked_runtime": 0,
+      "blocked_environment": 0,
+      "focus_verified": 0,
+      "focus_measured": 0,
+      "pass_rates_per_run": [
+        0.2,
+        0.2,
+        0.1
+      ],
+      "median_pass_rate": 0.2,
+      "pass_rate_variance": 0.0022222222222222227,
+      "false_successes": 0,
+      "threshold": 0.85,
+      "median_seconds_executed": 19.9375,
+      "gate_eligible": true,
+      "category_gate_passed": false
+    }
+  },
+  "passed": false
+}

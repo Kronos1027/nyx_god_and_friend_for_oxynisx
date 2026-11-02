@@ -55,7 +55,9 @@ def cases():
                         'resident_local_model', 'independent_first_delta_and_no_action', 120, 'R0', 'greeting'),
                    Case('conversation-02', 'conversation', 'Quem é você?',
                         'resident_local_model', 'independent_identity_text', 120, 'R0', 'identity')])
-    return [replace(case,route='native_app_ui',target=NATIVE_CASES[case.id]) if case.id in NATIVE_CASES else case for case in result]
+    return [replace(case,route='native_app_ui',target=NATIVE_CASES[case.id]) if case.id in NATIVE_CASES
+            else replace(case,route='browser_ui',setup='owned_http_fixture_per_case_run',verifier='independent_raw_cdp_http_and_file_bytes')
+            if case.category=='browser' else case for case in result]
 
 
 THRESHOLDS = {'apps': .95, 'desktop': .90, 'browser': .85, 'multi_step': .80,

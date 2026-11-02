@@ -18,6 +18,7 @@ from bench import verifiers  # noqa: E402
 from bench.reporting import summarize, markdown_report  # noqa: E402
 from bench.checkpoint import atomic_write, load_resume, runtime_fingerprint  # noqa: E402
 from bench.native_suite import run_native_cases  # noqa: E402
+from bench.browser_suite import run_browser_cases  # noqa: E402
 
 
 def execute(case, run, client, profile, base):
@@ -164,8 +165,17 @@ def main():
         done.update((row['id'],row['run']) for row in report['rows'])
         report['inflight'] = None
         atomic_write(output,report)
+    browser = [case for case in selected if case.route=='browser_ui'
+               and any((case.id,run) not in done for run in range(1,args.runs+1))]
+    if browser:
+        report['inflight'] = {'route':'browser_ui','risk':'R0-R3','cases':[case.id for case in browser]}
+        atomic_write(output,report)
+        report['rows'].extend(run_browser_cases(ROOT,browser,args.runs,args.model,args.profile,base))
+        done.update((row['id'],row['run']) for row in report['rows'])
+        report['inflight'] = None
+        atomic_write(output,report)
     client = None
-    if any(case.route and case.route!='native_app_ui' and any((case.id, run) not in done for run in range(1,args.runs+1)) for case in selected):
+    if any(case.route and case.route not in {'native_app_ui','browser_ui'} and any((case.id, run) not in done for run in range(1,args.runs+1)) for case in selected):
         from core.llm_client import OllamaClient
         from core.ollama_service import ensure_local_ollama
         from core.resource_profiles import resource_profile_scope

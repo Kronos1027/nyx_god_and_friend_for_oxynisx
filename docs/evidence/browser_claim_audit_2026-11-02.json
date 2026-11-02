@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "kind": "post_hoc_claim_audit_not_a_new_live_run",
+  "date": "2026-11-02",
+  "scope": "Independent reclassification of saved responses and already-recorded independent verdicts; originals preserved.",
+  "method": "For a finished workflow with a failed independent postcondition, detect explicit code assertions as well as past-tense completion claims; exclude local negation, uncertainty and questions.",
+  "live_rerun_performed": false,
+  "sources": [
+    {
+      "label": "baseline_30",
+      "file": "docs/evidence/bench_browser_initial_2026-11-02.json",
+      "sha256": "8fe534e0a67b2640cf4a2cb7346387a700d05908f6706e3a383346933ebae5ff",
+      "rows": 30,
+      "passes_as_recorded": 5,
+      "false_reports_as_recorded": 0,
+      "false_reports_after_audit": 0
+    },
+    {
+      "label": "correction_8",
+      "file": "build/diagnostic/browser-correction.json",
+      "sha256": "b8503ad56af33749486b1ef08f152637c9670af17663497b950c9529b4399003",
+      "rows": 8,
+      "passes_as_recorded": 1,
+      "false_reports_as_recorded": 0,
+      "false_reports_after_audit": 1
+    }
+  ],
+  "changed_rows": [
+    {
+      "source": "correction_8",
+      "id": "browser-07",
+      "run": 1,
+      "false_report_before": false,
+      "false_report_after": true,
+      "independent_verdict_ok_as_recorded": false,
+      "workflow_state": "finished",
+      "response_excerpt": "O código da aba Origem Nyx é 'Origem'. Nenhuma ação adicional necessária.",
+      "independent_details_as_recorded": {
+        "origin_tab_visible": true
+      },
+      "expected_fixture_code": "4144"
+    }
+  ],
+  "limitations": [
+    "This conservative Portuguese heuristic is not a universal natural-language truth classifier.",
+    "Saved reports do not retain all raw DOM snapshots; this audit cannot independently replay or reconstruct those measurements.",
+    "A failed task is not automatically a false report: an honestly reported failure or a truthful partial observation remains a task failure.",
+    "The original overall success rates are unchanged; this supplement corrects the false-report classification only.",
+    "The detector can still miss paraphrases and can confuse a truthful partial completion claim with whole-task completion. Review independent details and traces."
+  ],
+  "summary": {
+    "responses_reviewed": 38,
+    "false_reports_as_recorded": 0,
+    "false_reports_after_audit": 1,
+    "milestone_blocked_by_false_report": true
+  }
+}
