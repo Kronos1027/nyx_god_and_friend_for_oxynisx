@@ -1,0 +1,397 @@
+{
+  "runs": [
+    {
+      "platform": "windows",
+      "imports_s": 0.23259649999999965,
+      "application_init_s": 0.029340099999899394,
+      "controller_s": 0.10114139999950567,
+      "constructor_s": 0.5334459000005154,
+      "show_s": 0.043672499999956926,
+      "system_ram_available_before_constructor_bytes": 3322617856,
+      "system_ram_available_after_frame_bytes": 3238739968,
+      "process_page_faults_before_constructor": 22532,
+      "process_page_faults_after_frame": 59593,
+      "profiled_constructor": true,
+      "slow_constructor_self_calls": [
+        {
+          "module": "~",
+          "function": "<built-in method winId>",
+          "calls": 1,
+          "self_s": 0.1406195,
+          "cumulative_s": 0.1406195
+        },
+        {
+          "module": "sprite_renderer.py",
+          "function": "__init__",
+          "calls": 2,
+          "self_s": 0.0888018,
+          "cumulative_s": 0.08967
+        },
+        {
+          "module": "~",
+          "function": "<built-in method nt.stat>",
+          "calls": 220,
+          "self_s": 0.045039,
+          "cumulative_s": 0.045142100000000004
+        },
+        {
+          "module": "~",
+          "function": "<method 'executescript' of 'sqlite3.Connection' objects>",
+          "calls": 3,
+          "self_s": 0.034851400000000005,
+          "cumulative_s": 0.034851400000000005
+        },
+        {
+          "module": "~",
+          "function": "<built-in method io.open_code>",
+          "calls": 47,
+          "self_s": 0.0311236,
+          "cumulative_s": 0.0311236
+        },
+        {
+          "module": "~",
+          "function": "<built-in method addApplicationFont>",
+          "calls": 2,
+          "self_s": 0.013895900000000001,
+          "cumulative_s": 0.013895900000000001
+        },
+        {
+          "module": "~",
+          "function": "<built-in method setStyleSheet>",
+          "calls": 2,
+          "self_s": 0.013405400000000001,
+          "cumulative_s": 0.0158142
+        },
+        {
+          "module": "pynvml.py",
+          "function": "nvmlInitWithFlags",
+          "calls": 1,
+          "self_s": 0.0116857,
+          "cumulative_s": 0.012845200000000001
+        },
+        {
+          "module": "pynvml.py",
+          "function": "nvmlDeviceGetHandleByIndex",
+          "calls": 1,
+          "self_s": 0.010732700000000001,
+          "cumulative_s": 0.010751700000000001
+        },
+        {
+          "module": "~",
+          "function": "<method 'close' of 'sqlite3.Connection' objects>",
+          "calls": 13,
+          "self_s": 0.0099287,
+          "cumulative_s": 0.0099287
+        },
+        {
+          "module": "~",
+          "function": "<method 'read' of '_io.BufferedReader' objects>",
+          "calls": 59,
+          "self_s": 0.008816000000000001,
+          "cumulative_s": 0.008816000000000001
+        },
+        {
+          "module": "~",
+          "function": "<built-in method setWidget>",
+          "calls": 15,
+          "self_s": 0.006391300000000001,
+          "cumulative_s": 0.006391300000000001
+        }
+      ],
+      "first_paint_from_process_s": 0.9868110000006709,
+      "first_paint_from_app_s": 0.7185653000005914,
+      "first_event_batch_from_app_s": 0.7390267000000676,
+      "rss_mib": 163.79296875,
+      "idle_cpu_percent": 3.11418381676645,
+      "idle_sample_seconds": 1,
+      "constructor_methods_s": {
+        "_build_chat_page": 0.048377699999946344,
+        "_build_settings_page": 0.13207340000008116,
+        "_build_evolution_page": 0.031104200000299898,
+        "_build_center": 0.2130829999996422,
+        "_build_sidebar": 0.0022219000002223765,
+        "_build_companion": 0.047090400000342925,
+        "_build_activity": 0.00035680000019056024,
+        "_apply_preferences": 0.17414780000035535,
+        "_restore_layout": 7.599999662488699e-06,
+        "_reload_chats": 0.003374999999323336,
+        "activate_chat": 0.0034144999999625725,
+        "_refresh_status": 0.00020000000040454324
+      },
+      "deferred_panels": 4,
+      "unbuilt_panels": 2,
+      "studio_imported": false,
+      "paint_observed": true,
+      "native_style": {
+        "dark_frame": true,
+        "mica": true,
+        "capture_excluded": true,
+        "supported": true
+      },
+      "scope": "Owned synthetic HUD; paint event start, not physical monitor/capture proof; no model.",
+      "run": 1
+    },
+    {
+      "platform": "windows",
+      "imports_s": 0.19923820000076375,
+      "application_init_s": 0.02903040000001056,
+      "controller_s": 0.09681749999981548,
+      "constructor_s": 0.5020297999999457,
+      "show_s": 0.049036500000511296,
+      "system_ram_available_before_constructor_bytes": 3332956160,
+      "system_ram_available_after_frame_bytes": 3214229504,
+      "process_page_faults_before_constructor": 22502,
+      "process_page_faults_after_frame": 58530,
+      "profiled_constructor": true,
+      "slow_constructor_self_calls": [
+        {
+          "module": "~",
+          "function": "<built-in method winId>",
+          "calls": 1,
+          "self_s": 0.1442815,
+          "cumulative_s": 0.1442815
+        },
+        {
+          "module": "sprite_renderer.py",
+          "function": "__init__",
+          "calls": 2,
+          "self_s": 0.08882960000000001,
+          "cumulative_s": 0.0896547
+        },
+        {
+          "module": "~",
+          "function": "<built-in method nt.stat>",
+          "calls": 220,
+          "self_s": 0.044584500000000006,
+          "cumulative_s": 0.044681500000000006
+        },
+        {
+          "module": "~",
+          "function": "<built-in method io.open_code>",
+          "calls": 47,
+          "self_s": 0.0303859,
+          "cumulative_s": 0.0303859
+        },
+        {
+          "module": "~",
+          "function": "<method 'executescript' of 'sqlite3.Connection' objects>",
+          "calls": 3,
+          "self_s": 0.020183600000000003,
+          "cumulative_s": 0.020183600000000003
+        },
+        {
+          "module": "pynvml.py",
+          "function": "nvmlInitWithFlags",
+          "calls": 1,
+          "self_s": 0.0120075,
+          "cumulative_s": 0.0126087
+        },
+        {
+          "module": "~",
+          "function": "<built-in method setStyleSheet>",
+          "calls": 2,
+          "self_s": 0.011219900000000001,
+          "cumulative_s": 0.0136071
+        },
+        {
+          "module": "~",
+          "function": "<built-in method addApplicationFont>",
+          "calls": 2,
+          "self_s": 0.0101191,
+          "cumulative_s": 0.0101191
+        },
+        {
+          "module": "~",
+          "function": "<method 'close' of 'sqlite3.Connection' objects>",
+          "calls": 13,
+          "self_s": 0.008607,
+          "cumulative_s": 0.008607
+        },
+        {
+          "module": "pynvml.py",
+          "function": "nvmlDeviceGetHandleByIndex",
+          "calls": 1,
+          "self_s": 0.0076766000000000004,
+          "cumulative_s": 0.007708800000000001
+        },
+        {
+          "module": "~",
+          "function": "<method 'execute' of 'sqlite3.Connection' objects>",
+          "calls": 16,
+          "self_s": 0.0059575,
+          "cumulative_s": 0.0059575
+        },
+        {
+          "module": "~",
+          "function": "<built-in method setWidget>",
+          "calls": 15,
+          "self_s": 0.0056468,
+          "cumulative_s": 0.0056468
+        }
+      ],
+      "first_paint_from_process_s": 0.9231098999998721,
+      "first_paint_from_app_s": 0.6877567000001363,
+      "first_event_batch_from_app_s": 0.7012985999999728,
+      "rss_mib": 163.48046875,
+      "idle_cpu_percent": 1.5564860492036545,
+      "idle_sample_seconds": 1,
+      "constructor_methods_s": {
+        "_build_chat_page": 0.04774500000075932,
+        "_build_settings_page": 0.12374739999995654,
+        "_build_evolution_page": 0.02876300000025367,
+        "_build_center": 0.2017502999997305,
+        "_build_sidebar": 0.0022654999993392266,
+        "_build_companion": 0.04718039999988832,
+        "_build_activity": 0.0003575000000637374,
+        "_apply_preferences": 0.17503919999944628,
+        "_restore_layout": 7.900000127847306e-06,
+        "_reload_chats": 0.0034801000001607463,
+        "activate_chat": 0.0037769999998999992,
+        "_refresh_status": 0.00022540000009030337
+      },
+      "deferred_panels": 4,
+      "unbuilt_panels": 2,
+      "studio_imported": false,
+      "paint_observed": true,
+      "native_style": {
+        "dark_frame": true,
+        "mica": true,
+        "capture_excluded": true,
+        "supported": true
+      },
+      "scope": "Owned synthetic HUD; paint event start, not physical monitor/capture proof; no model.",
+      "run": 2
+    },
+    {
+      "platform": "windows",
+      "imports_s": 0.19905450000078417,
+      "application_init_s": 0.028853300000264426,
+      "controller_s": 0.09661890000006679,
+      "constructor_s": 0.49683469999945373,
+      "show_s": 0.03246489999946789,
+      "system_ram_available_before_constructor_bytes": 3301490688,
+      "system_ram_available_after_frame_bytes": 3223916544,
+      "process_page_faults_before_constructor": 22519,
+      "process_page_faults_after_frame": 59303,
+      "profiled_constructor": true,
+      "slow_constructor_self_calls": [
+        {
+          "module": "~",
+          "function": "<built-in method winId>",
+          "calls": 1,
+          "self_s": 0.13381790000000002,
+          "cumulative_s": 0.13381790000000002
+        },
+        {
+          "module": "sprite_renderer.py",
+          "function": "__init__",
+          "calls": 2,
+          "self_s": 0.0892672,
+          "cumulative_s": 0.090073
+        },
+        {
+          "module": "~",
+          "function": "<built-in method nt.stat>",
+          "calls": 220,
+          "self_s": 0.044829600000000004,
+          "cumulative_s": 0.044922800000000006
+        },
+        {
+          "module": "~",
+          "function": "<built-in method io.open_code>",
+          "calls": 47,
+          "self_s": 0.030526,
+          "cumulative_s": 0.030526
+        },
+        {
+          "module": "~",
+          "function": "<method 'executescript' of 'sqlite3.Connection' objects>",
+          "calls": 3,
+          "self_s": 0.0215931,
+          "cumulative_s": 0.0215931
+        },
+        {
+          "module": "pynvml.py",
+          "function": "nvmlDeviceGetHandleByIndex",
+          "calls": 1,
+          "self_s": 0.011791000000000001,
+          "cumulative_s": 0.011811
+        },
+        {
+          "module": "~",
+          "function": "<built-in method setStyleSheet>",
+          "calls": 2,
+          "self_s": 0.010712800000000001,
+          "cumulative_s": 0.013084700000000001
+        },
+        {
+          "module": "pynvml.py",
+          "function": "nvmlInitWithFlags",
+          "calls": 1,
+          "self_s": 0.0106072,
+          "cumulative_s": 0.011200600000000002
+        },
+        {
+          "module": "~",
+          "function": "<built-in method addApplicationFont>",
+          "calls": 2,
+          "self_s": 0.010063200000000001,
+          "cumulative_s": 0.010063200000000001
+        },
+        {
+          "module": "~",
+          "function": "<method 'close' of 'sqlite3.Connection' objects>",
+          "calls": 13,
+          "self_s": 0.008292500000000001,
+          "cumulative_s": 0.008292500000000001
+        },
+        {
+          "module": "~",
+          "function": "<built-in method setWidget>",
+          "calls": 15,
+          "self_s": 0.0058059,
+          "cumulative_s": 0.0058059
+        },
+        {
+          "module": "~",
+          "function": "<method 'execute' of 'sqlite3.Connection' objects>",
+          "calls": 16,
+          "self_s": 0.0057818,
+          "cumulative_s": 0.0057818
+        }
+      ],
+      "first_paint_from_process_s": 0.9006604999995034,
+      "first_paint_from_app_s": 0.6648942000001625,
+      "first_event_batch_from_app_s": 0.6787197000003289,
+      "rss_mib": 163.48828125,
+      "idle_cpu_percent": 3.1243260828642425,
+      "idle_sample_seconds": 1,
+      "constructor_methods_s": {
+        "_build_chat_page": 0.04834070000015345,
+        "_build_settings_page": 0.12641249999978754,
+        "_build_evolution_page": 0.0287213999999949,
+        "_build_center": 0.20497179999983928,
+        "_build_sidebar": 0.0022625999999945634,
+        "_build_companion": 0.04731400000036956,
+        "_build_activity": 0.000375799999346782,
+        "_apply_preferences": 0.16365699999914796,
+        "_restore_layout": 8.300000445160549e-06,
+        "_reload_chats": 0.003389499998775136,
+        "activate_chat": 0.0032811999999466934,
+        "_refresh_status": 0.00019160000010742806
+      },
+      "deferred_panels": 4,
+      "unbuilt_panels": 2,
+      "studio_imported": false,
+      "paint_observed": true,
+      "native_style": {
+        "dark_frame": true,
+        "mica": true,
+        "capture_excluded": true,
+        "supported": true
+      },
+      "scope": "Owned synthetic HUD; paint event start, not physical monitor/capture proof; no model.",
+      "run": 3
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import logging
 import threading
 import shutil
 import time
+from collections.abc import Callable
 from datetime import datetime
 
 from PyQt6.QtCore import (
@@ -218,6 +219,9 @@ class DesktopWindow(QMainWindow):
         self._streaming_body = None
         self._typing_anim: QPropertyAnimation | None = None
         self._rail_anim: QVariantAnimation | None = None
+        self._deferred_pages: dict[int, QWidget | Callable[[], QWidget]] = {}
+        self._control_center = None
+        self._center_activity = []
         self._build_center()
         self._build_sidebar()
         self._build_companion()
@@ -296,6 +300,47 @@ class DesktopWindow(QMainWindow):
         layout.setSpacing(16)
         return page, layout
 
+    def _defer_page(self, index: int, page: QWidget | Callable[[], QWidget]) -> None:
+        """Keep hidden panel trees out of initial QSS/native-window polishing.
+
+        Preference/policy controls exist before use; pure views may be factories.
+        Trees attach and inherit styling only when visited. Indexes stay stable.
+        """
+        self._deferred_pages[index] = page
+        placeholder = QWidget()
+        placeholder.setObjectName('DesktopPage')
+        self.pages.addWidget(placeholder)
+
+    def _materialize_page(self, index: int) -> None:
+        page = self._deferred_pages.pop(index, None)
+        if page is None:
+            return
+        if callable(page):
+            page = page()
+        placeholder = self.pages.widget(index)
+        self.pages.removeWidget(placeholder)
+        self.pages.insertWidget(index, page)
+        placeholder.deleteLater()
+
+    @property
+    def control_center(self):
+        self._materialize_page(4)
+        return self._control_center
+
+    def _build_control_center(self):
+        from ui.control_center import ControlCenter
+        self._control_center = ControlCenter()
+        self._control_center.requested.connect(self._open_center_route)
+        from core.runtime_budget import INFERENCE_GATE
+        state = INFERENCE_GATE.telemetry()
+        self._control_center.set_session(model=self._model_name(), busy=self._busy,
+            blocked=self.controller.loop.registry.control.is_cancelled(),
+            active=state['active'], waiting=state['waiting'])
+        for text in self._center_activity:
+            self._control_center.add_activity(text)
+        self._center_activity.clear()
+        return self._control_center
+
     def _build_center(self) -> None:
         central = QWidget()
         root = QVBoxLayout(central)
@@ -333,13 +378,10 @@ class DesktopWindow(QMainWindow):
         root.addWidget(self.pages, 1)
         self.setCentralWidget(central)
         self._build_chat_page()
-        self._build_agenda_page()
+        self._defer_page(1, self._build_agenda_page)
         self._build_settings_page()
         self._build_evolution_page()
-        from ui.control_center import ControlCenter
-        self.control_center = ControlCenter()
-        self.control_center.requested.connect(self._open_center_route)
-        self.pages.addWidget(self.control_center)
+        self._defer_page(4, self._build_control_center)
 
     def _toggle_focus(self, enabled: bool) -> None:
         docks = (self.sidebar, self.companion_dock, self.activity_dock)
@@ -477,6 +519,8 @@ class DesktopWindow(QMainWindow):
             window.activateWindow()
 
     def _refresh_center_tasks(self):
+        if self._control_center is None:
+            return
         journal = self._task_journal()
         if journal is None:
             self.control_center.values["tasks"].setText("Indisponível")
@@ -795,7 +839,7 @@ class DesktopWindow(QMainWindow):
         self.learning_section.currentIndexChanged.connect(self.learning_tabs.setCurrentIndex)
         self.learning_tabs.currentChanged.connect(self.learning_section.setCurrentIndex)
         self.learning_tabs.tabBar().hide()
-        self.pages.addWidget(page)
+        self._defer_page(3, page)
 
     def _build_task_history(self):
         layout = self._tab_section(self.learning_tabs, "Tarefas")
@@ -1212,7 +1256,7 @@ class DesktopWindow(QMainWindow):
         self.resizeDocks([self.sidebar, self.companion_dock], [245, 270], Qt.Orientation.Horizontal)
         self.activity_dock.hide()
 
-    def _build_agenda_page(self) -> None:
+    def _build_agenda_page(self) -> QWidget:
         page, layout = self._page()
         layout.addWidget(self._muted("Lembretes ficam salvos neste computador e são avisados enquanto a Nyx estiver aberta."))
         self.reminder_text = QLineEdit()
@@ -1242,7 +1286,7 @@ class DesktopWindow(QMainWindow):
         layout.addWidget(self.cancel_reminder_button)
         self.agenda_feedback = self._muted("")
         layout.addWidget(self.agenda_feedback)
-        self.pages.addWidget(page)
+        return page
 
     def _build_settings_page(self) -> None:
         page, outer = self._page()
@@ -1439,7 +1483,7 @@ class DesktopWindow(QMainWindow):
         layout.addWidget(reset)
         layout.addStretch()
         layout.addWidget(self._muted("Painéis podem ser arrastados, ocultados e destacados. Use o menu Painéis para reabri-los.\nA aparência muda a interface; as capacidades continuam dependendo do modelo local e das ferramentas instaladas."))
-        self.pages.addWidget(page)
+        self._defer_page(2, page)
         self.theme_combo.currentIndexChanged.connect(self._apply_preferences)
         self.accent_combo.currentIndexChanged.connect(self._apply_preferences)
         self.font_slider.valueChanged.connect(self._apply_preferences)
@@ -1547,9 +1591,12 @@ class DesktopWindow(QMainWindow):
         self.capture_check.setToolTip('Exclusão de captura aplicada somente à janela principal; pet preservado.'
                                      if self._native_style['capture_excluded'] else
                                      'Exclusão de captura não confirmada neste ambiente. O pet não é alterado.')
-        from ui.workspace_window import WorkspaceWindow
-        if WorkspaceWindow._instance is not None:
-            WorkspaceWindow._instance.setStyleSheet(self.styleSheet())
+        # Style an existing Studio without importing all its panels at HUD startup.
+        import sys
+        workspace_type = getattr(sys.modules.get('ui.workspace_window'), 'WorkspaceWindow', None)
+        workspace = getattr(workspace_type, '_instance', None)
+        if workspace is not None:
+            workspace.setStyleSheet(self.styleSheet())
         self.companion.accent = QColor(ACCENTS[accent])
         self.companion.set_motion(self.motion_check.isChecked())
         self.hero_companion.accent = QColor(ACCENTS[accent])
@@ -1732,6 +1779,7 @@ class DesktopWindow(QMainWindow):
     def set_page(self, index: int) -> None:
         if not 0 <= index < self.pages.count():
             return
+        self._materialize_page(index)
         self.pages.setCurrentIndex(index)
         self.page_title.setText(("Conversa", "Sua agenda", "Do seu jeito", "Aprendizado e recuperação", "Central da Nyx")[index])
         self._sync_navigation()
@@ -2027,7 +2075,11 @@ class DesktopWindow(QMainWindow):
                 self._add_activity(f"Microagente · {agent.get('role', 'especialista')} · {'concluído' if agent.get('ok') else 'com pendência'}")
 
     def _add_activity(self, text: str) -> None:
-        self.control_center.add_activity(text)
+        if self._control_center is None:
+            self._center_activity.append(text)
+            self._center_activity = self._center_activity[-6:]
+        else:
+            self._control_center.add_activity(text)
         self.activity.insertItem(0, f"{datetime.now().strftime('%H:%M')}   {text}")
         while self.activity.count() > 100:
             self.activity.takeItem(self.activity.count() - 1)
@@ -2164,9 +2216,10 @@ class DesktopWindow(QMainWindow):
             return
         from core.runtime_budget import INFERENCE_GATE
         state = INFERENCE_GATE.telemetry()
-        self.control_center.set_session(model=self._model_name(), busy=self._busy,
-            blocked=self.controller.loop.registry.control.is_cancelled(),
-            active=state["active"], waiting=state["waiting"])
+        if self._control_center is not None:
+            self._control_center.set_session(model=self._model_name(), busy=self._busy,
+                blocked=self.controller.loop.registry.control.is_cancelled(),
+                active=state["active"], waiting=state["waiting"])
         try:
             import psutil
 
@@ -2186,8 +2239,9 @@ class DesktopWindow(QMainWindow):
                                                    free_gib=memory.available / 1024 ** 3)
         except Exception:
             log.debug("Desktop telemetry unavailable", exc_info=True)
-            self.control_center.values["resources"].setText("Indisponível")
-            self.control_center.notes["resources"].setText("Não foi possível consultar o sistema")
+            if self._control_center is not None:
+                self._control_center.values["resources"].setText("Indisponível")
+                self._control_center.notes["resources"].setText("Não foi possível consultar o sistema")
         loop = getattr(self.controller, "loop", None)
         if loop:
             self.companion.mode = loop.mode_name
@@ -2233,5 +2287,9 @@ class DesktopWindow(QMainWindow):
         self._stop_transition()
         self.controller._closing_with_desktop = True
         self.controller.close()
+        for page in self._deferred_pages.values():
+            if isinstance(page, QWidget):
+                page.deleteLater()
+        self._deferred_pages.clear()
         super().closeEvent(event)
         self.shutdown_requested.emit()

@@ -1,0 +1,118 @@
+{
+  "runs": [
+    {
+      "platform": "windows",
+      "imports_s": 0.4584678999999596,
+      "application_init_s": 0.09537509999972826,
+      "controller_s": 0.26291990000027,
+      "constructor_s": 0.6676658000005773,
+      "show_s": 0.049357300000338,
+      "first_paint_from_process_s": 1.5938998000001448,
+      "first_paint_from_app_s": 1.1024510999995982,
+      "first_event_batch_from_app_s": 1.1202643999995416,
+      "rss_mib": 166.8828125,
+      "idle_cpu_percent": 1.5575450597790912,
+      "idle_sample_seconds": 2.0,
+      "constructor_methods_s": {
+        "_build_chat_page": 0.061761099999785074,
+        "_build_agenda_page": 0.008894999999938591,
+        "_build_settings_page": 0.16630499999973836,
+        "_build_evolution_page": 0.03278680000039458,
+        "_build_center": 0.27696560000003956,
+        "_build_sidebar": 0.007560199999716133,
+        "_build_companion": 0.04780819999996311,
+        "_build_activity": 0.0010937999995803693,
+        "_apply_preferences": 0.23394920000009733,
+        "_restore_layout": 5.2999994295532815e-06,
+        "_reload_chats": 0.003615199999330798,
+        "activate_chat": 0.004038800000671472,
+        "_refresh_status": 0.002116799999384966
+      },
+      "paint_observed": true,
+      "native_style": {
+        "dark_frame": true,
+        "mica": true,
+        "capture_excluded": true,
+        "supported": true
+      },
+      "scope": "Owned synthetic HUD; paint event start, not physical monitor/capture proof; no model.",
+      "run": 1
+    },
+    {
+      "platform": "windows",
+      "imports_s": 0.2073829000000842,
+      "application_init_s": 0.031484300000556686,
+      "controller_s": 0.1004826000007597,
+      "constructor_s": 0.5299684999999954,
+      "show_s": 0.03837900000053196,
+      "first_paint_from_process_s": 0.944183300000077,
+      "first_paint_from_app_s": 0.7028148000008514,
+      "first_event_batch_from_app_s": 0.7166444000004049,
+      "rss_mib": 166.1484375,
+      "idle_cpu_percent": 0.780648744336908,
+      "idle_sample_seconds": 2.0,
+      "constructor_methods_s": {
+        "_build_chat_page": 0.04767399999946065,
+        "_build_agenda_page": 0.0019434999994700775,
+        "_build_settings_page": 0.12014849999923172,
+        "_build_evolution_page": 0.026332800000091083,
+        "_build_center": 0.19944959999975254,
+        "_build_sidebar": 0.0021178000006329967,
+        "_build_companion": 0.04889949999960663,
+        "_build_activity": 0.0003341999999975087,
+        "_apply_preferences": 0.20451180000054592,
+        "_restore_layout": 4.800000169780105e-06,
+        "_reload_chats": 0.003397600000425882,
+        "activate_chat": 0.0036251999999876716,
+        "_refresh_status": 0.0016299999988405034
+      },
+      "paint_observed": true,
+      "native_style": {
+        "dark_frame": true,
+        "mica": true,
+        "capture_excluded": true,
+        "supported": true
+      },
+      "scope": "Owned synthetic HUD; paint event start, not physical monitor/capture proof; no model.",
+      "run": 2
+    },
+    {
+      "platform": "windows",
+      "imports_s": 0.21111389999987296,
+      "application_init_s": 0.03003569999964384,
+      "controller_s": 0.10026509999988775,
+      "constructor_s": 0.5286074000005101,
+      "show_s": 0.03931780000038998,
+      "first_paint_from_process_s": 0.9467167000002519,
+      "first_paint_from_app_s": 0.7001061000000846,
+      "first_event_batch_from_app_s": 0.7150696999997308,
+      "rss_mib": 166.09765625,
+      "idle_cpu_percent": 1.5617051701535887,
+      "idle_sample_seconds": 2.0,
+      "constructor_methods_s": {
+        "_build_chat_page": 0.04894030000014027,
+        "_build_agenda_page": 0.002084900000227208,
+        "_build_settings_page": 0.11847190000025876,
+        "_build_evolution_page": 0.02721079999992071,
+        "_build_center": 0.20019800000045507,
+        "_build_sidebar": 0.002197800000431016,
+        "_build_companion": 0.04797580000013113,
+        "_build_activity": 0.00033600000006117625,
+        "_apply_preferences": 0.20742350000000442,
+        "_restore_layout": 4.800000169780105e-06,
+        "_reload_chats": 0.0031696999994892394,
+        "activate_chat": 0.0033489999996163533,
+        "_refresh_status": 0.002397200000814337
+      },
+      "paint_observed": true,
+      "native_style": {
+        "dark_frame": true,
+        "mica": true,
+        "capture_excluded": true,
+        "supported": true
+      },
+      "scope": "Owned synthetic HUD; paint event start, not physical monitor/capture proof; no model.",
+      "run": 3
+    }
+  ]
+}

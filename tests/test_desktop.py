@@ -31,6 +31,23 @@ def test_control_center_routes_to_existing_panels(desktop):
     assert window.pages.currentIndex() == 0
 
 
+def test_hidden_panel_styling_is_deferred_until_selected(desktop):
+    window, app, _ = desktop
+    pending = dict(window._deferred_pages)
+    assert set(pending) == {1,2,3,4} and window.pages.count() == 5
+    assert callable(pending[1]) and callable(pending[4])
+    assert all(page.parentWidget() is None for page in (pending[2], pending[3]))
+    for index in (2,1,4,3):
+        window.set_page(index)
+        app.processEvents()
+        page = window.pages.currentWidget()
+        if not callable(pending[index]):
+            assert page is pending[index]
+        assert page.isVisible()
+        assert index not in window._deferred_pages and window.pages.count() == 5
+    window.set_page(0)
+
+
 def test_resource_profile_is_persisted_and_cannot_change_during_task(desktop):
     from core.resource_profiles import profile_name, select_profile
     window, _, _ = desktop
