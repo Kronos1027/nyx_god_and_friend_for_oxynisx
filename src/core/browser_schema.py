@@ -62,7 +62,7 @@ def browser_action_schema(history, goal=''):
     if isinstance(snapshot,str) and len(snapshot)==32 and isinstance(controls,list):
         for name, roles, extra, required in (
             ('click', {'button','link','checkbox','radio','tab','menuitem','switch'},
-             {'expected_text':text}, ()),
+             {}, ()),
             ('type', {'textbox','searchbox','spinbutton'},
              {'text':text,'submit':{'type':'boolean'},'expected_text':text}, ('text',)),
             ('select', {'combobox'}, {'value':text}, ('value',)),
@@ -94,7 +94,14 @@ def browser_action_schema(history, goal=''):
     elif field_goal and page_ready and not controls and not observation.get('typed_fields'):
         allowed={'inspect','status'}
     elif field_goal and observation.get('typed_fields'):
-        allowed={'click','inspect','read','wait_text','status'}
+        submitted = any(item.get('role')=='button' for item in observation.get('clicked_controls',[]))
+        saving_goal = bool(re.search(r'\b(?:salve|envie|salvar|enviar)\b',goal,re.I))
+        if saving_goal and submitted:
+            allowed=set() if observation.get('current_body') else {'read','wait_text','status'}
+        elif not saving_goal and not re.search(r'\bpesquise\b',goal,re.I):
+            allowed=set()
+        else:
+            allowed={'click','inspect','read','wait_text','status'}
     elif re.search(r'\b(?:baixe|baixar|download)\b',goal,re.I) and page_ready:
         allowed={'download','status'} if link_urls else {'links','status'}
     else:
@@ -107,8 +114,10 @@ def browser_action_schema(history, goal=''):
 def constrain_browser_schema(schema, names, history, goal=''):
     """Preserve the general contract for other tools; narrow only browser params."""
     others = [name for name in ['none',*names] if name!='browser']
-    schema['properties']['action'] = {'anyOf':[
-        browser_action_schema(history,goal),
-        _object({'type':{'enum':others},'params':{'type':'object'}}, ['type','params']),
-    ]}
+    browser=browser_action_schema(history,goal)
+    alternatives=[]
+    if browser['properties']['params']['anyOf']:
+        alternatives.append(browser)
+    alternatives.append(_object({'type':{'enum':others},'params':{'type':'object'}}, ['type','params']))
+    schema['properties']['action'] = {'anyOf':alternatives}
     return schema

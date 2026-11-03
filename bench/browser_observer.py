@@ -109,8 +109,9 @@ def verify_fixture(fixture, observations, speech, path, media_samples, *, restar
         detail = {'table_exact':current.get('table')==expected,'answer_values_present':answer_exact}
     elif number == 4:
         expected = {'name':value,'message':'Olá mundo','trusted':True}
-        ok = expected in fixture.events and 'Cadastro local salvo' in text
-        detail = {'trusted_submission':expected in fixture.events,'server_events':len(fixture.events)}
+        ok = fixture.events==[expected] and 'Cadastro local salvo' in text
+        detail = {'trusted_submission':expected in fixture.events,'exactly_one_submission':fixture.events==[expected],
+                  'server_events':len(fixture.events)}
     elif number == 5:
         ok = current.get('frameValue')==value and current.get('frameTrusted') is True
         detail = {'field_exact':current.get('frameValue')==value,'trusted_input':current.get('frameTrusted') is True}

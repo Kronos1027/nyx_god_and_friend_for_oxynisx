@@ -70,6 +70,18 @@ class TaskRunner:
 
     def _execution_signature(self, tool, params):
         signature = self._signature(tool, params)
+        if tool=='browser' and params.get('action') in {'click','type','select','press','hover'}:
+            from core.browser_context import browser_planning_state
+            state=browser_planning_state(self.steps)
+            if params.get('snapshot')==state.get('snapshot'):
+                target=next((item for item in state.get('controls',[]) if item.get('ref')==params.get('ref')),None)
+                if target:
+                    # A fresh snapshot or a different expected_text does not
+                    # turn a second click on the same control into a new action.
+                    logical={'action':params['action'],'target':{key:target.get(key) for key in ('role','name','frame')},
+                             'url':state.get('url')}
+                    logical.update({key:params[key] for key in ('text','value','key','submit') if key in params})
+                    signature=self._signature(tool,{'action':params['action'],'locator':logical})
         if tool == 'browser' and params.get('action') in {
                 'read','inspect','status','media_status','tabs','links','tables','wait','wait_text'}:
             # A fresh observation after a world change is not an unchanged loop.
@@ -471,6 +483,13 @@ class TaskRunner:
                 target = next((item for item in state.get('controls',[]) if item.get('ref')==action.params.get('ref')),None)
                 if target and target.get('name'):
                     step['browser_typed'] = {target['name']:action.params.get('text','')}
+        if action.type=='browser' and action.params.get('action')=='click' and output and output.ok:
+            from core.browser_context import browser_planning_state
+            state=browser_planning_state(self.steps)
+            if state.get('snapshot')==action.params.get('snapshot'):
+                target=next((item for item in state.get('controls',[]) if item.get('ref')==action.params.get('ref')),None)
+                if target:
+                    step['browser_clicked']={key:target.get(key) for key in ('role','name','frame')}
         if action.type == 'browser' and output and output.ok:
             from core.browser_context import compact_browser_targets
             targets = compact_browser_targets(action.params.get('action'), text)

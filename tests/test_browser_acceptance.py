@@ -103,6 +103,15 @@ def test_local_form_completion_claim_is_not_excused_by_a_separate_warning():
     assert claims_completion('Cadastro local concluído com sucesso. Nenhuma ação pendente.\nHá etapas sem sucesso ou sem verificação; consulte o painel de atividade.')
 
 
+def test_repeated_form_submission_is_failure_even_when_each_payload_is_correct(tmp_path):
+    fixture=BrowserFixture(4,1)
+    fixture.base='http://127.0.0.1:12345'
+    expected={'name':fixture.value,'message':'Olá mundo','trusted':True}
+    fixture.events=[expected,expected]
+    world={'url':fixture.base+'/','text':'Cadastro local salvo','visible':'visible'}
+    assert not verify_fixture(fixture,[world],'Cadastro concluído.',tmp_path/'none',[],restarted=False)['ok']
+
+
 def test_table_answer_requires_exact_affirmed_labels_and_quantities(tmp_path):
     fixture=BrowserFixture(3,1)
     fixture.base='http://127.0.0.1:12345'

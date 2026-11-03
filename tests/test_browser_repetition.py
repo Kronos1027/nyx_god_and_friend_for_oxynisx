@@ -25,3 +25,16 @@ def test_failed_mutation_and_successful_observation_do_not_reset_loop_guard():
     runner.steps=[{'tool':'browser','ok':False,'params':{'action':'type'}},
                   {'tool':'browser','ok':True,'params':{'action':'read'}}]
     assert runner._execution_signature('browser',{'action':'inspect'})==initial
+
+
+def test_new_snapshot_and_expected_text_cannot_duplicate_the_same_form_submit():
+    import json
+    runner=object.__new__(TaskRunner)
+    def inspect(snapshot):
+        return {'tool':'browser','ok':True,'params':{'action':'inspect'},'browser_observation':json.dumps({
+            'url':'https://example.test/form','snapshot':snapshot,
+            'controls':[{'ref':'e8','role':'button','name':'Salvar','frame':'f1'}]})}
+    runner.steps=[inspect('a'*32)]
+    initial=runner._execution_signature('browser',{'action':'click','ref':'e8','snapshot':'a'*32})
+    runner.steps.append(inspect('b'*32))
+    assert runner._execution_signature('browser',{'action':'click','ref':'e8','snapshot':'b'*32,'expected_text':'Salvo'})==initial

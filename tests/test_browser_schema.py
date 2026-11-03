@@ -82,3 +82,18 @@ def test_actual_client_uses_engine_ref_constraints_and_drops_internal_flag(monke
     type_schema=next(v for v in schema['properties']['params']['anyOf'] if v['properties']['action']['const']=='type')
     assert type_schema['properties']['snapshot']=={'const':'a'*32}
     assert all('nyx_browser_state' not in message for message in captured[-1]['messages'])
+
+
+def test_completed_form_awaits_read_then_removes_browser_effects_from_generation():
+    state={'snapshot':'a'*32,'controls':[{'ref':'e11','role':'button','name':'Salvar'}],
+           'bindings':[{'name':'Nome','ref':'e7','text':'Nyx'}],'typed_fields':{'Nome':'Nyx'},
+           'clicked_controls':[{'role':'button','name':'Salvar'}]}
+    def history():
+        return [{'role':'user','nyx_browser_state':True,'content':PREFIX+json.dumps(state)}]
+    schema=browser_action_schema(history(),'Preencha Nome com Nyx e salve.')
+    actions={v['properties']['action']['const'] for v in schema['properties']['params']['anyOf']}
+    assert 'read' in actions and 'click' not in actions
+    state['current_body']='Registro salvo'
+    schema=constrain_browser_schema(copy.deepcopy(NYX_JSON_SCHEMA),['browser'],history(),'Preencha Nome com Nyx e salve.')
+    assert len(schema['properties']['action']['anyOf'])==1
+    assert schema['properties']['action']['anyOf'][0]['properties']['type']['enum']==['none']

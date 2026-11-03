@@ -18,7 +18,7 @@ def compact_browser_observation(text):
     for node in info['tree']:
         if not isinstance(node,dict) or node.get('role') not in _ROLES:
             continue
-        entry = {key:node[key] for key in ('ref','role','name','protected','states') if key in node}
+        entry = {key:node[key] for key in ('ref','role','name','frame','protected','states') if key in node}
         candidate = {**result,'controls':[*result['controls'],entry]}
         if len(json.dumps(candidate,ensure_ascii=False))>5000:
             result['truncated'] = True
@@ -35,7 +35,7 @@ def browser_planning_state(steps):
             continue
         action = step.get('params',{}).get('action')
         if action in {'open','navigate','new_tab','switch_tab','close_tab','close','click','press'}:
-            retained = {'tabs','visited_urls','bindings','typed_fields'} if action in {'click','press'} else {'tabs','visited_urls'}
+            retained = {'tabs','visited_urls','bindings','typed_fields','clicked_controls'} if action in {'click','press'} else {'tabs','visited_urls'}
             state = {key:value for key,value in state.items() if key in retained}
         if action in {'new_tab','close_tab','close'}:
             state.pop('tabs',None)
@@ -56,6 +56,10 @@ def browser_planning_state(steps):
             state['bindings'] = step['browser_bindings']
         if step.get('browser_typed'):
             state.setdefault('typed_fields',{}).update(step['browser_typed'])
+        if step.get('browser_clicked'):
+            state.setdefault('clicked_controls',[]).append(dict(step['browser_clicked']))
+        if action=='read' and step.get('verified'):
+            state['current_body'] = step.get('output','')
         for key in ('links','tabs'):
             if key in step.get('browser_targets',{}):
                 state[key] = [dict(row) for row in step['browser_targets'][key]]
@@ -79,7 +83,7 @@ def display_browser_state(state):
     """Do not spend the model's context on repeated instructions or typed values."""
     from core.browser_fields import pending_fields
     result={key:value for key,value in state.items() if key not in {
-        'ref_usage','typed_fields','bindings','controls','visited_urls'}}
+        'ref_usage','typed_fields','bindings','controls','visited_urls','current_body'}}
     if 'controls' in state:
         result['controls']=[{key:row[key] for key in ('ref','role','name','protected') if key in row}
                             for row in state['controls']]
