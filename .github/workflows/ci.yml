@@ -39,3 +39,21 @@ jobs:
         run: >
           pytest tests/ -v --tb=short
           -k "not test_open_installed_app_alias_and_verified_window and not test_cancel_after_dispatch_preserves_unknown_outcome and not test_installed_app_verification_never_uses_unrelated_title and not test_matching_window_rejects_reused_hwnd and not test_steam_manifests_show_installed_games_without_launching and not test_ui_tool_basic and not test_generated_update_helper_parses_and_has_rollback"
+
+  windows-platform-smoke:
+    runs-on: windows-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Preparar testes de APIs Windows (sem modelos grandes)
+        shell: pwsh
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install "PyQt6>=6.7,<7" "numpy>=1.26,<3" "psutil>=5.9" pygetwindow pyautogui
+      - name: Testes Windows da automação e atualizador
+        shell: pwsh
+        run: python -m pytest -q tests/test_installed_apps.py tests/test_new_tools.py tests/test_updater.py
