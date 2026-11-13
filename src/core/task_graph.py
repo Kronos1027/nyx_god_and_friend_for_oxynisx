@@ -12,6 +12,9 @@ def normalize_tasks(tasks, roles, limit=4):
         identity = task.get("id", f"task-{index + 1}")
         role, instruction = task.get("role"), task.get("task")
         dependencies = task.get("depends_on", [])
+        steps = task.get("max_steps", 2)
+        if type(steps) is not int or not 2 <= steps <= 6:
+            raise ValueError("max_steps deve ser inteiro de 2 a 6; a última etapa é reservada ao relatório.")
         if not isinstance(identity, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,48}", identity):
             raise ValueError("ID de subtarefa inválido.")
         if not isinstance(role, str) or role not in roles:
@@ -21,7 +24,7 @@ def normalize_tasks(tasks, roles, limit=4):
         if not isinstance(dependencies, list) or len(dependencies) > limit or any(not isinstance(d, str) for d in dependencies):
             raise ValueError("depends_on deve listar IDs de subtarefas.")
         normalized.append({"id": identity, "role": role, "task": instruction.strip(),
-                           "depends_on": list(dict.fromkeys(dependencies))})
+                           "depends_on": list(dict.fromkeys(dependencies)), "max_steps": steps})
     identities = {task["id"] for task in normalized}
     if len(identities) != len(normalized):
         raise ValueError("IDs de subtarefas duplicados.")
