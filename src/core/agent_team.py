@@ -69,6 +69,7 @@ ROLES = {
 MAX_AGENTS = 4
 MAX_PARALLEL = 3
 MAX_STEPS = 2
+MAX_DEEP_STEPS = 6  # request-only, one resident LLM, last turn reserved for reporting
 MAX_INSTRUCTION_LENGTH = 500
 AGENT_TIMEOUT_SECONDS = 150.0
 
@@ -155,7 +156,7 @@ class AgentTeam:
                             continue
                         evidence = [{"id": d, "summary": results[d].get("summary", "")[:1600],
                                      "authority": "untrusted_observation"} for d in dependencies]
-                        future = pool.submit(self._run_one, task["role"], task["task"], cancelled, evidence, stopped.set, tool_started.set)
+                        future = pool.submit(self._run_one, task["role"], task["task"], cancelled, evidence, stopped.set, tool_started.set, task["max_steps"])
                         running[future] = task
                         self.registry.team_outstanding.append(future)
                         del waiting[identity]
@@ -213,32 +214,32 @@ class AgentTeam:
         )
         return ToolResult(ok=ok, output=summary, error=None if ok else summary,
                           meta={"agents": completed, "max_parallel": peak_parallel,
-                                "max_steps": MAX_STEPS, "timed_out": timed_out,
+                                "max_steps": max(task["max_steps"] for task in normalized), "timed_out": timed_out,
                                 "draining": draining, "outcome_unknown": draining and tool_started.is_set(),
                                 "resource_pressure": any(a["state"] == "RESOURCE_PRESSURE" for a in completed),
                                 "authority": "untrusted_observation"})
 
     # -- one agent ---------------------------------------------------------
-    def _run_one(self, role_name: str, instruction: str, cancelled, dependencies, stop, tool_started) -> dict:
+    def _run_one(self, role_name: str, instruction: str, cancelled, dependencies, stop, tool_started, max_steps=MAX_STEPS) -> dict:
         from core.operation_control import operation_scope
         with operation_scope(cancelled):
-            return self._run_scoped(role_name, instruction, dependencies, stop, tool_started)
+            return self._run_scoped(role_name, instruction, dependencies, stop, tool_started, max_steps=max_steps)
 
-    def _run_scoped(self, role_name: str, instruction: str, dependencies, stop, tool_started) -> dict:
+    def _run_scoped(self, role_name: str, instruction: str, dependencies, stop, tool_started, max_steps=MAX_STEPS) -> dict:
         role = ROLES[role_name]
         observations: list[str] = []
         used: set[str] = set()
         last_output = ""
         steps = 0
 
-        while steps < MAX_STEPS:
+        while steps < max_steps:
             self.registry.control.check()
             steps += 1
             # The last turn is for reporting the observation, not starting work
             # that cannot be summarized within this investigation's budget.
-            catalog = self._tool_catalog(role_name) if steps < MAX_STEPS else []
+            catalog = self._tool_catalog(role_name) if steps < max_steps else []
             prompt = self._prompt(role_name, role, instruction, observations, dependencies,
-                                  [tool["name"] for tool in catalog])
+                                  [tool["name"] for tool in catalog], max_steps=max_steps, step=steps)
             try:
                 while not self._inference_lock.acquire(timeout=0.05):
                     self.registry.control.check()
@@ -304,7 +305,7 @@ class AgentTeam:
                                  "O agente principal deve usar a ferramenta direta disponível, com suas permissões; "
                                  "não repita essa delegação."}
 
-            if steps >= MAX_STEPS:
+            if steps >= max_steps:
                 return {"role": role_name, "ok": False, "steps": steps, "state": "INCOMPLETE",
                         "tools": sorted(used), "partial_output": last_output,
                         "error": "O turno final precisava entregar a análise; nenhuma consulta adicional foi executada. "
@@ -384,14 +385,14 @@ class AgentTeam:
         return bool(clauses) and all(re.search(future, part) or re.search(waiting, part) for part in clauses)
 
     @staticmethod
-    def _prompt(role_name: str, role: AgentRole, instruction: str, observations: list[str], dependencies=(), tool_names=None) -> str:
+    def _prompt(role_name: str, role: AgentRole, instruction: str, observations: list[str], dependencies=(), tool_names=None, *, max_steps=MAX_STEPS, step=1) -> str:
         seen = "\n".join(f"- {item}" for item in observations) or "(nenhuma consulta ainda)"
         return (
             f"Você é uma microagente especialista da Nyx no papel {role_name}.\n"
             f"Escopo obrigatório: {role.instructions}\n"
             f"Ferramentas disponíveis neste turno: {', '.join(tool_names if tool_names is not None else sorted(role.allowed_tools)) or 'nenhuma; entregue o relatório'}. "
             "Mesmo estas ferramentas podem ser recusadas pelo runtime e suas permissões.\n"
-            "Você tem no máximo duas etapas. Se já observou o suficiente, responda com "
+            f"Você está na etapa {step} de {max_steps}. Se já observou o suficiente, responda com "
             "action.type \"none\" e o resultado final em speech_output. "
             "No primeiro turno, se ainda faltar um dado, proponha UMA consulta segura do seu escopo. "
             "O último turno é reservado à resposta com fatos, fontes e limitações. Uma promessa como 'vou verificar' não é um resultado. "
@@ -455,8 +456,9 @@ def agent_team_contract():
     return {"tasks": {"type": "list", "min_items": 1, "max_items": MAX_AGENTS,
         "item": {"id": "ID opcional, único, até 48 letras/números/_/-",
                  "role": list(ROLES), "task": "instrução até 500 caracteres",
-                 "depends_on": "lista opcional de IDs; sem ciclos; só inicia após sucesso das dependências"}},
-        "limits": "até 3 subtarefas independentes, 2 passos cada; inferência compartilhada e serializada; somente consultas permitidas",
+                 "depends_on": "lista opcional de IDs; sem ciclos; só inicia após sucesso das dependências",
+                 "max_steps": "inteiro opcional de 2 a 6: consultas extras somente para investigação complexa; última etapa reservada à conclusão"}},
+        "limits": "2 etapas por padrão; max_steps explícito 2..6 por subtarefa; até 3 simultâneas, inferência serializada; consultas somente leitura",
         "use_when": "investigações distintas ou uma etapa precisa dos resultados de outra; prefira ferramenta direta para uma consulta simples. skills/evolution são consultas do agente principal, não delegue ao papel pesquisa",
         "roles": {name: {"tools": sorted(role.allowed_tools - {"code_task"}),
                          "actions": {tool: sorted(actions) for tool, actions in role.allowed_actions.items()}}
