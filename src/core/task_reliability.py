@@ -93,7 +93,7 @@ def should_replan_premature_finish(
     if StepEvidence.inspect(steps).has_verified_action:
         return False
     # A genuine refusal or lack of available tools must not trigger a loop.
-    if re.search(r"\\b(?:não posso|não consigo|impossível|sem permissão|preciso de autorização)\\b",
+    if re.search(r"\b(?:não posso|não consigo|impossível|sem permissão|preciso de autorização)\b",
                  str(speech), re.IGNORECASE):
         return False
     capable = frozenset((
