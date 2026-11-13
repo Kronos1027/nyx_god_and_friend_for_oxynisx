@@ -196,6 +196,8 @@ class DesktopWindow(QMainWindow):
         memory = getattr(self.controller.loop, "memory", None)
         self._interests = memory.interests if memory else InterestEngine(self._context.database)
         self._initiative.interests = self._interests
+        from core.sleep_cycle import SleepCycle
+        self._sleep_cycle = SleepCycle(memory.db_path) if memory else None
         self._pending_task_events = {}
         self._pressure_event = None
         self._cards: list[QWidget] = []
@@ -233,6 +235,10 @@ class DesktopWindow(QMainWindow):
         self.research_timer.setInterval(30_000)
         self.research_timer.timeout.connect(self._research_tick)
         self.research_timer.start()
+        self.sleep_timer = QTimer(self)
+        self.sleep_timer.setInterval(3 * 60 * 1000)
+        self.sleep_timer.timeout.connect(self._sleep_tick)
+        self.sleep_timer.start()
         self.initiative_timer = QTimer(self)
         self.initiative_timer.setInterval(30_000)
         self.initiative_timer.timeout.connect(self._initiative_tick)
@@ -787,6 +793,13 @@ class DesktopWindow(QMainWindow):
         layout.addWidget(clear)
 
         layout = self._tab_section(self.learning_tabs, "Memória e interesses")
+        self.sleep_check = QCheckBox("Consolidar notas explícitas quando a Nyx estiver ociosa")
+        self.sleep_check.setChecked(self._sleep_cycle.enabled() if self._sleep_cycle else False)
+        self.sleep_check.setEnabled(self._sleep_cycle is not None)
+        if self._sleep_cycle:
+            self.sleep_check.toggled.connect(self._sleep_cycle.set_enabled)
+        layout.addWidget(self.sleep_check)
+        layout.addWidget(self._muted("KRA-13 experimental: revisão local sem modelos, limitada a 24 notas por ciclo; pausa sob pressão de RAM. Não treina pesos."))
         self.interests_enabled_check = QCheckBox("Guardar e usar interesses e preferências")
         self.interests_enabled_check.setChecked(self._interests.enabled)
         self.interests_enabled_check.toggled.connect(self._interests.set_enabled)
@@ -916,6 +929,40 @@ class DesktopWindow(QMainWindow):
                 if note:
                     text += f"\n\nConteúdo externo não verificado — fonte final: {note['source']}\n\n{note['content']}"
         self.study_preview.setPlainText(text)
+
+    def _sleep_tick(self) -> None:
+        """Opt-in memory consolidation with resource admission; no LLM or GPU."""
+        cycle = self._sleep_cycle
+        if (cycle is None or not cycle.enabled() or self._closing or self._busy
+                or self._research_busy or self._backup_busy or self.focus_button.isChecked()
+                or self.controller.current_emotion in {"listening", "think", "talk"}
+                or time.monotonic() - self._last_interaction < 120):
+            return
+        try:
+            import psutil
+            from core.resource_governor import RESOURCE_GOVERNOR
+            from core.runtime_budget import INFERENCE_GATE, ResourceSnapshot, WorkPriority
+            queue = INFERENCE_GATE.telemetry()
+            if queue["active"] or queue["waiting"]:
+                return
+            snapshot = psutil.virtual_memory()
+            decision = RESOURCE_GOVERNOR.evaluate(
+                ResourceSnapshot(snapshot.available, None, None, psutil.cpu_percent(interval=None),
+                                 snapshot.total),
+                WorkPriority.BACKGROUND,
+            )
+            if not decision.allowed:
+                return
+            result = cycle.run_once(
+                available_ram_bytes=snapshot.available,
+                idle_seconds=time.monotonic() - self._last_interaction,
+                busy=self._closing or self._busy or self.focus_button.isChecked(),
+                cancelled=lambda: self._closing or self._busy,
+            )
+            if result.created:
+                self._add_activity(f"Sono leve: {result.created} revisões preparadas; nenhum modelo treinado.")
+        except (OSError, ValueError, RuntimeError):
+            log.exception("Sono leve: falha de manutenção local")
 
     def _research_tick(self) -> None:
         queue = getattr(self.controller.loop.registry, "research_queue", None)
@@ -1891,6 +1938,7 @@ class DesktopWindow(QMainWindow):
         self.telemetry_timer.stop()
         self.backup_timer.stop()
         self.research_timer.stop()
+        self.sleep_timer.stop()
         self.initiative_timer.stop()
         self._research_cancel.set()
         self.companion.timer.stop()
