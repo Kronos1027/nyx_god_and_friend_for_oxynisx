@@ -12,7 +12,10 @@ from uuid import uuid4
 
 from core.agent_loop import LoopResult
 from core.llm_client import ModelOutputError, NyxResponse, parse_response
-from core.task_reliability import StepEvidence, trailing_failures, recovery_hint, completion_warning
+from core.task_reliability import (
+    StepEvidence, trailing_failures, recovery_hint, completion_warning,
+    should_replan_premature_finish,
+)
 
 
 class TaskStopped(RuntimeError):
@@ -72,7 +75,7 @@ class TaskRunner:
             "inflight": self.inflight, "uncertain": self.uncertain,
             "auto_extend": self.auto_extend,
             "chat_id": self.chat_id,
-            "replans": self.replans})
+            "replans": self.replans, "delivery_replans": self.delivery_replans})
 
     def continue_task(self, task_id, on_progress=None):
         """Explicit UI request only. Old approvals and in-flight work are never replayed."""
@@ -101,6 +104,7 @@ class TaskRunner:
             self.auto_extend = item.get("auto_extend") is True
             self.steps, self.seen = item["steps"], item["seen"]
             self.replans = item.get("replans", 0)
+            self.delivery_replans = item.get("delivery_replans", 0)
             self.started_at, self.spent = self.clock(), item["spent"]
             self.deadline = self.started_at + self.timeout - self.spent
             self.pending, self.inflight, self.uncertain = None, None, False
@@ -181,6 +185,7 @@ class TaskRunner:
             self.seen = []
             self.observations = []
             self.replans = 0
+            self.delivery_replans = 0
             self.planning_feedback = ""
             self.on_progress = on_progress or (lambda item: None)
             try:
@@ -284,6 +289,25 @@ class TaskRunner:
                             self.loop.audit.log_event("model_generation", task_id=self.task_id, attempts=report)
                 self._check()
                 proposed = parse_response(raw)
+                if proposed.parse_ok and self.auto_extend and should_replan_premature_finish(
+                    self.goal, self.steps, action_type=proposed.action.type,
+                    speech=proposed.speech_output, tool_names=[item["name"] for item in tools],
+                    attempts=self.delivery_replans,
+                ):
+                    self.delivery_replans += 1
+                    self.planning_feedback = (
+                        "Você retornou action.type=none para um pedido que exige ação no sistema, "
+                        "mas nenhuma execução foi verificada. Avalie as ferramentas autorizadas "
+                        "e execute o próximo passo adequado, com confirmação se necessário. "
+                        "Se não for possível, explique a limitação; não invente conclusão."
+                    )
+                    self._checkpoint("PLAN")
+                    self.loop.audit.log_event(
+                        "task_replan", task_id=self.task_id,
+                        reason="unverified_premature_completion",
+                        attempt=self.delivery_replans,
+                    )
+                    continue
                 if proposed.parse_ok and proposed.action.type != "none":
                     signature = self._signature(proposed.action.type, proposed.action.params)
                     repeated = (self.seen and signature == self.seen[-1]) or self.seen.count(signature) >= 2
