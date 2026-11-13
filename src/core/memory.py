@@ -244,6 +244,8 @@ class CoreMemory:
     def __init__(self, store: EpisodicStore) -> None:
         self.store = store
         self._facts: dict[str, str] = {}
+        from core.kra13_hot_memory import KRA13HotMemory
+        self._hot_cache = KRA13HotMemory(capacity=4)
         self._load()
 
     def _load(self) -> None:
@@ -266,9 +268,18 @@ class CoreMemory:
     def set(self, key: str, value: str, category: str = "general") -> None:
         self._facts[key] = value
         self.store.set_fact(key, value, category)
+        self._hot_cache.invalidate(key)
+        self._hot_cache.put(key, value)
 
     def get(self, key: str, default: str | None = None) -> str | None:
-        return self._facts.get(key, default)
+        if key not in self._facts:
+            return default
+        cached = self._hot_cache.get(key)
+        if cached is not None:
+            return cached
+        value = self._facts[key]
+        self._hot_cache.put(key, value)
+        return value
 
     def all(self) -> dict[str, str]:
         return dict(self._facts)
@@ -297,12 +308,10 @@ class CoreMemory:
 
         return learned
 
-    def format_prompt_block(self) -> str:
-        """Gera o bloco compacto injetado no system prompt."""
-        lines = ["[MEMÓRIA DE LONGO PRAZO / CORE FACTS]"]
-        for k, v in sorted(self._facts.items()):
-            lines.append(f"- {k}: {v}")
-        return "\n".join(lines)
+    def format_prompt_block(self, query: str = "") -> str:
+        """Prioriza fatos e limita tokens; nunca descarta fonte SQLite."""
+        from core.kra13_hot_memory import bounded_fact_prompt
+        return bounded_fact_prompt(self._facts, query=query, max_chars=1700)
 
 
 class ContextCompactor:
@@ -384,9 +393,9 @@ class MemoryManager:
     def get_recent_history(self, limit: int = 12) -> list[dict]:
         return self.store.get_recent_history(self.session_id, limit=limit)
 
-    def build_system_prompt_context(self) -> str:
+    def build_system_prompt_context(self, query: str = "") -> str:
         """Gera o contexto de memória para acoplar ao System Prompt."""
-        parts = [self.core.format_prompt_block()]
+        parts = [self.core.format_prompt_block(query=query)]
         social = self.interests.prompt_context()
         if social:
             parts.append(social)
