@@ -79,9 +79,33 @@ def recovery_hint(step: Mapping) -> str:
     )
 
 
+def requires_external_action(goal: str) -> bool:
+    return isinstance(goal, str) and bool(_EXTERNAL_VERBS.search(goal))
+
+
+def should_replan_premature_finish(
+    goal: str, steps: Sequence[Mapping], *, action_type: str,
+    speech: str, tool_names: Sequence[str], attempts: int,
+) -> bool:
+    """At most one extra *planning* turn, never an automatic external effect."""
+    if attempts >= 1 or action_type != "none" or not requires_external_action(goal):
+        return False
+    if StepEvidence.inspect(steps).has_verified_action:
+        return False
+    # A genuine refusal or lack of available tools must not trigger a loop.
+    if re.search(r"\\b(?:não posso|não consigo|impossível|sem permissão|preciso de autorização)\\b",
+                 str(speech), re.IGNORECASE):
+        return False
+    capable = frozenset((
+        "ui_action", "browser", "write_file", "shell", "code_task",
+        "project", "workspace", "clipboard", "git", "macro",
+    ))
+    return any(name in capable for name in tool_names)
+
+
 def completion_warning(goal: str, steps: Sequence[Mapping], *, parse_ok: bool) -> str:
     """Warn instead of declaring an unobserved external command completed."""
-    if not parse_ok or not _EXTERNAL_VERBS.search(goal):
+    if not parse_ok or not requires_external_action(goal):
         return ""
     evidence = StepEvidence.inspect(steps)
     if evidence.attempted == 0:
