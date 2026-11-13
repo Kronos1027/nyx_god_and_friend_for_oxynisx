@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from core.agent_loop import LoopResult
 from core.llm_client import ModelOutputError, NyxResponse, parse_response
+from core.task_reliability import StepEvidence, trailing_failures, recovery_hint, completion_warning
 
 
 class TaskStopped(RuntimeError):
@@ -244,7 +245,7 @@ class TaskRunner:
                     )
                 if self.planning_feedback:
                     prompt += "\n\n" + self.planning_feedback
-                context = self.loop.memory.build_system_prompt_context() if self.loop.memory else None
+                context = self.loop.memory.build_system_prompt_context(query=self.goal) if self.loop.memory else None
                 history = self._planning_history()
                 tools = []
                 for name in self.loop.registry.names():
@@ -371,6 +372,12 @@ class TaskRunner:
                 "summary": str(item.get("summary") or item.get("error") or "")[:500]}
                 for item in output.meta.get("agents", [])[:4]]
         self.steps.append(step)
+        if not (step["ok"] and step["verified"] is True):
+            # Guidance for the *next* planning turn; no automatic replay or
+            # bypass of the tool registry's approval policy.
+            self.planning_feedback = recovery_hint(step)
+        else:
+            self.planning_feedback = ""
         self.uncertain = bool(output and output.meta.get("outcome_unknown"))
         self.resource_pressure = bool(output and output.meta.get("resource_pressure"))
         try:
@@ -390,6 +397,12 @@ class TaskRunner:
             raise TaskStopped("A operação pode ter sido aplicada, mas não foi confirmada. Confira o estado antes de repetir; a tarefa foi interrompida.")
         if self.resource_pressure:
             raise TaskStopped("Pressão de recursos: novas inferências foram suspensas. Revise o histórico e retome quando houver memória disponível.")
+        if trailing_failures(self.steps) >= 3:
+            raise TaskStopped(
+                "Três tentativas consecutivas com a mesma ferramenta não produziram "
+                "sucesso verificável. Parei para evitar repetição; revise as evidências "
+                "antes de tentar outra abordagem."
+            )
 
     def _stop(self, message: str) -> LoopResult:
         return self._finish(LoopResult(response=NyxResponse(emotion="idle", speech_output=message)), "stopped")
@@ -410,9 +423,15 @@ class TaskRunner:
         self._checkpoint(persisted_state)
         if self.inflight:
             result.response.speech_output += f"\nA operação {self.inflight} começou, mas seu resultado não foi confirmado. Confira o estado antes de repetir."
-        if state == "finished" and any(not step["ok"] or not step["verified"] for step in self.steps):
-            result.response.speech_output += "\nHá etapas sem sucesso ou sem verificação; consulte o painel de atividade."
+        if state == "finished":
+            warning = completion_warning(self.goal, self.steps, parse_ok=result.response.parse_ok)
+            if warning:
+                result.response.speech_output += "\n" + warning
+            if any(not step["ok"] or not step["verified"] for step in self.steps):
+                result.response.speech_output += "\nHá etapas sem sucesso ou sem verificação; consulte o painel de atividade."
+        evidence = StepEvidence.inspect(self.steps)
         self.loop.audit.log_event("task_finished", task_id=self.task_id, state=state,
-                                  actions=len(self.steps), steps=self.steps)
+                                  actions=len(self.steps), verified_actions=evidence.verified,
+                                  uncertain_actions=evidence.uncertain, steps=self.steps)
         self.loop._remember(self.goal, result.response)
         return result
