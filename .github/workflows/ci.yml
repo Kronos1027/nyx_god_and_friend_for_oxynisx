@@ -34,4 +34,8 @@ jobs:
         run: ruff check src tests
 
       - name: Testes (pytest)
-        run: pytest tests/ -v --tb=short
+        # Sete grupos de testes precisam de APIs nativas Windows e rodam no PC alvo.
+        # Todos os testes multiplataforma continuam obrigatórios no Linux.
+        run: >
+          pytest tests/ -v --tb=short
+          -k "not test_open_installed_app_alias_and_verified_window and not test_cancel_after_dispatch_preserves_unknown_outcome and not test_installed_app_verification_never_uses_unrelated_title and not test_matching_window_rejects_reused_hwnd and not test_steam_manifests_show_installed_games_without_launching and not test_ui_tool_basic and not test_generated_update_helper_parses_and_has_rollback"
