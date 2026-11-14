@@ -28,6 +28,8 @@ A [pesquisa de agentes com Ollama local — Lote 03](docs/NYX_RESEARCH_BATCH03.m
 
 O [protótipo Rust nativo — Lote 04](docs/NYX_RUST_MIGRATION_BATCH04.md) acelera experimentalmente a seleção de memória, mantendo Python como padrão e fallback. Não muda o motor de inferência Qwen, não é instalado automaticamente e requer paridade/benchmark Windows antes de promoção.
 
+O [Lote 05 de desempenho](docs/NYX_PERFORMANCE_BATCH05.md) introduz cache limitado de memória, menos consultas desnecessárias ao Ollama e métricas de espera na fila. São otimizações locais verificadas por CI, não prova de aceleração do Qwen real.
+
 A [arquitetura adaptativa](docs/EVOLUTION_ARCHITECTURE.md) separa o que está implementado das próximas etapas de pesquisa ociosa, testes isolados, promoção de código e aprendizado de modelos. A [meta completa](docs/PRODUCT_GOAL.md) permanece ativa.
 
 ## Executar no Windows
