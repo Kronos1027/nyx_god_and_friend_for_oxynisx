@@ -297,10 +297,14 @@ def resident_context(snapshot: ResourceSnapshot, installed: dict, running: list[
 
 def ollama_request_context(host: str, model: str, snapshot: ResourceSnapshot) -> int:
     """Recheck admission inside the inference queue, including expired residents."""
+    from core.ollama_admission import should_probe_resident
     installed = next((item for item in ollama_models(host, "tags") if item.get("name") == model), {})
-    context = resident_context(snapshot, installed, ollama_models(host, "ps"))
-    if context is not None:
-        return context
+    # A fresh /api/ps query is necessary only when a FULLY GPU-resident
+    # model can possibly qualify. Do not cache changing process residency.
+    if should_probe_resident(snapshot, installed):
+        context = resident_context(snapshot, installed, ollama_models(host, "ps"))
+        if context is not None:
+            return context
     size = installed.get("size")
     budget = model_weight_budget_bytes(snapshot)
     if budget is None:
@@ -364,19 +368,24 @@ class InferenceGate:
         self._condition = threading.Condition()
         self._queue: deque[object] = deque()
         self._active = False
+        from core.inference_queue_metrics import QueueWaitTracker
+        self._wait_tracker = QueueWaitTracker(capacity=64)
 
-    def telemetry(self) -> dict[str, int]:
+    def telemetry(self) -> dict:
         with self._condition:
-            return {"active": int(self._active), "waiting": len(self._queue), "max_waiters": self.max_waiters}
+            return {"active": int(self._active), "waiting": len(self._queue),
+                    "max_waiters": self.max_waiters, **self._wait_tracker.report()}
 
     @contextmanager
     def slot(self, timeout: float = 45.0, *, priority=WorkPriority.INTERACTIVE, cancelled=None) -> Iterator[None]:
         priority = WorkPriority(priority)
         ticket = object()
         entry = (priority, ticket)
-        deadline = time.monotonic() + max(0.0, timeout)
+        started_waiting = time.monotonic()
+        deadline = started_waiting + max(0.0, timeout)
         with self._condition:
             if cancelled is not None and cancelled():
+                self._wait_tracker.cancelled += 1
                 raise InferenceCancelledError("Pedido cancelado antes de entrar na fila.")
             if not self._active and not self._queue:
                 self._active = True
@@ -385,15 +394,18 @@ class InferenceGate:
                 if priority >= WorkPriority.SUGGESTION:
                     capacity = max(0, capacity - 1)  # reserve a waiting place for the user
                 if len(self._queue) >= capacity:
+                    self._wait_tracker.denied_full += 1
                     raise InferenceBusyError("A fila local de inferência está cheia; tente novamente em instantes.")
                 self._queue.append(entry)
                 self._queue = deque(sorted(self._queue, key=lambda item: item[0]))
                 try:
                     while True:
                         if cancelled is not None and cancelled():
+                            self._wait_tracker.cancelled += 1
                             raise InferenceCancelledError("Pedido cancelado enquanto aguardava inferência.")
                         remaining = deadline - time.monotonic()
                         if remaining <= 0:
+                            self._wait_tracker.wait_expired += 1
                             raise InferenceBusyError("A solicitação aguardou demais na fila local e foi cancelada.")
                         if not self._active and self._queue[0][1] is ticket:
                             break
@@ -404,6 +416,8 @@ class InferenceGate:
                     raise
                 self._queue.popleft()
                 self._active = True
+            # Always record after assignment; the queue state remains atomic.
+            self._wait_tracker.granted(max(0.0, time.monotonic() - started_waiting))
         try:
             yield
         finally:

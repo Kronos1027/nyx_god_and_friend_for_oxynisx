@@ -12,6 +12,7 @@ import json
 import logging
 import re
 import sqlite3
+import threading
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -244,6 +245,11 @@ class CoreMemory:
     def __init__(self, store: EpisodicStore) -> None:
         self.store = store
         self._facts: dict[str, str] = {}
+        from core.kra13_hot_memory import KRA13HotMemory
+        self._hot_cache = KRA13HotMemory(capacity=4)
+        from core.context_prompt_cache import ContextPromptCache
+        self._prompt_cache = ContextPromptCache(max_entries=8, max_value_chars=1700)
+        self._fact_lock = threading.RLock()
         self._load()
 
     def _load(self) -> None:
@@ -264,14 +270,29 @@ class CoreMemory:
         self._facts = stored
 
     def set(self, key: str, value: str, category: str = "general") -> None:
-        self._facts[key] = value
-        self.store.set_fact(key, value, category)
+        with self._fact_lock:
+            # Persist first. Failed transactions must never publish an uncommitted
+            # value in the in-memory store or leave stale derived prompt views.
+            self.store.set_fact(key, value, category)
+            self._facts[key] = value
+            self._hot_cache.invalidate(key)
+            self._hot_cache.put(key, value)
+            self._prompt_cache.invalidate()
 
     def get(self, key: str, default: str | None = None) -> str | None:
-        return self._facts.get(key, default)
+        with self._fact_lock:
+            if key not in self._facts:
+                return default
+            cached = self._hot_cache.get(key)
+            if cached is not None:
+                return cached
+            value = self._facts[key]
+            self._hot_cache.put(key, value)
+            return value
 
     def all(self) -> dict[str, str]:
-        return dict(self._facts)
+        with self._fact_lock:
+            return dict(self._facts)
 
     def learn_from_text(self, text: str) -> list[tuple[str, str]]:
         """Extrai automaticamente fatos óbvios mencionados pelo usuário."""
@@ -297,12 +318,16 @@ class CoreMemory:
 
         return learned
 
-    def format_prompt_block(self) -> str:
-        """Gera o bloco compacto injetado no system prompt."""
-        lines = ["[MEMÓRIA DE LONGO PRAZO / CORE FACTS]"]
-        for k, v in sorted(self._facts.items()):
-            lines.append(f"- {k}: {v}")
-        return "\n".join(lines)
+    def format_prompt_block(self, query: str = "") -> str:
+        """Bounded, consistently invalidated derived view; SQLite is authoritative."""
+        from core.native_memory import bounded_fact_prompt
+        with self._fact_lock:
+            cached = self._prompt_cache.get(query)
+            if cached is not None:
+                return cached
+            result = bounded_fact_prompt(self._facts, query=query, max_chars=1700)
+            self._prompt_cache.put(query, result)
+            return result
 
 
 class ContextCompactor:
@@ -384,9 +409,9 @@ class MemoryManager:
     def get_recent_history(self, limit: int = 12) -> list[dict]:
         return self.store.get_recent_history(self.session_id, limit=limit)
 
-    def build_system_prompt_context(self) -> str:
+    def build_system_prompt_context(self, query: str = "") -> str:
         """Gera o contexto de memória para acoplar ao System Prompt."""
-        parts = [self.core.format_prompt_block()]
+        parts = [self.core.format_prompt_block(query=query)]
         social = self.interests.prompt_context()
         if social:
             parts.append(social)

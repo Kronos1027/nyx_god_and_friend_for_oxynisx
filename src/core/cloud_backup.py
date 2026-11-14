@@ -30,12 +30,40 @@ class CloudBackup:
             raise RuntimeError("Git não concluiu o backup. Verifique conexão, credenciais e divergências da branch nyx-backups.")
         return result.stdout.strip()
 
+    def _assert_private_destination(self) -> None:
+        """Fail closed unless authenticated GitHub CLI confirms private repo.
+
+        A Git branch in a public repository is public too, even when the
+        snapshot contents are encrypted. Git credentials alone do not prove
+        that the GitHub repository is private.
+        """
+        env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1",
+                   GH_NO_UPDATE_NOTIFIER="1")
+        command = ["gh", "api", "--hostname", "github.com",
+                   "repos/Kronos1027/nyx_god_and_friend_for_oxynisx",
+                   "--jq", ".private"]
+        try:
+            result = subprocess.run(
+                command, env=env, capture_output=True, text=True,
+                timeout=7, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+            if result.returncode == 0 and result.stdout.strip() == "true":
+                return
+        except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
+            pass
+        # Do not reveal CLI stderr or auth details.
+        raise RuntimeError(
+            "Backup na nuvem bloqueado: o destino não foi confirmado como "
+            "repositório privado autenticado no GitHub. O backup local continua disponível."
+        )
+
     def upload(self, snapshot: Path) -> str:
         if snapshot.suffix != ".nyxbackup" or snapshot.stat().st_size > 5 * 1024 * 1024:
             raise ValueError("Nuvem aceita somente backup .nyxbackup criptografado de até 5 MiB")
         # Fernet is ASCII and starts with a version byte encoded in base64.
         if not snapshot.read_bytes().startswith(b"gAAAAA"):
             raise ValueError("Formato de backup criptografado inválido")
+        self._assert_private_destination()  # Before any Git init, staging or push.
         self.work.mkdir(parents=True, exist_ok=True)
         if not (self.work / ".git").exists():
             if any(self.work.iterdir()):

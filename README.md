@@ -10,7 +10,7 @@ Nyx é um projeto Python para um assistente desktop que usa modelos locais por O
 - Antes de escolher um modelo Ollama, Nyx compara o tamanho instalado com RAM e VRAM livres, reservando espaço para Windows e tela. Cada requisição reduz o contexto entre 1k e 4k conforme a memória disponível.
 - Voz local com faster-whisper e Kokoro, com fallback SAPI5 no Windows.
 - Agenda local de lembretes únicos com persistência, listagem, cancelamento e aviso no overlay.
-- Equipe inicial de microagentes: até duas investigações simultâneas, com inferência serializada e papéis somente de leitura para web, arquivos ou estado do sistema. Escritas, shell e automação de interface continuam no agente principal, com confirmação.
+- Microagentes de consulta: até quatro subtarefas, três investigações concorrentes e inferência local serializada; duas etapas por padrão ou de duas a seis em tarefas explicitamente aprofundadas. A última etapa é sempre de relatório. Escritas, shell e automação permanecem no agente principal e sob suas confirmações.
 - Ferramentas para arquivos em sandbox, pesquisa web, automação Windows, clipboard, macros, projetos e workspace.
 - Calculadora decimal limitada para valores observados e consulta somente leitura dos jogos Steam instalados por manifests locais.
 - Na interface Windows, tarefas continuam além de seis ações quando há progresso verificado: blocos ampliados automaticamente até 48 ações/30 minutos, com observação entre etapas, confirmações individuais e botão Interromper. O prazo é cooperativo; uma operação já iniciada pode precisar terminar. [Limites e validação do executor](docs/TASK_EXECUTION.md).
@@ -20,7 +20,15 @@ Nyx é um projeto Python para um assistente desktop que usa modelos locais por O
 - Companheira Oxynisx animada usando o pet criado pelo usuário; nove ciclos, reações ao clique e efeitos leves, pausados quando ocultos.
 - Laboratório de aprendizado: notas com URLs, busca persistente e propostas de habilidades com simulação estrutural. Simular não executa ações nem comprova funcionamento.
 - Estudo em intervalos: fila persistente, cancelamento e prévia de trechos de documentação Python/Windows/Ollama. Até quatro leituras por dia, uma a cada 15 minutos, quando não há pedidos ativos e há recursos disponíveis. A coleta não treina o modelo e pode ser pausada no painel Aprendizado.
-- Backup local criptografado dos bancos a cada 30 minutos com o app aberto; cópia na branch `nyx-backups` do [repositório privado autorizado](https://github.com/Kronos1027/nyx_god_and_friend_for_oxynisx). Requer Git e credenciais previamente configuradas. A chave de recuperação fica separada; exporte-a pelo painel Aprendizado e guarde-a em local privado.
+- Backup **local** criptografado dos bancos a cada 30 minutos com o app aberto; a chave de recuperação permanece separada. **Atenção:** o [repositório Nyx](https://github.com/Kronos1027/nyx_god_and_friend_for_oxynisx) está público, inclusive a branch `nyx-backups`. Nesta branch experimental, o envio à nuvem é bloqueado se o destino não for comprovadamente privado via GitHub CLI autenticado. Não confunda criptografia de arquivos com privacidade do repositório; guarde a chave de recuperação em local privado.
+
+O [programa modular Nyx Evolution](docs/NYX_EVOLUTION_PROGRAM.md) define critérios de aceitação antes de contar novas capacidades. O [Lote 01](docs/NYX_EVOLUTION_PROGRAM.md#lote-01--execução-de-tarefas-branch-experimental) melhora replanejamento de tarefas, evidências de conclusão, diagnóstico de falhas, histórico compacto e testes reproduzíveis. Ainda é **experimental**, sem validação de Qwen/CUDA no PC de destino.
+
+A [pesquisa de agentes com Ollama local — Lote 03](docs/NYX_RESEARCH_BATCH03.md) adiciona métricas de tokens, tempo, RAM e uma comparação A/B opt-in em arquivos temporários. O script `python tools/benchmark_local_nyx.py` apenas mostra o plano; nenhuma execução real do Qwen foi feita na CI, e a pesquisa não baixa modelos nem acessa projetos pessoais.
+
+O [protótipo Rust nativo — Lote 04](docs/NYX_RUST_MIGRATION_BATCH04.md) acelera experimentalmente a seleção de memória, mantendo Python como padrão e fallback. Não muda o motor de inferência Qwen, não é instalado automaticamente e requer paridade/benchmark Windows antes de promoção.
+
+O [Lote 05 de desempenho](docs/NYX_PERFORMANCE_BATCH05.md) introduz cache limitado de memória, menos consultas desnecessárias ao Ollama e métricas de espera na fila. São otimizações locais verificadas por CI, não prova de aceleração do Qwen real.
 
 A [arquitetura adaptativa](docs/EVOLUTION_ARCHITECTURE.md) separa o que está implementado das próximas etapas de pesquisa ociosa, testes isolados, promoção de código e aprendizado de modelos. A [meta completa](docs/PRODUCT_GOAL.md) permanece ativa.
 

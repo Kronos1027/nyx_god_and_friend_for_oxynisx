@@ -1,0 +1,49 @@
+name: Nyx Rust native experiment
+
+on:
+  push:
+    branches: [experiments/nyx-rust-native-memory-batch04]
+  pull_request:
+    branches: [main]
+
+jobs:
+  rust-memory:
+    name: "Rust / ${{ matrix.os }}"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install native build tools
+        run: python -m pip install "maturin>=1.10,<2" pytest
+      - name: Rust unit tests
+        run: cargo test --manifest-path native/nyx_memory/Cargo.toml
+      - name: Build optimized native Python module
+        run: maturin build --manifest-path native/nyx_memory/Cargo.toml --release --interpreter python --out dist
+      - name: Install local wheel
+        run: >
+          python -c "import glob,subprocess,sys;
+          wheels=glob.glob('dist/*.whl');
+          assert len(wheels)==1,wheels;
+          subprocess.check_call([sys.executable,'-m','pip','install',wheels[0]])"
+      - name: Verify exact Python/Rust selection parity
+        run: python -m pytest -q tests/test_native_memory_parity.py tests/test_native_memory_adapter.py tests/test_kra13_hot_memory.py
+      - name: Measure synthetic CPU selector performance
+        run: python tools/benchmark_rust_memory.py --facts 10000 --repeats 7
+      - name: Preserve experimental wheel for manual Windows/Linux validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: nyx-memory-native-${{ matrix.os }}-${{ github.sha }}
+          path: dist/*.whl
+          retention-days: 7
+      - name: Opt-in native/Python parity through existing MemoryManager
+        env:
+          NYX_NATIVE_MEMORY: "1"
+          NYX_NATIVE_COMPARE: "1"
+        run: python -m pytest -q tests/test_kra13_hot_memory.py
