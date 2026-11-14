@@ -188,3 +188,36 @@ def test_no_isolation_backend_still_refuses_arbitrary_project_test_execution(tmp
     assert not result.ok
     assert "isolamento real" in result.error
     assert not marker.exists()
+
+
+
+def test_cli_provides_offline_python_check_without_running_project(tmp_path, capsys):
+    import importlib.util
+    root = tmp_path / "project"
+    root.mkdir()
+    (root / "app.py").write_text("value = 1\n", encoding="utf-8")
+    cli_path = __import__("pathlib").Path(__file__).resolve().parents[1] / "tools" / "nyx_code_preflight.py"
+    spec = importlib.util.spec_from_file_location("nyx_preflight_cli", cli_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.main(["--repo", str(root), "app.py"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["tests_executed"] is False
+    assert report["ok"] is True
+    assert report["checked"] == 1
+
+
+def test_cli_returns_nonzero_for_unsupported_or_invalid_source(tmp_path, capsys):
+    import importlib.util
+    root = tmp_path / "project"
+    root.mkdir()
+    (root / "unsupported.yaml").write_text("a: v", encoding="utf-8")
+    (root / "broken.py").write_text("def broken(:", encoding="utf-8")
+    cli_path = __import__("pathlib").Path(__file__).resolve().parents[1] / "tools" / "nyx_code_preflight.py"
+    spec = importlib.util.spec_from_file_location("nyx_preflight_cli2", cli_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.main(["--repo", str(root), "unsupported.yaml"]) == 1
+    assert json.loads(capsys.readouterr().out)["unscanned"] == 1
+    assert module.main(["--repo", str(root), "broken.py"]) == 2
+    assert json.loads(capsys.readouterr().out)["error_code"] == "PYTHON_SYNTAX"
