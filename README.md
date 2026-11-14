@@ -10,7 +10,7 @@ Nyx é um projeto Python para um assistente desktop que usa modelos locais por O
 - Antes de escolher um modelo Ollama, Nyx compara o tamanho instalado com RAM e VRAM livres, reservando espaço para Windows e tela. Cada requisição reduz o contexto entre 1k e 4k conforme a memória disponível.
 - Voz local com faster-whisper e Kokoro, com fallback SAPI5 no Windows.
 - Agenda local de lembretes únicos com persistência, listagem, cancelamento e aviso no overlay.
-- Equipe inicial de microagentes: até duas investigações simultâneas, com inferência serializada e papéis somente de leitura para web, arquivos ou estado do sistema. Escritas, shell e automação de interface continuam no agente principal, com confirmação.
+- Microagentes de consulta: até quatro subtarefas, três investigações concorrentes e inferência local serializada; duas etapas por padrão ou de duas a seis em tarefas explicitamente aprofundadas. A última etapa é sempre de relatório. Escritas, shell e automação permanecem no agente principal e sob suas confirmações.
 - Ferramentas para arquivos em sandbox, pesquisa web, automação Windows, clipboard, macros, projetos e workspace.
 - Calculadora decimal limitada para valores observados e consulta somente leitura dos jogos Steam instalados por manifests locais.
 - Na interface Windows, tarefas continuam além de seis ações quando há progresso verificado: blocos ampliados automaticamente até 48 ações/30 minutos, com observação entre etapas, confirmações individuais e botão Interromper. O prazo é cooperativo; uma operação já iniciada pode precisar terminar. [Limites e validação do executor](docs/TASK_EXECUTION.md).
@@ -21,6 +21,8 @@ Nyx é um projeto Python para um assistente desktop que usa modelos locais por O
 - Laboratório de aprendizado: notas com URLs, busca persistente e propostas de habilidades com simulação estrutural. Simular não executa ações nem comprova funcionamento.
 - Estudo em intervalos: fila persistente, cancelamento e prévia de trechos de documentação Python/Windows/Ollama. Até quatro leituras por dia, uma a cada 15 minutos, quando não há pedidos ativos e há recursos disponíveis. A coleta não treina o modelo e pode ser pausada no painel Aprendizado.
 - Backup local criptografado dos bancos a cada 30 minutos com o app aberto; cópia na branch `nyx-backups` do [repositório privado autorizado](https://github.com/Kronos1027/nyx_god_and_friend_for_oxynisx). Requer Git e credenciais previamente configuradas. A chave de recuperação fica separada; exporte-a pelo painel Aprendizado e guarde-a em local privado.
+
+O [programa modular Nyx Evolution](docs/NYX_EVOLUTION_PROGRAM.md) define critérios de aceitação antes de contar novas capacidades. O [Lote 01](docs/NYX_EVOLUTION_PROGRAM.md#lote-01--execução-de-tarefas-branch-experimental) melhora replanejamento de tarefas, evidências de conclusão, diagnóstico de falhas, histórico compacto e testes reproduzíveis. Ainda é **experimental**, sem validação de Qwen/CUDA no PC de destino.
 
 A [arquitetura adaptativa](docs/EVOLUTION_ARCHITECTURE.md) separa o que está implementado das próximas etapas de pesquisa ociosa, testes isolados, promoção de código e aprendizado de modelos. A [meta completa](docs/PRODUCT_GOAL.md) permanece ativa.
 
