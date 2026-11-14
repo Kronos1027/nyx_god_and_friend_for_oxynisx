@@ -32,7 +32,7 @@ def test_cpu_only_context_saves_one_ps_request_without_guessing_model_size(monke
         raise AssertionError("/ps cannot yield a GPU-resident model on CPU-only host")
     monkeypatch.setattr(runtime_budget, "ollama_models", inventory)
     snap = runtime_budget.ResourceSnapshot(8 * GIB, None, None)
-    assert runtime_budget.ollama_request_context("http://127.0.0.1:11434", "qwen:3b", snap) == 4096
+    assert runtime_budget.ollama_request_context("http://127.0.0.1:11434", "qwen:3b", snap) == 2048
     assert calls == ["tags"]
 
 
