@@ -40,7 +40,10 @@ def verify_applied_patch(edits, expected: list[dict]) -> bool:
             raise PatchIntegrityError("TARGET_CHANGED")
         target = Path(edit.path)
         try:
-            if target.is_symlink() or not target.is_file():
+            # The edit's path was canonicalized when the proposal was
+            # inspected. A changed symlink in any parent redirects the target.
+            if (target.is_symlink() or target.resolve() != target
+                    or not target.is_file()):
                 raise PatchIntegrityError("TARGET_NOT_REGULAR_FILE")
             # Limit actual read to 200001 bytes even if stat was checked.
             with target.open("rb") as stream:
