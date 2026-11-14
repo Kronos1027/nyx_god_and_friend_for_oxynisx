@@ -113,3 +113,36 @@ duas ou seis tarefas, diferenças são apenas observações exploratórias.
 
 A branch é experimental, sem instalação automática, merge ou treinamento
 neural. Não corresponde a 1.800 novos módulos entregues.
+
+
+## Diagnóstico por tarefa integrado à Nyx
+
+Cada `TaskRunner` acumula somente nove contadores numéricos no
+`TaskJournal`: tentativas de geração, JSON válido/inválido, unidades de
+entrada/cache/saída e tempos totais/carregamento/geração. A retenção é limitada,
+não guarda texto do usuário e persiste após pausa/reinício. O evento
+`task_finished` expõe um resumo da produtividade para localizar ciclos caros.
+
+Os campos `prompt_count`, `cached_prompt_count` e `output_count` evitam
+interferir no filtro de credenciais do diário, que propositalmente trata
+campos contendo `token` como sensíveis. Essa incompatibilidade foi
+encontrada pela suíte de persistência e corrigida sem relaxar o filtro.
+
+## Proteção contra publicação de memórias pessoais
+
+O repositório GitHub `Kronos1027/nyx_god_and_friend_for_oxynisx` foi
+confirmado como **público** nesta pesquisa. A branch `nyx-backups`
+compartilha a visibilidade pública, apesar da criptografia Fernet dos
+snapshots. Não há alegação de que a chave privada tenha sido publicada.
+
+Neste lote experimental, `CloudBackup.upload` exige a confirmação
+autenticada de `gh api --hostname github.com repos/... --jq .private`,
+antes de criar/adicionar/enviar arquivos. Qualquer resultado diferente de
+`true`, falta do CLI, erro de autenticação ou timeout bloqueia o upload.
+Backups criptografados locais continuam disponíveis. Esta proteção **não**
+altera automaticamente a instalação Windows nem a branch `main`:
+a migração de backups existentes para um repositório separado e privado
+continua uma decisão do proprietário.
+
+A checagem autenticada é deliberadamente conservadora; por segurança,
+não basta um Git remote configurado nem uma branch denominada "privada".
