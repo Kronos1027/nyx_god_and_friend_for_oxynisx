@@ -1,0 +1,13 @@
+[build-system]
+requires = ["maturin>=1.10,<2"]
+build-backend = "maturin"
+
+[project]
+name = "nyx-memory-native"
+version = "0.1.0"
+requires-python = ">=3.11"
+description = "Optional Rust-native bounded context selector for Nyx"
+
+[tool.maturin]
+bindings = "pyo3"
+module-name = "nyx_memory_native"
