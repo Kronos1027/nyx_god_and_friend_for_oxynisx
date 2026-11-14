@@ -7,8 +7,8 @@ from __future__ import annotations
 
 MAX_COUNTER = 2**63 - 1
 FIELDS = (
-    "generation_attempts", "valid_json", "invalid_json", "prompt_tokens",
-    "cached_prompt_tokens", "output_tokens", "total_duration_ns",
+    "generation_attempts", "valid_json", "invalid_json", "prompt_count",
+    "cached_prompt_count", "output_count", "total_duration_ns",
     "load_duration_ns", "eval_duration_ns",
 )
 
@@ -40,9 +40,9 @@ def accumulate_usage(current, attempts) -> dict[str, int]:
         elif row.get("valid_json") is False:
             stats["invalid_json"] += 1
         for source, dest in (
-            ("prompt_eval_count", "prompt_tokens"),
-            ("prompt_eval_cached_count", "cached_prompt_tokens"),
-            ("eval_count", "output_tokens"),
+            ("prompt_eval_count", "prompt_count"),
+            ("prompt_eval_cached_count", "cached_prompt_count"),
+            ("eval_count", "output_count"),
             ("total_duration_ns", "total_duration_ns"),
             ("load_duration_ns", "load_duration_ns"),
             ("eval_duration_ns", "eval_duration_ns"),
@@ -60,6 +60,6 @@ def usage_summary(raw) -> dict:
     data = clean_usage(raw)
     duration = data["eval_duration_ns"]
     return {**data, "generation_tokens_per_second": (
-        round(data["output_tokens"] * 1_000_000_000 / duration, 3)
+        round(data["output_count"] * 1_000_000_000 / duration, 3)
         if duration > 0 else None
     )}
