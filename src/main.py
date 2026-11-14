@@ -113,7 +113,9 @@ def run_gui(args: argparse.Namespace) -> int:
     from core.task_runner import TaskRunner
     from core.task_journal import TaskJournal
     task_journal = TaskJournal(Path("data") / "nyx_tasks.db")
-    loop.task_runner = TaskRunner(loop, journal=task_journal)
+    # Trust the application's configured file roots, never model-generated roots.
+    loop.task_runner = TaskRunner(loop, journal=task_journal,
+                                  acceptance_roots=cfg.resolve_allowed_roots())
     overlay = OverlayWindow(loop=loop)
     desktop = None
     if getattr(args, "overlay", False):
