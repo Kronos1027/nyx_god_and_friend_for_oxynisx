@@ -140,7 +140,7 @@ class AgentLoop:
         self._enforce_autonomy_timeout()
 
         # 1) LLM com gramática GBNF ou Ollama com contexto de memória
-        mem_ctx = self.memory.build_system_prompt_context() if self.memory else None
+        mem_ctx = self.memory.build_system_prompt_context(query=user_input) if self.memory else None
         generation_error = None
         if raw_response is None:
             try:
