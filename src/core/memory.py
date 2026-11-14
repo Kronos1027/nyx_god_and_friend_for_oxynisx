@@ -310,7 +310,7 @@ class CoreMemory:
 
     def format_prompt_block(self, query: str = "") -> str:
         """Prioriza fatos e limita tokens; nunca descarta fonte SQLite."""
-        from core.kra13_hot_memory import bounded_fact_prompt
+        from core.native_memory import bounded_fact_prompt
         return bounded_fact_prompt(self._facts, query=query, max_chars=1700)
 
 
