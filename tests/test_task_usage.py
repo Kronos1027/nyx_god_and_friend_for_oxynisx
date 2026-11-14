@@ -109,6 +109,6 @@ def test_ollama_usage_and_seed_are_extracted_without_network(monkeypatch):
     assert result == answer()
     assert received[0]["options"]["seed"] == 42
     metrics = client.generation_report[0]
-    assert metrics["output_count_per_second"] == 50
+    assert metrics["output_tokens_per_second"] == 50
     assert metrics["total_duration_ns"] == 1_000_000_000
     assert metrics["prompt_eval_cached_count"] == 80
