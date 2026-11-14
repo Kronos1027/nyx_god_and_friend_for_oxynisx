@@ -92,3 +92,10 @@ def test_task_health_exposes_no_private_args_outputs_or_file_paths():
     assert secret not in repr(report)
     assert "/user/private.txt" not in repr(report)
     assert "password" not in repr(report).lower()
+
+
+def test_corrupt_contract_kind_does_not_leak_into_diagnostics():
+    secret = "PRIVATE-CONTRACT-PATH"
+    output = task_health(record("FAILED", goal_contract={"kind": secret}))
+    assert output["contract_kind"] is None
+    assert secret not in repr(output)
