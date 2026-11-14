@@ -128,7 +128,7 @@ class AgentTeam:
         stopped = Event()
         tool_started = Event()
         from core.agent_budget import team_timeout_seconds
-        timeout_seconds = team_timeout_seconds(normalized)
+        timeout_seconds = team_timeout_seconds(normalized, base_seconds=AGENT_TIMEOUT_SECONDS)
         deadline = time.monotonic() + timeout_seconds
         inherited_cancel = self.registry.control.cancellation_probe()
         def cancelled():
