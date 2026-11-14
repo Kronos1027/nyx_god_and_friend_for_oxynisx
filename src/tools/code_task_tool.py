@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from tools.code_patch_preflight import check_edit_batch, inspect_existing_files
+from tools.code_patch_integrity import patch_manifest, verify_applied_patch
 from core.test_failure_triage import classify_test_result
 
 log = logging.getLogger(__name__)
@@ -130,9 +131,10 @@ class CodeTaskRunner:
                     raise CodeTaskError("Forneça test_output com 1 a 12000 caracteres; ele não será executado.")
                 edits = self._propose(repo, task, output, 1)
                 checks = check_edit_batch(edits)
+                manifest = patch_manifest(edits)
                 return ToolResult(True, "Proposta criada a partir do relatório fornecido; testes não executados.",
                                   meta={"action": "code_task", "applied": False, "tests_executed": False,
-                                        "preflight_checks": checks,
+                                        "preflight_checks": checks, "patch_manifest": manifest,
                                         "proposed": [{"path": e.relative, "content": e.content} for e in edits]})
             python = self._resolve_python(repo, params.get("python"))
             code, output = self._runner(repo, python)
@@ -152,6 +154,7 @@ class CodeTaskRunner:
             for attempt in range(1, max_rounds + 1):
                 edits = self._propose(repo, task, output, attempt, exit_code=code)
                 checks = check_edit_batch(edits)
+                manifest = patch_manifest(edits)
                 if not apply_changes:
                     summary = "\n".join(
                         f"- {edit.relative}: {len(edit.content.splitlines())} linhas propostas" for edit in edits
@@ -162,7 +165,8 @@ class CodeTaskRunner:
                         f"Trecho da falha:\n{_tail(output, 1500)}",
                         meta={"action": "code_task", "proposed": [
                             {"path": edit.relative, "content": edit.content} for edit in edits
-                        ], "preflight_checks": checks, "tests_executed": True,
+                        ], "preflight_checks": checks, "patch_manifest": manifest,
+                           "tests_executed": True,
                             "test_execution_source": "injected_executor",
                             "test_triage": evidence,
                             "rounds": rounds, "applied": False},
@@ -170,13 +174,19 @@ class CodeTaskRunner:
                 for edit in edits:
                     backups.setdefault(edit.path, edit.path.read_bytes() if edit.path.exists() else None)
                     edit.path.parent.mkdir(parents=True, exist_ok=True)
-                    edit.path.write_text(edit.content, encoding="utf-8")
+                    # Write exact model bytes on Linux and Windows. Text-mode
+                    # newline conversion would break cross-platform SHA-256.
+                    edit.path.write_bytes(edit.content.encode("utf-8"))
                     log.info("code_task: escreveu %s", edit.relative)
+                verify_applied_patch(edits, manifest)
                 code, output = self._runner(repo, python)
                 last_output = output
                 rounds += 1
                 evidence = classify_test_result(code, output)
                 if code == 0:
+                    # A test runner may unexpectedly rewrite code. Never claim
+                    # the approved patch remains applied without verifying it.
+                    verify_applied_patch(edits, manifest)
                     return ToolResult(
                         True,
                         f"Testes passaram na rodada {rounds}.\n\n{_tail(output)}",
@@ -184,8 +194,8 @@ class CodeTaskRunner:
                               "applied": True, "passed": True,
                               "tests_executed": True, "test_exit_code": 0,
                               "test_execution_source": "injected_executor",
-                              "preflight_checks": checks,
-                              "test_triage": evidence},
+                              "preflight_checks": checks, "patch_manifest": manifest,
+                              "test_triage": evidence, "patch_integrity": True},
                     )
         except Exception as exc:
             restored = self._restore(backups)
