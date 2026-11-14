@@ -71,6 +71,7 @@ jobs:
           tests/test_task_replan_persistence.py
           tests/test_goal_contract.py tests/test_task_goal_contract.py
           tests/test_eval_metrics.py tests/test_local_ollama_research.py
+          tests/test_task_usage.py
       - name: Avaliar agentes com execução Windows
         shell: pwsh
         run: python tools/evaluate_agent_reliability.py
