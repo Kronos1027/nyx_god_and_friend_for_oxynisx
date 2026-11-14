@@ -21,7 +21,7 @@ def task_health(record: Mapping) -> dict:
     if not isinstance(record, dict):
         raise ValueError("Registro de tarefa inválido.")
     state = record.get("state")
-    if state not in _SAFE_STATES:
+    if not isinstance(state, str) or state not in _SAFE_STATES:
         state = "UNKNOWN"
     steps = record.get("steps", [])
     if not isinstance(steps, list) or len(steps) > 48:
