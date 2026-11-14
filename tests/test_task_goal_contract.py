@@ -1,7 +1,6 @@
 """End-to-end runtime postconditions with normal tool permissions and journal."""
 import hashlib
 import json
-from pathlib import Path
 
 import pytest
 
