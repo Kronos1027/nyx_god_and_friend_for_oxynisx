@@ -99,3 +99,44 @@ uma reescrita integral sem medições.
 
 A meta de 1.800 módulos não foi atingida. Somente módulos com contrato,
 teste e integração devem contar como implementados.
+
+
+## Resultado medido — benchmark sintético da revisão Rust v2
+
+Em 14/11/2026, o commit `fe4fc3ab` passou nos dois runners
+do GitHub Actions e mediu o seletor de contexto com **10.000 fatos
+sintéticos, 7 repetições por implementação e saída idêntica**:
+
+| GitHub Actions runner | Python p50 | Rust p50 | Ganho observado |
+|---|---:|---:|---:|
+| Linux | 26,146 ms | 6,477 ms | **4,04×** |
+| Windows | 37,529 ms | 11,442 ms | **3,28×** |
+
+Variações entre máquinas/runners são esperadas e não constituem
+um benchmark controlado no Ryzen 7 5700X do usuário.
+
+Origem auditável: [execução nativa CI](https://github.com/Kronos1027/nyx_god_and_friend_for_oxynisx/actions/runs/43644146401).
+[Regressão Python CI](https://github.com/Kronos1027/nyx_god_and_friend_for_oxynisx/actions/runs/43644151000):
+860 aprovados, 96 pulados, 10 testes específicos de Windows excluídos
+da suíte Linux. Todos os jobs Windows e Linux concluíram com sucesso.
+
+A otimização v2 reduziu as alocações intermediárias de palavras:
+conta apenas os termos que aparecem na consulta, em vez de construir
+um conjunto completo de palavras para cada fato. O banco SQLite permanece
+autoritativo, e nenhuma informação foi descartada.
+
+**Não é ganho de 4× na IA.** Não foram medidos RAM/RSS real
+do componente Rust, tempo do Qwen, memória VRAM, tokens/s,
+qualidade de resposta nem desempenho da interface Windows.
+A extensão está desligada por padrão e depende de validação
+no PC real, sobretudo para Unicode especial e diferenças de `casefold`.
+
+## Próximo critério de decisão
+
+O primeiro módulo nativo demonstra viabilidade e redução mensurável
+de CPU no seletor, mas os módulos seguintes só devem migrar depois de
+encontrar um gargalo **real** no perfil de desempenho. Se o consumo
+de RAM ou a complexidade de suporte aumentarem sem benefício percebido,
+o caminho Python permanece válido. Não instalar Rust globalmente na
+máquina apenas para executar a Nyx: a distribuição futura deverá usar
+wheels compiladas e assinadas quando forem suficientemente testadas.
