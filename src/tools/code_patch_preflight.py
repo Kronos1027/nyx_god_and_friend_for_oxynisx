@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import ast
 import json
-import os
 from pathlib import Path, PurePosixPath
 import tomllib
 from typing import Iterable
