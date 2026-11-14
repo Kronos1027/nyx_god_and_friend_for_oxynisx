@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, experiments/nyx-harness-goal-gates-batch02]
   pull_request:
     branches: [main]
 
@@ -66,6 +66,7 @@ jobs:
           tests/test_agent_deep.py tests/test_task_reliability.py
           tests/test_task_delivery_replan.py tests/test_task_context.py
           tests/test_task_replan_persistence.py
+          tests/test_goal_contract.py tests/test_task_goal_contract.py
       - name: Avaliar agentes com execução Windows
         shell: pwsh
         run: python tools/evaluate_agent_reliability.py
