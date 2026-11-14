@@ -134,25 +134,25 @@ def test_contract_persists_across_pause_and_restart(tmp_path):
     journal.close()
 
 
-def test_confirmed_delete_satisfies_absence_goal(tmp_path):
+def test_model_cannot_invoke_unexposed_delete_action(tmp_path):
+    """An optional absence contract must not grant a tool permission."""
     path = tmp_path / "obsolete.txt"
-    path.write_text("remove me")
+    path.write_text("must not remove")
     runner, _ = build(tmp_path, [
         reply("delete_file", {"path": str(path)}),
-        reply(speech="Arquivo removido"),
     ])
     filetool = FileTool([tmp_path])
     runner.loop.registry.register(ToolSpec("delete_file", "delete file", destructive=True),
                                   filetool.delete_file)
-    pending = runner.start("Exclua o arquivo", acceptance={
+    result = runner.start("Exclua o arquivo", acceptance={
         "kind": "file_absent", "path": str(path),
     })
-    assert pending.needs_confirmation and path.exists()
-    answer = runner.resume(pending.pending_action, True)
-    assert not path.exists()
-    assert runner.goal_verdict["status"] == "VERIFIED"
-    assert runner.goal_verdict["reason"] == "file_absent"
-    assert "NÃO verificada" not in answer.response.speech_output
+    assert not result.needs_confirmation
+    assert not result.executed
+    assert path.read_text() == "must not remove"
+    assert runner.goal_verdict["status"] == "UNVERIFIED"
+    assert runner.goal_verdict["reason"] == "no_verified_delete"
+    assert "NÃO verificada" in result.response.speech_output
 
 
 def test_previously_absent_file_is_not_evidence_of_deletion(tmp_path):
