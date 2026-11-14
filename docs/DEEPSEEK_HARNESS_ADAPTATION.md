@@ -43,9 +43,11 @@ independentes antes de declarar conclusão.
   **confiável do aplicativo**, nunca a resposta do modelo, define um contrato.
 - `file_sha256`: exige registro de `write_file` executado e verificado na
   tarefa atual, mais bytes em disco idênticos ao hash esperado.
-- `file_absent`: exige registro de `delete_file` executado e verificado na
-  tarefa atual, além de ausência real no filesystem; o consentimento para
-  apagar continua pertencendo ao `ToolRegistry` e ao `AgentLoop`.
+- `file_absent`: verificador isolado que exige um registro confiável de
+  exclusão verificada e ausência do arquivo. **Ainda não acionável pelo
+  modelo**: `delete_file` não consta dos tipos de ação autorizados na Nyx.
+  O contrato NÃO acrescenta essa permissão. Serve apenas para futuras
+  integrações confiáveis que já possuam autorização explícita.
 - `TaskRunner(..., acceptance_roots=[trusted_workspace])` /
   `runner.start(goal, acceptance=contract)`: contrato opcional; tarefas sem
   contrato mantêm o comportamento anterior.
@@ -86,7 +88,7 @@ pedido em linguagem natural, nem prova que um relatório verbal é verdadeiro.
 - `pytest tests/test_goal_contract.py tests/test_task_goal_contract.py`;
 - suíte geral Linux com Ruff e smoke ampliado Windows; avaliar 100+ tarefas
   reais somente com autorização do usuário e equipamento local;
-- incluir cenários de symlink, dados antigos, arquivo incorreto,
+- incluir cenários de symlink, dados antigos, exclusão proibida, arquivo incorreto,
   recusa de aprovação, pausa/reinício, caminhos proibidos e arquivos grandes;
 - instrumentar latência, pico de RAM e taxa de conclusão com o **mesmo Qwen**
   antes e depois; sem esse ensaio, ganho de capacidade é uma hipótese;
