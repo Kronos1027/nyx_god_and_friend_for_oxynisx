@@ -507,7 +507,11 @@ class OllamaClient:
         system_prompt: str | None = None,
         timeout: float = 120.0,
         keep_alive: str = "5m",
+        seed: int | None = None,
     ) -> None:
+        if seed is not None and (type(seed) is not int or not 0 <= seed <= 2147483647):
+            raise ValueError("O seed do Ollama deve ser inteiro entre 0 e 2^31-1")
+        self.seed = seed
         self.model = model
         self.host = (host or os.environ.get("NYX_OLLAMA_HOST", "http://127.0.0.1:11434")).rstrip("/")
         self.timeout = timeout
@@ -634,6 +638,8 @@ class OllamaClient:
             },
             "stream": False,
         }
+        if self.seed is not None:
+            payload["options"]["seed"] = self.seed
         if self.think is not None:
             payload["think"] = self.think
         payload["_nyx_prompt"] = {
@@ -663,12 +669,12 @@ class OllamaClient:
                 load_model_json(raw)
             except (ValueError, TypeError, RecursionError):
                 problem = problem or "JSON inválido na saída do modelo."
+            from core.eval_metrics import generation_metrics
             self._generation_state.attempts.append({
                 "attempt": attempt + 1, "valid_json": problem is None,
                 "done_reason": str(reason or "unknown")[:40],
                 "output_characters": len(raw), "token_limit": payload["options"]["num_predict"],
-                "eval_count": res_data.get("eval_count") if type(res_data.get("eval_count")) is int else None,
-                "prompt_eval_count": res_data.get("prompt_eval_count") if type(res_data.get("prompt_eval_count")) is int else None,
+                **generation_metrics(res_data),
                 **res_data.get("_nyx_budget", {}),
             })
             if problem is None:
