@@ -6,7 +6,7 @@ No model calls and no filesystem effects.
 """
 from __future__ import annotations
 
-from typing import Mapping, Sequence
+from typing import Mapping
 
 from core.task_reliability import StepEvidence, trailing_failures
 
