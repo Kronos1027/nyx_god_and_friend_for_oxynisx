@@ -297,10 +297,14 @@ def resident_context(snapshot: ResourceSnapshot, installed: dict, running: list[
 
 def ollama_request_context(host: str, model: str, snapshot: ResourceSnapshot) -> int:
     """Recheck admission inside the inference queue, including expired residents."""
+    from core.ollama_admission import should_probe_resident
     installed = next((item for item in ollama_models(host, "tags") if item.get("name") == model), {})
-    context = resident_context(snapshot, installed, ollama_models(host, "ps"))
-    if context is not None:
-        return context
+    # A fresh /api/ps query is necessary only when a FULLY GPU-resident
+    # model can possibly qualify. Do not cache changing process residency.
+    if should_probe_resident(snapshot, installed):
+        context = resident_context(snapshot, installed, ollama_models(host, "ps"))
+        if context is not None:
+            return context
     size = installed.get("size")
     budget = model_weight_budget_bytes(snapshot)
     if budget is None:
