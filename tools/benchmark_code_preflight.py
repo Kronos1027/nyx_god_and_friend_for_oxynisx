@@ -50,7 +50,7 @@ def run(repeats=9) -> dict:
         "repeats": repeats,
         "files": len(sources), "parsed_files": 4,
         "median_ms": round(statistics.median(times), 3),
-        "p95_ms": round(sorted(times)[__import__("math").ceil(len(times) * 0.95) - 1], 3),
+        "p95_ms": round(sorted(times)[math.ceil(len(times) * 0.95) - 1], 3),
         "peak_python_allocated_mib": round(peak / 1048576, 3),
         "limitations": "Syntax-only synthetic inputs; no real Qwen, pytest, disk or GPU.",
     }
