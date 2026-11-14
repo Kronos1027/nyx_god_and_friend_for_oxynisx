@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 from pathlib import Path
 import sys
 
@@ -29,5 +30,4 @@ def main(argv=None) -> int:
 
 
 if __name__ == "__main__":
-    import sqlite3
     raise SystemExit(main())
