@@ -30,12 +30,12 @@ def test_usage_aggregates_and_excludes_secrets():
     assert totals["generation_attempts"] == 2
     assert totals["valid_json"] == 1
     assert totals["invalid_json"] == 1
-    assert totals["output_tokens"] == 40
-    assert totals["prompt_tokens"] == 120
-    assert totals["cached_prompt_tokens"] == 80
+    assert totals["output_count"] == 40
+    assert totals["prompt_count"] == 120
+    assert totals["cached_prompt_count"] == 80
     assert usage_summary(totals)["generation_tokens_per_second"] == 50
     assert "HIDDEN" not in json.dumps(totals)
-    assert clean_usage({"output_tokens": "fake", "secret": "leak"}) == empty_usage()
+    assert clean_usage({"output_count": "fake", "secret": "leak"}) == empty_usage()
 
 
 def test_runner_records_usage_without_storing_the_answer(tmp_path):
@@ -52,9 +52,9 @@ def test_runner_records_usage_without_storing_the_answer(tmp_path):
     result = runner.start("Explique SQLite")
     assert result.response.speech_output.startswith("SQLite")
     assert runner.model_usage["generation_attempts"] == 1
-    assert runner.model_usage["output_tokens"] == 40
+    assert runner.model_usage["output_count"] == 40
     ended = [item for item in audit.read_all() if item.get("event") == "task_finished"]
-    assert ended and ended[-1]["model_usage"]["prompt_tokens"] == 120
+    assert ended and ended[-1]["model_usage"]["prompt_count"] == 120
     assert "SQLite é um banco" not in json.dumps(ended[-1]["model_usage"])
 
 
@@ -74,7 +74,7 @@ def test_task_usage_survives_pause_and_restart(tmp_path):
     runner.start("Explique SQLite")
     task_id = runner.task_id
     assert journal.get(task_id)["state"] == "PAUSED"
-    assert journal.get(task_id)["model_usage"]["output_tokens"] == 40
+    assert journal.get(task_id)["model_usage"]["output_count"] == 40
     journal.close()
 
     class Finish:
@@ -87,7 +87,7 @@ def test_task_usage_survives_pause_and_restart(tmp_path):
     resumed = TaskRunner(AgentLoop(Finish(), ToolRegistry(), AuditLogger(tmp_path / "second")),
                          journal=other)
     resumed.continue_task(task_id)
-    assert resumed.model_usage["output_tokens"] == 80
+    assert resumed.model_usage["output_count"] == 80
     assert other.get(task_id)["model_usage"]["generation_attempts"] == 2
     other.close()
 
@@ -109,6 +109,6 @@ def test_ollama_usage_and_seed_are_extracted_without_network(monkeypatch):
     assert result == answer()
     assert received[0]["options"]["seed"] == 42
     metrics = client.generation_report[0]
-    assert metrics["output_tokens_per_second"] == 50
+    assert metrics["output_count_per_second"] == 50
     assert metrics["total_duration_ns"] == 1_000_000_000
     assert metrics["prompt_eval_cached_count"] == 80
