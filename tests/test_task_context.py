@@ -80,3 +80,18 @@ def test_legacy_short_ledger_keeps_each_action():
     data = json.loads(raw.split("\n", 1)[1])
     assert isinstance(data, list) and len(data) == 12
     assert data[1]["verified"] is False
+
+
+def test_compacted_ledger_redacts_secret_parameters_and_output():
+    entries = steps(17)
+    entries[-1]["params"] = {
+        "path": "normal.txt", "password": "SUPERSECRET",
+        "headers": {"authorization": "Bearer SECRET_BEARER"},
+    }
+    entries[-1]["output"] = "password=HIDDEN sk-12345678901234567890"
+    ledger = compact_task_ledger(entries, max_chars=4000)
+    assert "SUPERSECRET" not in ledger
+    assert "SECRET_BEARER" not in ledger
+    assert "HIDDEN" not in ledger
+    assert "sk-12345678901234567890" not in ledger
+    assert "[protegido]" in ledger
