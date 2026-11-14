@@ -22,7 +22,9 @@ Nyx é um projeto Python para um assistente desktop que usa modelos locais por O
 - Estudo em intervalos: fila persistente, cancelamento e prévia de trechos de documentação Python/Windows/Ollama. Até quatro leituras por dia, uma a cada 15 minutos, quando não há pedidos ativos e há recursos disponíveis. A coleta não treina o modelo e pode ser pausada no painel Aprendizado.
 - Backup local criptografado dos bancos a cada 30 minutos com o app aberto; cópia na branch `nyx-backups` do [repositório privado autorizado](https://github.com/Kronos1027/nyx_god_and_friend_for_oxynisx). Requer Git e credenciais previamente configuradas. A chave de recuperação fica separada; exporte-a pelo painel Aprendizado e guarde-a em local privado.
 
-O [programa modular Nyx Evolution](docs/NYX_EVOLUTION_PROGRAM.md) define critérios de aceitação antes de contar novas capacidades. O [Lote 01](docs/NYX_EVOLUTION_PROGRAM.md#lote-01--execução-de-tarefas-branch-experimental) melhora replanejamento de tarefas, evidências de conclusão, diagnóstico de falhas, histórico compacto e testes reproduzíveis. Ainda é **experimental**, sem validação de Qwen/CUDA no PC de destino.\n\nA [arquitetura adaptativa](docs/EVOLUTION_ARCHITECTURE.md) separa o que está implementado das próximas etapas de pesquisa ociosa, testes isolados, promoção de código e aprendizado de modelos. A [meta completa](docs/PRODUCT_GOAL.md) permanece ativa.
+O [programa modular Nyx Evolution](docs/NYX_EVOLUTION_PROGRAM.md) define critérios de aceitação antes de contar novas capacidades. O [Lote 01](docs/NYX_EVOLUTION_PROGRAM.md#lote-01--execução-de-tarefas-branch-experimental) melhora replanejamento de tarefas, evidências de conclusão, diagnóstico de falhas, histórico compacto e testes reproduzíveis. Ainda é **experimental**, sem validação de Qwen/CUDA no PC de destino.
+
+A [arquitetura adaptativa](docs/EVOLUTION_ARCHITECTURE.md) separa o que está implementado das próximas etapas de pesquisa ociosa, testes isolados, promoção de código e aprendizado de modelos. A [meta completa](docs/PRODUCT_GOAL.md) permanece ativa.
 
 ## Executar no Windows
 
