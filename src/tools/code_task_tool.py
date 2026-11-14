@@ -17,6 +17,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from tools.code_patch_preflight import check_edit_batch, inspect_existing_files
+
 log = logging.getLogger(__name__)
 
 MAX_ROUNDS = 3
@@ -97,12 +99,21 @@ class CodeTaskRunner:
 
         try:
             repo = self._resolve_repo(params.get("path"))
-            task = self._clean_task(params.get("task"))
             apply_changes = params.get("apply", False)
             if type(apply_changes) is not bool:
                 raise CodeTaskError("apply precisa ser um booleano explícito.")
+            if params.get("operation") == "preflight":
+                if apply_changes:
+                    raise CodeTaskError("Inspeção estática nunca aplica alterações.")
+                checks = inspect_existing_files(repo, params.get("files"))
+                return ToolResult(
+                    True, f"Inspeção estática de {len(checks)} arquivos; nenhum teste foi executado.",
+                    meta={"action": "code_task", "operation": "preflight",
+                          "tests_executed": False, "applied": False, "checks": checks},
+                )
+            task = self._clean_task(params.get("task"))
             max_rounds = int(params.get("max_rounds") or 2)
-        except (CodeTaskError, ValueError, TypeError) as exc:
+        except (CodeTaskError, ValueError, TypeError, OSError) as exc:
             return ToolResult(False, error=str(exc), meta={"action": "code_task"})
         max_rounds = max(1, min(MAX_ROUNDS, max_rounds))
 
@@ -117,8 +128,10 @@ class CodeTaskRunner:
                 if not isinstance(output, str) or not output.strip() or len(output) > 12000:
                     raise CodeTaskError("Forneça test_output com 1 a 12000 caracteres; ele não será executado.")
                 edits = self._propose(repo, task, output, 1)
+                checks = check_edit_batch(edits)
                 return ToolResult(True, "Proposta criada a partir do relatório fornecido; testes não executados.",
                                   meta={"action": "code_task", "applied": False, "tests_executed": False,
+                                        "preflight_checks": checks,
                                         "proposed": [{"path": e.relative, "content": e.content} for e in edits]})
             python = self._resolve_python(repo, params.get("python"))
             code, output = self._runner(repo, python)
@@ -129,10 +142,13 @@ class CodeTaskRunner:
                     True,
                     f"Testes passaram na rodada {rounds}.\n\n{_tail(output)}",
                     meta={"action": "code_task", "rounds": rounds, "repo": str(repo),
-                          "applied": False, "passed": True},
+                          "applied": False, "passed": True,
+                          "tests_executed": True, "test_exit_code": 0,
+                          "test_execution_source": "injected_executor"},
                 )
             for attempt in range(1, max_rounds + 1):
                 edits = self._propose(repo, task, output, attempt)
+                checks = check_edit_batch(edits)
                 if not apply_changes:
                     summary = "\n".join(
                         f"- {edit.relative}: {len(edit.content.splitlines())} linhas propostas" for edit in edits
@@ -143,7 +159,8 @@ class CodeTaskRunner:
                         f"Trecho da falha:\n{_tail(output, 1500)}",
                         meta={"action": "code_task", "proposed": [
                             {"path": edit.relative, "content": edit.content} for edit in edits
-                        ], "rounds": rounds, "applied": False},
+                        ], "preflight_checks": checks, "tests_executed": True,
+                            "rounds": rounds, "applied": False},
                     )
                 for edit in edits:
                     backups.setdefault(edit.path, edit.path.read_bytes() if edit.path.exists() else None)
@@ -158,7 +175,10 @@ class CodeTaskRunner:
                         True,
                         f"Testes passaram na rodada {rounds}.\n\n{_tail(output)}",
                         meta={"action": "code_task", "rounds": rounds, "repo": str(repo),
-                              "applied": True, "passed": True},
+                              "applied": True, "passed": True,
+                              "tests_executed": True, "test_exit_code": 0,
+                              "test_execution_source": "injected_executor",
+                              "preflight_checks": checks},
                     )
         except Exception as exc:
             restored = self._restore(backups)
