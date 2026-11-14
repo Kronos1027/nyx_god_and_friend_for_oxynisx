@@ -17,8 +17,11 @@ def _small(value, n: int):
 
 
 def _recent_item(step: Mapping, number: int, preview_chars: int) -> dict:
-    params = json.dumps(step.get("params", {}), ensure_ascii=False, separators=(",", ":"), default=str)
-    out = str(step.get("output") or "")
+    from core.task_journal import TaskJournal
+    # Redact private values before including them in the next model prompt.
+    params = json.dumps(TaskJournal._redact(step.get("params", {})),
+                        ensure_ascii=False, separators=(",", ":"), default=str)
+    out = str(TaskJournal._redact(str(step.get("output") or "")))
     return {
         "n": number,
         "tool": _small(step.get("tool", "?"), 48),
