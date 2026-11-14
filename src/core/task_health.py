@@ -30,7 +30,7 @@ def task_health(record: Mapping) -> dict:
     verdict = record.get("goal_verdict")
     has_contract = isinstance(record.get("goal_contract"), dict)
     raw_kind = record["goal_contract"].get("kind") if has_contract else None
-    kind = raw_kind if raw_kind in {"file_sha256", "file_absent", "file_bundle"} else None
+    kind = raw_kind if isinstance(raw_kind, str) and raw_kind in {"file_sha256", "file_absent", "file_bundle"} else None
     goal_ok = (
         isinstance(verdict, dict)
         and verdict.get("status") == "VERIFIED"
