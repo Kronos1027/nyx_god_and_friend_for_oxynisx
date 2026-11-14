@@ -39,3 +39,49 @@ Resultados observados:
 - Nova execução selecionou Qwen2.5 3B e propôs uma escrita fora dos parâmetros exatos do ensaio; a aprovação roteirizada recusou, sem ação executada. Falha em 12,19 s. A seleção de modelo por orçamento ainda não considera competência por tipo de tarefa.
 
 Os últimos ensaios são preservados individualmente em build/previews/file-attempts. O arquivo file-workflow.json mostra a tentativa mais recente, inclusive quando falha. Sucesso isolado não demonstra confiabilidade geral. Próxima lacuna: evitar troca silenciosa para um modelo que não foi aprovado para a capacidade necessária e avaliar a contabilização de modelos já residentes no orçamento.
+
+
+## Lote experimental de confiabilidade — 2026-11-13
+
+Esta alteração permanece em branch/PR de revisão, não instalada automaticamente.
+
+- **Replanejamento de entrega prematura:** no perfil da interface com
+  autoextensão, um comando externo respondido com `none` sem execução verificada
+  pode provocar **uma** revisão de planejamento. Não faz efeito externo sem
+  ferramenta e sem as confirmações normais. A tentativa é persistida para
+  não se repetir após pausa/reinício. Sem ferramenta ou com recusa legítima,
+  a Nyx informa limitação; não há segunda tentativa.
+- **Recuperação orientada por evidência:** mensagens curtas e específicas por
+  ferramenta após resultados malsucedidos; três falhas consecutivas com a
+  mesma ferramenta bloqueiam nova execução. Nunca reexecutar efeitos incertos.
+- **Contexto longo:** após 12 ações, o registro é compactado para JSON
+  estruturado com contagens, falhas antigas e oito observações recentes;
+  sinaliza truncamentos e conteúdo externo sem autoridade.
+- **Privacidade:** parâmetros/saídas das ferramentas são submetidos à
+  redação existente no histórico de tarefas antes de entrar no próximo
+  prompt, tanto para históricos curtos quanto compactados.
+- **Microagentes profundos:** max_steps explícito por subtarefa de 2 a 6;
+  padrão continua 2 e a última etapa é reservada ao relatório. Não é
+  permitido ampliar ferramentas para escrita ou automação sensível.
+  O tempo total é ampliado com limite superior de dez minutos e continua
+  interrompível; o padrão usa 150s e testes podem injetar timeout menor.
+
+### Validação requerida
+
+Executar `pytest tests/test_task_runner.py tests/test_task_persistence.py
+tests/test_agent_team.py tests/test_agent_team_lifecycle.py
+tests/test_agent_deep.py tests/test_task_context.py
+tests/test_task_reliability.py tests/test_task_delivery_replan.py
+tests/test_task_replan_persistence.py tests/test_agent_budget.py`.
+
+Além disso: `python tools/evaluate_agent_reliability.py`. Seus seis
+cenários são **roteirizados**, mas usam o executor e as ferramentas
+registradas reais; não comprovam competência do Qwen, voz, CUDA ou
+automação do Windows do usuário. O CI deve ficar verde nas duas plataformas.
+
+### Limitações não resolvidas
+
+A verificação de uma ação não comprova sozinha que todo objetivo do usuário
+foi atendido. São necessários pós-condições de meta, avaliação com Qwen
+real, telemetria de latência/RAM e testes de integração no Windows do
+destinatário antes de promover esta branch.

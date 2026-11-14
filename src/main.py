@@ -84,7 +84,7 @@ def run_gui(args: argparse.Namespace) -> int:
     registry = build_registry(cfg)
     llm = build_llm_for_app(args, cfg)
     registry.register(
-        ToolSpec(name="agent_team", description="Delega até 4 investigações com dependências (3 independentes por vez, 2 passos cada), somente consultas permitidas", sensitive=False, input_contract=agent_team_contract()),
+        ToolSpec(name="agent_team", description="Delega até 4 investigações (3 concorrentes, 2 etapas por padrão ou 2–6 explícitas; último turno é relatório), somente consultas permitidas", sensitive=False, input_contract=agent_team_contract()),
         make_agent_team_tool_func(llm, registry, audit),
     )
     from tools.code_task_tool import make_code_task_tool_func
@@ -113,7 +113,9 @@ def run_gui(args: argparse.Namespace) -> int:
     from core.task_runner import TaskRunner
     from core.task_journal import TaskJournal
     task_journal = TaskJournal(Path("data") / "nyx_tasks.db")
-    loop.task_runner = TaskRunner(loop, journal=task_journal)
+    # Trust the application's configured file roots, never model-generated roots.
+    loop.task_runner = TaskRunner(loop, journal=task_journal,
+                                  acceptance_roots=cfg.resolve_allowed_roots())
     overlay = OverlayWindow(loop=loop)
     desktop = None
     if getattr(args, "overlay", False):
