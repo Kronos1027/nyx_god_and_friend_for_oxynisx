@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, experiments/nyx-harness-goal-gates-batch02]
+    branches: [main, experiments/nyx-real-llm-evaluation-batch03]
   pull_request:
     branches: [main]
 
@@ -43,6 +43,9 @@ jobs:
       - name: Avaliar confiabilidade dos agentes (modelo roteirizado)
         run: python tools/evaluate_agent_reliability.py
 
+      - name: Plano de experimento local sem rede
+        run: python tools/benchmark_local_nyx.py
+
   windows-platform-smoke:
     runs-on: windows-latest
     env:
@@ -67,6 +70,10 @@ jobs:
           tests/test_task_delivery_replan.py tests/test_task_context.py
           tests/test_task_replan_persistence.py
           tests/test_goal_contract.py tests/test_task_goal_contract.py
+          tests/test_eval_metrics.py tests/test_local_ollama_research.py
       - name: Avaliar agentes com execução Windows
         shell: pwsh
         run: python tools/evaluate_agent_reliability.py
+      - name: Plano local de pesquisa sem usar Ollama
+        shell: pwsh
+        run: python tools/benchmark_local_nyx.py
