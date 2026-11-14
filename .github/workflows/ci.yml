@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, experiments/nyx-goal-bundles-status-batch06]
+    branches: [main, experiments/nyx-safe-code-preflight-batch07]
   pull_request:
     branches: [main]
 
@@ -47,6 +47,8 @@ jobs:
         run: python tools/benchmark_local_nyx.py
       - name: Medir cache de contexto repetido sem modelo
         run: python tools/benchmark_repeated_context.py --facts 10000 --trials 9
+      - name: Medir overhead da inspeção estática de código
+        run: python tools/benchmark_code_preflight.py
 
   windows-platform-smoke:
     runs-on: windows-latest
@@ -77,6 +79,7 @@ jobs:
           tests/test_long_horizon_research.py
           tests/test_context_prompt_cache.py tests/test_ollama_admission_fastpath.py tests/test_inference_queue_metrics.py
           tests/test_goal_bundle.py tests/test_task_health.py tests/test_task_diagnostics.py tests/test_audit_privacy.py
+          tests/test_code_task_tool.py tests/test_code_patch_preflight.py tests/test_failure_triage.py tests/test_code_patch_integrity.py
       - name: Avaliar agentes com execução Windows
         shell: pwsh
         run: python tools/evaluate_agent_reliability.py
@@ -86,3 +89,6 @@ jobs:
       - name: Medir cache de contexto no runner Windows
         shell: pwsh
         run: python tools/benchmark_repeated_context.py --facts 10000 --trials 9
+      - name: Medir overhead da inspeção estática no Windows
+        shell: pwsh
+        run: python tools/benchmark_code_preflight.py
