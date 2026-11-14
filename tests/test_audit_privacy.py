@@ -76,3 +76,16 @@ def test_security_detail_is_always_omitted():
     assert item["code"] == "permission_denied"
     assert item["allowed"] is False
     assert "User path" not in repr(item)
+
+
+def test_freeform_errors_and_summaries_do_not_leak_private_paths(tmp_path):
+    logger = AuditLogger(tmp_path)
+    logger.log_event("task_failed",
+                     error="C:/Users/Private/secret_project",
+                     summary="Do not disclose internal workspace",
+                     status="FAILED", verified_actions=0)
+    raw = logger.path.read_text(encoding="utf-8")
+    assert "secret_project" not in raw
+    assert "internal workspace" not in raw
+    assert logger.read_all()[0]["status"] == "FAILED"
+    assert logger.read_all()[0]["verified_actions"] == 0
