@@ -73,7 +73,7 @@ jobs:
           tests/test_eval_metrics.py tests/test_local_ollama_research.py
           tests/test_task_usage.py tests/test_research_triage.py
           tests/test_long_horizon_research.py
-          tests/test_context_prompt_cache.py tests/test_ollama_admission_fastpath.py
+          tests/test_context_prompt_cache.py tests/test_ollama_admission_fastpath.py tests/test_inference_queue_metrics.py
       - name: Avaliar agentes com execução Windows
         shell: pwsh
         run: python tools/evaluate_agent_reliability.py
