@@ -701,8 +701,16 @@ class DesktopWindow(QMainWindow):
                   "CANCELLED": "Cancelada", "FAILED": "Interrompida com pendência",
                   "ACT": "Executando", "PLAN": "Planejando", "OBSERVE": "Resultado observado",
                   "WAITING_USER": "Aguardando confirmação"}
+        from core.task_health import task_health
         for task in journal.list():
-            item = QListWidgetItem(f"{labels.get(task['state'], task['state'])} · {task['goal'][:100]}")
+            health = task_health(task)
+            if health["status"] == "GOAL_VERIFIED":
+                status_label = "Entrega verificada"
+            elif health["status"] == "GOAL_UNVERIFIED":
+                status_label = "Entrega incompleta ou não comprovada"
+            else:
+                status_label = labels.get(task["state"], task["state"])
+            item = QListWidgetItem(f"{status_label} · {task['goal'][:100]}")
             item.setData(Qt.ItemDataRole.UserRole, task["id"])
             self.task_history.addItem(item)
 
@@ -710,9 +718,14 @@ class DesktopWindow(QMainWindow):
         journal = self._task_journal()
         if journal:
             task = journal.get(item.data(Qt.ItemDataRole.UserRole))
+            from core.task_health import task_health
+            health = task_health(task)
             lines = [task["goal"], "", f"Tarefa {task['id'][:12]}",
                      f"Etapas: {len(task['steps'])} de {task['max_actions']}",
-                     f"Tempo utilizado: {task['spent']:.1f} de {task['timeout']} segundos", ""]
+                     f"Tempo utilizado: {task['spent']:.1f} de {task['timeout']} segundos",
+                     f"Verificação da meta: {health['status']}",
+                     f"Ações comprovadas: {health['steps_verified']}/{health['steps_total']}",
+                     health["guidance"], ""]
             if task.get("inflight") or task.get("uncertain"):
                 lines += ["Resultado incerto. Confira o aplicativo antes de formular um novo pedido.", ""]
             for number, step in enumerate(task["steps"], 1):
