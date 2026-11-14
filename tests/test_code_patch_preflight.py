@@ -1,6 +1,5 @@
 """Static code preflight: no project code is ever run during inspection."""
 import json
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
