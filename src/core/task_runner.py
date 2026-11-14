@@ -329,11 +329,12 @@ class TaskRunner:
                             reason="goal_postcondition_unverified", attempt=self.goal_attempts,
                         )
                         continue
-                if proposed.parse_ok and self.auto_extend and should_replan_premature_finish(
+                if (proposed.parse_ok and self.auto_extend and self.goal_contract is None and
+                        should_replan_premature_finish(
                     self.goal, self.steps, action_type=proposed.action.type,
                     speech=proposed.speech_output, tool_names=[item["name"] for item in tools],
                     attempts=self.delivery_replans,
-                ):
+                )):
                     self.delivery_replans += 1
                     self.planning_feedback = (
                         "Você retornou action.type=none para um pedido que exige ação no sistema, "
