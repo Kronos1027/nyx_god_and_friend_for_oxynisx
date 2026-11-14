@@ -20,6 +20,7 @@ from audit.logger import AuditLogger  # noqa: E402
 from core.agent_loop import AgentLoop  # noqa: E402
 from core.eval_metrics import summarize_trials  # noqa: E402
 from core.eval_resources import MemorySampler, admit_research, host_memory_sample  # noqa: E402
+from core.research_triage import propose_followup_research  # noqa: E402
 from core.goal_contract import GoalContract  # noqa: E402
 from core.llm_client import OllamaClient  # noqa: E402
 from core.runtime_budget import resource_snapshot  # noqa: E402
@@ -189,6 +190,7 @@ def run_experiment(*, model_name: str, repeats: int, timeout: int, seed: int,
         "data_policy": "no prompts, answers, personal files or API tokens stored in summary",
         "limitations": "tiny synthetic dataset; no proof of general autonomy or peak VRAM",
         "summary": summarize_trials(trials),
+        "followup_research": propose_followup_research(trials, summarize_trials(trials)),
         "trials": trials,
     }
 
