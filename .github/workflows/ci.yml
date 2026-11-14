@@ -45,6 +45,8 @@ jobs:
 
       - name: Plano de experimento local sem rede
         run: python tools/benchmark_local_nyx.py
+      - name: Medir cache de contexto repetido sem modelo
+        run: python tools/benchmark_repeated_context.py --facts 10000 --trials 9
 
   windows-platform-smoke:
     runs-on: windows-latest
@@ -80,3 +82,6 @@ jobs:
       - name: Plano local de pesquisa sem usar Ollama
         shell: pwsh
         run: python tools/benchmark_local_nyx.py
+      - name: Medir cache de contexto no runner Windows
+        shell: pwsh
+        run: python tools/benchmark_repeated_context.py --facts 10000 --trials 9
