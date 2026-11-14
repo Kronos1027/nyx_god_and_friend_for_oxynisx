@@ -165,6 +165,55 @@ def evaluate(root: Path) -> list[dict]:
            runner.goal_verdict["reason"] == "no_verified_delete",
            goal_verdict=runner.goal_verdict["status"])
 
+    # Scenario 10: the code project is not delivered until BOTH files pass.
+    source = root / "bundle_app.py"
+    tests = root / "bundle_test.py"
+    src_text = "def answer():\n    return 42\n"
+    test_text = "def test_answer():\n    assert answer() == 42\n"
+    manifest = {"kind": "file_bundle", "items": [
+        {"kind": "file_sha256", "path": str(source),
+         "sha256": hashlib.sha256(src_text.encode()).hexdigest()},
+        {"kind": "file_sha256", "path": str(tests),
+         "sha256": hashlib.sha256(test_text.encode()).hexdigest()},
+    ]}
+    runner, registry, _, _ = prepare(root / "case-bundle-complete", [
+        answer("write_file", {"path": str(source), "content": src_text}),
+        answer("write_file", {"path": str(tests), "content": test_text}),
+        answer(speech="Dois arquivos entregues"),
+    ], acceptance_roots=[root])
+    registry.register(ToolSpec("write_file", "write", sensitive=True), file_tool.write_file)
+    first = runner.start("Entregue código e testes", acceptance=manifest)
+    second = runner.resume(first.pending_action, True) if first.needs_confirmation else first
+    last = runner.resume(second.pending_action, True) if second.needs_confirmation else second
+    record("bundle_code_and_test_both_verified",
+           first.needs_confirmation and second.needs_confirmation and
+           source.read_text() == src_text and tests.read_text() == test_text and
+           runner.goal_verdict["reason"] == "all_files_verified" and
+           "NÃO verificada" not in last.response.speech_output,
+           goal_verdict=runner.goal_verdict["status"])
+
+    # Scenario 11: "done" after writing only code is not a complete project.
+    other = root / "partial_app.py"
+    absent = root / "partial_test.py"
+    partial = {"kind": "file_bundle", "items": [
+        {"kind": "file_sha256", "path": str(other),
+         "sha256": hashlib.sha256(src_text.encode()).hexdigest()},
+        {"kind": "file_sha256", "path": str(absent),
+         "sha256": hashlib.sha256(test_text.encode()).hexdigest()},
+    ]}
+    runner, registry, _, _ = prepare(root / "case-bundle-partial", [
+        answer("write_file", {"path": str(other), "content": src_text}),
+        answer(speech="Já terminei o projeto"),
+    ], acceptance_roots=[root])
+    registry.register(ToolSpec("write_file", "write", sensitive=True), file_tool.write_file)
+    approval = runner.start("Entregue código e testes", acceptance=partial)
+    final = runner.resume(approval.pending_action, True) if approval.needs_confirmation else approval
+    record("bundle_incomplete_delivery_is_not_verified",
+           approval.needs_confirmation and other.exists() and not absent.exists() and
+           runner.goal_verdict["reason"] == "verified_1_of_2" and
+           "NÃO verificada" in final.response.speech_output,
+           goal_verdict=runner.goal_verdict["status"])
+
     return checks
 
 
