@@ -703,7 +703,13 @@ class DesktopWindow(QMainWindow):
                   "WAITING_USER": "Aguardando confirmação"}
         from core.task_health import task_health
         for task in journal.list():
-            health = task_health(task)
+            try:
+                health = task_health(task)
+            except (ValueError, TypeError, KeyError):
+                item = QListWidgetItem("Registro inválido · revise o histórico local")
+                item.setData(Qt.ItemDataRole.UserRole, task.get("id"))
+                self.task_history.addItem(item)
+                continue
             if health["status"] == "GOAL_VERIFIED":
                 status_label = "Entrega verificada"
             elif health["status"] == "GOAL_UNVERIFIED":
@@ -719,7 +725,11 @@ class DesktopWindow(QMainWindow):
         if journal:
             task = journal.get(item.data(Qt.ItemDataRole.UserRole))
             from core.task_health import task_health
-            health = task_health(task)
+            try:
+                health = task_health(task)
+            except (ValueError, TypeError, KeyError):
+                self.task_preview.setPlainText("Registro de tarefa inválido; nenhuma retomada automática será iniciada.")
+                return
             lines = [task["goal"], "", f"Tarefa {task['id'][:12]}",
                      f"Etapas: {len(task['steps'])} de {task['max_actions']}",
                      f"Tempo utilizado: {task['spent']:.1f} de {task['timeout']} segundos",
