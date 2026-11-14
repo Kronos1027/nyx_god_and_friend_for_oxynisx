@@ -24,6 +24,8 @@ Nyx é um projeto Python para um assistente desktop que usa modelos locais por O
 
 O [programa modular Nyx Evolution](docs/NYX_EVOLUTION_PROGRAM.md) define critérios de aceitação antes de contar novas capacidades. O [Lote 01](docs/NYX_EVOLUTION_PROGRAM.md#lote-01--execução-de-tarefas-branch-experimental) melhora replanejamento de tarefas, evidências de conclusão, diagnóstico de falhas, histórico compacto e testes reproduzíveis. Ainda é **experimental**, sem validação de Qwen/CUDA no PC de destino.
 
+A [pesquisa de agentes com Ollama local — Lote 03](docs/NYX_RESEARCH_BATCH03.md) adiciona métricas de tokens, tempo, RAM e uma comparação A/B opt-in em arquivos temporários. O script `python tools/benchmark_local_nyx.py` apenas mostra o plano; nenhuma execução real do Qwen foi feita na CI, e a pesquisa não baixa modelos nem acessa projetos pessoais.
+
 A [arquitetura adaptativa](docs/EVOLUTION_ARCHITECTURE.md) separa o que está implementado das próximas etapas de pesquisa ociosa, testes isolados, promoção de código e aprendizado de modelos. A [meta completa](docs/PRODUCT_GOAL.md) permanece ativa.
 
 ## Executar no Windows
