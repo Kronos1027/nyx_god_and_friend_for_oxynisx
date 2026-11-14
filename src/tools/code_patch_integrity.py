@@ -35,7 +35,7 @@ def verify_applied_patch(edits, expected: list[dict]) -> bool:
     """Reject missing, symlinked, oversized or unexpectedly modified files."""
     if not isinstance(expected, list) or len(edits) != len(expected):
         raise PatchIntegrityError("INVALID_MANIFEST")
-    for edit, record in zip(edits, expected):
+    for edit, record in zip(edits, expected, strict=True):
         if not isinstance(record, dict) or record.get("path") != edit.relative:
             raise PatchIntegrityError("TARGET_CHANGED")
         target = Path(edit.path)
