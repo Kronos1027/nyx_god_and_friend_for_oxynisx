@@ -11,7 +11,8 @@ import time
 from uuid import uuid4
 
 from core.agent_loop import LoopResult
-from core.goal_contract import GoalContract, GoalVerdict
+from core.goal_contract import GoalVerdict
+from core.goal_bundle import parse_goal_contract, required_goal_tool
 from core.task_usage import empty_usage, clean_usage, accumulate_usage, usage_summary
 from core.llm_client import ModelOutputError, NyxResponse, parse_response
 from core.task_reliability import (
@@ -119,7 +120,7 @@ class TaskRunner:
             self.steps, self.seen = item["steps"], item["seen"]
             self.replans = item.get("replans", 0)
             self.delivery_replans = item.get("delivery_replans", 0)
-            self.goal_contract = (GoalContract.parse(item["goal_contract"], self.acceptance_roots)
+            self.goal_contract = (parse_goal_contract(item["goal_contract"], self.acceptance_roots)
                                   if item.get("goal_contract") else None)
             self.goal_attempts = item.get("goal_attempts", 0)
             self.goal_verdict = item.get("goal_verdict")
@@ -186,7 +187,7 @@ class TaskRunner:
             if not isinstance(goal, str) or not goal.strip() or len(goal) > 8000:
                 raise ValueError("O pedido precisa ter entre 1 e 8000 caracteres")
             # Parsing must occur BEFORE activation and any external effect.
-            contract = (GoalContract.parse(acceptance, self.acceptance_roots)
+            contract = (parse_goal_contract(acceptance, self.acceptance_roots)
                         if acceptance is not None else None)
             self.loop.registry.control.begin()
             self.active = True
@@ -319,7 +320,7 @@ class TaskRunner:
                 if (proposed.parse_ok and proposed.action.type == "none" and
                         self.goal_contract is not None and self.auto_extend and
                         self.goal_attempts < 1 and not self.uncertain and not self.inflight and
-                        ("write_file" if self.goal_contract.kind == "file_sha256" else "delete_file")
+                        required_goal_tool(self.goal_contract)
                         in {item["name"] for item in tools}):
                     goal_check = self.goal_contract.evaluate(self.steps, self.acceptance_roots)
                     if not goal_check.passed:
