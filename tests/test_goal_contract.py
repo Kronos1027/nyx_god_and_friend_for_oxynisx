@@ -95,3 +95,20 @@ def test_empty_file_hash_is_valid_when_proven(tmp_path):
     path.touch()
     contract = GoalContract.parse(expected(path), [tmp_path])
     assert contract.evaluate([witness(path)], [tmp_path]).passed
+
+
+def test_file_absent_requires_verified_delete_not_preexisting_absence(tmp_path):
+    target = tmp_path / "obsolete.txt"
+    contract = GoalContract.parse({"kind": "file_absent", "path": str(target)}, [tmp_path])
+    assert contract.evaluate([], [tmp_path]).reason == "no_verified_delete"
+    assert contract.evaluate([witness(target, tool="delete_file")], [tmp_path]).passed
+    target.write_text("exists")
+    assert contract.evaluate([witness(target, tool="delete_file")], [tmp_path]).reason == "file_still_exists"
+
+
+def test_file_absent_rejects_wrong_witness_or_extra_fields(tmp_path):
+    target = tmp_path / "x"
+    contract = GoalContract.parse({"kind": "file_absent", "path": str(target)}, [tmp_path])
+    assert contract.evaluate([witness(target)], [tmp_path]).reason == "no_verified_delete"
+    with pytest.raises(ValueError):
+        GoalContract.parse({"kind": "file_absent", "path": str(target), "sha256": "a" * 64}, [tmp_path])
