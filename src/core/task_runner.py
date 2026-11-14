@@ -11,6 +11,7 @@ import time
 from uuid import uuid4
 
 from core.agent_loop import LoopResult
+from core.goal_contract import GoalContract, GoalVerdict
 from core.llm_client import ModelOutputError, NyxResponse, parse_response
 from core.task_reliability import (
     StepEvidence, trailing_failures, recovery_hint, completion_warning,
@@ -26,7 +27,8 @@ class TaskRunner:
     BUDGET_PROFILES = {"default": (6, 1800), "extended": (12, 1800)}
     AUTO_ACTION_CEILING = 48
 
-    def __init__(self, loop, max_actions: int = 6, timeout: float = 180, clock=time.monotonic, journal=None):
+    def __init__(self, loop, max_actions: int = 6, timeout: float = 180, clock=time.monotonic,
+                 journal=None, acceptance_roots=()):
         self.loop = loop
         self.max_actions = max(1, min(max_actions, 12))
         self.timeout = max(1, min(timeout, 600))
@@ -37,6 +39,12 @@ class TaskRunner:
         self.cancelled = threading.Event()
         self.pause_requested = threading.Event()
         self.journal = journal
+        # Trusted UI/project configuration supplies permitted evidence roots;
+        # the model cannot create, expand, or alter these roots.
+        self.acceptance_roots = tuple(acceptance_roots)
+        self.goal_contract = None
+        self.goal_attempts = 0
+        self.goal_verdict = None
         self._lock = threading.Lock()
         self.active = False
         self.pending = None
@@ -75,7 +83,10 @@ class TaskRunner:
             "inflight": self.inflight, "uncertain": self.uncertain,
             "auto_extend": self.auto_extend,
             "chat_id": self.chat_id,
-            "replans": self.replans, "delivery_replans": self.delivery_replans})
+            "replans": self.replans, "delivery_replans": self.delivery_replans,
+            "goal_contract": self.goal_contract.as_dict() if self.goal_contract else None,
+            "goal_attempts": self.goal_attempts,
+            "goal_verdict": self.goal_verdict})
 
     def continue_task(self, task_id, on_progress=None):
         """Explicit UI request only. Old approvals and in-flight work are never replayed."""
@@ -105,6 +116,10 @@ class TaskRunner:
             self.steps, self.seen = item["steps"], item["seen"]
             self.replans = item.get("replans", 0)
             self.delivery_replans = item.get("delivery_replans", 0)
+            self.goal_contract = (GoalContract.parse(item["goal_contract"], self.acceptance_roots)
+                                  if item.get("goal_contract") else None)
+            self.goal_attempts = item.get("goal_attempts", 0)
+            self.goal_verdict = item.get("goal_verdict")
             self.started_at, self.spent = self.clock(), item["spent"]
             self.deadline = self.started_at + self.timeout - self.spent
             self.pending, self.inflight, self.uncertain = None, None, False
@@ -158,14 +173,17 @@ class TaskRunner:
         self._checkpoint("ACT")  # durable intent precedes every external effect
         self.loop.audit.log_event("task_action_started", task_id=self.task_id, tool=tool, params=params)
 
-    def start(self, goal: str, on_progress=None) -> LoopResult:
+    def start(self, goal: str, on_progress=None, *, acceptance=None) -> LoopResult:
         if not self._lock.acquire(blocking=False):
             raise RuntimeError("Uma tarefa já está sendo processada")
         try:
             if self.active:
                 raise RuntimeError("A tarefa anterior ainda aguarda conclusão ou confirmação")
-            if not goal.strip() or len(goal) > 8000:
+            if not isinstance(goal, str) or not goal.strip() or len(goal) > 8000:
                 raise ValueError("O pedido precisa ter entre 1 e 8000 caracteres")
+            # Parsing must occur BEFORE activation and any external effect.
+            contract = (GoalContract.parse(acceptance, self.acceptance_roots)
+                        if acceptance is not None else None)
             self.loop.registry.control.begin()
             self.active = True
             self.max_actions, self.timeout = self.default_budget
@@ -186,6 +204,9 @@ class TaskRunner:
             self.observations = []
             self.replans = 0
             self.delivery_replans = 0
+            self.goal_contract = contract
+            self.goal_attempts = 0
+            self.goal_verdict = None
             self.planning_feedback = ""
             self.on_progress = on_progress or (lambda item: None)
             try:
@@ -289,6 +310,25 @@ class TaskRunner:
                             self.loop.audit.log_event("model_generation", task_id=self.task_id, attempts=report)
                 self._check()
                 proposed = parse_response(raw)
+                if (proposed.parse_ok and proposed.action.type == "none" and
+                        self.goal_contract is not None and self.auto_extend and
+                        self.goal_attempts < 1 and not self.uncertain and not self.inflight and
+                        "write_file" in {item["name"] for item in tools}):
+                    goal_check = self.goal_contract.evaluate(self.steps, self.acceptance_roots)
+                    if not goal_check.passed:
+                        self.goal_attempts += 1
+                        self.planning_feedback = (
+                            "A pós-condição declarada pelo aplicativo ainda NÃO foi comprovada "
+                            f"({goal_check.reason}). Nenhuma alteração é automaticamente aprovada. "
+                            "Se possível, verifique o arquivo correto com as ferramentas já autorizadas. "
+                            "Se não houver caminho seguro, informe a pendência sem declarar sucesso."
+                        )
+                        self._checkpoint("PLAN")
+                        self.loop.audit.log_event(
+                            "task_replan", task_id=self.task_id,
+                            reason="goal_postcondition_unverified", attempt=self.goal_attempts,
+                        )
+                        continue
                 if proposed.parse_ok and self.auto_extend and should_replan_premature_finish(
                     self.goal, self.steps, action_type=proposed.action.type,
                     speech=proposed.speech_output, tool_names=[item["name"] for item in tools],
@@ -444,6 +484,22 @@ class TaskRunner:
     def _finish(self, result: LoopResult, state: str) -> LoopResult:
         self.active = False
         self.pending = None
+        if self.goal_contract is not None:
+            verdict = (GoalVerdict("UNVERIFIED", "effect_unknown", self.goal_contract.kind)
+                       if self.uncertain or self.inflight else
+                       self.goal_contract.evaluate(self.steps, self.acceptance_roots))
+            self.goal_verdict = {"status": verdict.status, "reason": verdict.reason,
+                                 "kind": verdict.kind}
+            self.loop.audit.log_event("task_goal_verification", task_id=self.task_id,
+                                      status=verdict.status, reason=verdict.reason,
+                                      kind=verdict.kind)
+            if not verdict.passed:
+                result.response.speech_output += (
+                    "\nPós-condição do objetivo NÃO verificada "
+                    f"({verdict.reason}); não considere a tarefa concluída."
+                )
+        else:
+            self.goal_verdict = None
         if self.uncertain or self.inflight:
             persisted_state = "WAITING_REVIEW"
         elif self.resource_pressure:
