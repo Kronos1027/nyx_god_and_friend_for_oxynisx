@@ -1,5 +1,4 @@
 """Code patch integrity is checked against actual bytes, not model claims."""
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
