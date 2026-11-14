@@ -74,3 +74,16 @@ def test_measure_without_promising_a_speedup():
         times[label] = statistics.median(trials)
     # Measuring is mandatory; no arbitrary speedup assertion across CI machines.
     assert times["rust"] > 0 and times["python"] > 0
+
+
+
+def test_special_unicode_casefold_divergence_uses_guarded_python_result(monkeypatch):
+    """Rust Unicode lowercase is not guaranteed to match Python casefold."""
+    from core.native_memory import bounded_fact_prompt as guarded
+    facts = {"a": "Große Straße", "b": "STRASSE"}
+    expected = baseline(facts, "strasse", 500)
+    monkeypatch.setenv("NYX_NATIVE_MEMORY", "1")
+    monkeypatch.setenv("NYX_NATIVE_COMPARE", "1")
+    assert guarded(facts, "strasse", 500) == expected
+    # A future implementation may achieve exact Unicode parity; either way,
+    # the guard must never change the reference result.
