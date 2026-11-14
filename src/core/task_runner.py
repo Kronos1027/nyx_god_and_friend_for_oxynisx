@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from core.agent_loop import LoopResult
 from core.goal_contract import GoalContract, GoalVerdict
+from core.task_usage import empty_usage, clean_usage, accumulate_usage, usage_summary
 from core.llm_client import ModelOutputError, NyxResponse, parse_response
 from core.task_reliability import (
     StepEvidence, trailing_failures, recovery_hint, completion_warning,
@@ -45,6 +46,7 @@ class TaskRunner:
         self.goal_contract = None
         self.goal_attempts = 0
         self.goal_verdict = None
+        self.model_usage = empty_usage()
         self._lock = threading.Lock()
         self.active = False
         self.pending = None
@@ -86,7 +88,8 @@ class TaskRunner:
             "replans": self.replans, "delivery_replans": self.delivery_replans,
             "goal_contract": self.goal_contract.as_dict() if self.goal_contract else None,
             "goal_attempts": self.goal_attempts,
-            "goal_verdict": self.goal_verdict})
+            "goal_verdict": self.goal_verdict,
+            "model_usage": self.model_usage})
 
     def continue_task(self, task_id, on_progress=None):
         """Explicit UI request only. Old approvals and in-flight work are never replayed."""
@@ -120,6 +123,7 @@ class TaskRunner:
                                   if item.get("goal_contract") else None)
             self.goal_attempts = item.get("goal_attempts", 0)
             self.goal_verdict = item.get("goal_verdict")
+            self.model_usage = clean_usage(item.get("model_usage"))
             self.started_at, self.spent = self.clock(), item["spent"]
             self.deadline = self.started_at + self.timeout - self.spent
             self.pending, self.inflight, self.uncertain = None, None, False
@@ -207,6 +211,7 @@ class TaskRunner:
             self.goal_contract = contract
             self.goal_attempts = 0
             self.goal_verdict = None
+            self.model_usage = empty_usage()
             self.planning_feedback = ""
             self.on_progress = on_progress or (lambda item: None)
             try:
@@ -307,6 +312,7 @@ class TaskRunner:
                     finally:
                         report = getattr(self.loop.llm, "generation_report", None)
                         if report:
+                            self.model_usage = accumulate_usage(self.model_usage, report)
                             self.loop.audit.log_event("model_generation", task_id=self.task_id, attempts=report)
                 self._check()
                 proposed = parse_response(raw)
@@ -524,6 +530,7 @@ class TaskRunner:
         evidence = StepEvidence.inspect(self.steps)
         self.loop.audit.log_event("task_finished", task_id=self.task_id, state=state,
                                   actions=len(self.steps), verified_actions=evidence.verified,
-                                  uncertain_actions=evidence.uncertain, steps=self.steps)
+                                  uncertain_actions=evidence.uncertain, steps=self.steps,
+                                  model_usage=usage_summary(self.model_usage))
         self.loop._remember(self.goal, result.response)
         return result
