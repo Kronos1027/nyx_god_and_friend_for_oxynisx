@@ -34,6 +34,8 @@ jobs:
           subprocess.check_call([sys.executable,'-m','pip','install',wheels[0]])"
       - name: Verify exact Python/Rust selection parity
         run: python -m pytest -q tests/test_native_memory_parity.py tests/test_native_memory_adapter.py tests/test_kra13_hot_memory.py
+      - name: Measure synthetic CPU selector performance
+        run: python tools/benchmark_rust_memory.py --facts 10000 --repeats 7
       - name: Opt-in native/Python parity through existing MemoryManager
         env:
           NYX_NATIVE_MEMORY: "1"
