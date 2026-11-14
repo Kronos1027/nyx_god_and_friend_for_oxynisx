@@ -127,7 +127,9 @@ class AgentTeam:
     def _run_graph(self, normalized):
         stopped = Event()
         tool_started = Event()
-        deadline = time.monotonic() + AGENT_TIMEOUT_SECONDS
+        from core.agent_budget import team_timeout_seconds
+        timeout_seconds = team_timeout_seconds(normalized)
+        deadline = time.monotonic() + timeout_seconds
         inherited_cancel = self.registry.control.cancellation_probe()
         def cancelled():
             return stopped.is_set() or inherited_cancel() or time.monotonic() >= deadline
@@ -211,10 +213,12 @@ class AgentTeam:
             roles=[task["role"] for task in normalized],
             steps=sum(int(item.get("steps", 0)) for item in completed),
             timed_out=timed_out,
+            timeout_seconds=timeout_seconds,
         )
         return ToolResult(ok=ok, output=summary, error=None if ok else summary,
                           meta={"agents": completed, "max_parallel": peak_parallel,
-                                "max_steps": max(task["max_steps"] for task in normalized), "timed_out": timed_out,
+                                "max_steps": max(task["max_steps"] for task in normalized),
+                                "timeout_seconds": timeout_seconds, "timed_out": timed_out,
                                 "draining": draining, "outcome_unknown": draining and tool_started.is_set(),
                                 "resource_pressure": any(a["state"] == "RESOURCE_PRESSURE" for a in completed),
                                 "authority": "untrusted_observation"})
