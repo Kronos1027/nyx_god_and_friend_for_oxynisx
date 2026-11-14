@@ -58,6 +58,41 @@ fn words(source: &str) -> HashSet<String> {
     output
 }
 
+// Scan words without allocating a full set of all distinct document tokens.
+// Only query-matching tokens are cloned, reducing temporary memory pressure.
+fn relevance_hits(search: &HashSet<String>, key: &str, value: &str) -> usize {
+    if search.is_empty() {
+        return 0;
+    }
+    let mut found = HashSet::with_capacity(search.len());
+    let mut token = String::new();
+    let mut token_len = 0usize;
+    let input = key.chars()
+        .chain(std::iter::once(' '))
+        .chain(value.chars().take(1024));
+    for original in input {
+        for ch in original.to_lowercase() {
+            if ch.is_alphanumeric() || ch == '_' || ('À'..='ÿ').contains(&ch) {
+                token.push(ch);
+                token_len += 1;
+            } else {
+                if token_len >= 3 && search.contains(&token) {
+                    found.insert(token.clone());
+                    if found.len() == search.len() {
+                        return found.len();
+                    }
+                }
+                token.clear();
+                token_len = 0;
+            }
+        }
+    }
+    if token_len >= 3 && search.contains(&token) {
+        found.insert(token);
+    }
+    found.len()
+}
+
 fn compose(entries: Vec<(String, String)>, query: &str, max_chars: usize) -> Result<String, String> {
     if !(300..=8192).contains(&max_chars) {
         return Err("max_chars out of range".to_owned());
@@ -67,9 +102,7 @@ fn compose(entries: Vec<(String, String)>, query: &str, max_chars: usize) -> Res
         .into_iter()
         .map(|(key, value)| {
             let priority = PRIORITY.iter().position(|p| *p == key).unwrap_or(PRIORITY.len());
-            let sample = format!("{key} {}", truncate_chars(&value, 1024));
-            let seen = words(&sample);
-            let hits = search.intersection(&seen).count();
+            let hits = relevance_hits(&search, &key, &value);
             ScoredFact {
                 priority,
                 hits,
