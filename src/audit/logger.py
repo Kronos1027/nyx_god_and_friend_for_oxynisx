@@ -27,12 +27,13 @@ class AuditLogger:
         self._lock = threading.Lock()
 
     def log_event(self, event: str, **payload: object) -> dict:
-        """Grava um evento append-only. Nunca quebra o fluxo do agente."""
+        """Grava metadados append-only; nunca salva prompts/tool payloads brutos."""
+        from audit.privacy import safe_audit_payload
         entry = {
             "ts": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
             "session": self.session_id,
             "event": event,
-            **payload,
+            **safe_audit_payload(event, payload),
         }
         line = json.dumps(entry, ensure_ascii=False, default=str)
         with self._lock:

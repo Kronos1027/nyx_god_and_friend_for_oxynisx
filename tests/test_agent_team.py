@@ -213,8 +213,13 @@ def test_browser_agent_cannot_click_or_open_local_files(tmp_path):
 
     assert click.ok is False
     assert local.ok is False
-    details = [str(event.get("detail", "")) for event in audit.read_all() if event.get("event") == "security"]
-    assert any("http(s)" in detail for detail in details)
+    denied = [e for e in audit.read_all()
+              if e.get("event") == "security"
+              and e.get("code") == "micro_agent_tool_denied"
+              and e.get("tool") == "browser"
+              and e.get("role") == "navegador"]
+    assert len(denied) >= 2
+    assert all("file:///" not in str(e) for e in denied)
 
 
 def test_patch_role_blocks_test_execution_even_without_apply(tmp_path):
@@ -238,7 +243,10 @@ def test_patch_role_blocks_test_execution_even_without_apply(tmp_path):
 
     result = AgentTeam(PatchLLM(), registry, audit).run([{"role": "patch", "task": "investigue e proponha"}])
     assert result.ok is False
-    assert any("executar testes também executa código" in str(e) for e in audit.read_all())
+    assert any(e.get("code") == "micro_agent_tool_denied"
+               and e.get("role") == "patch"
+               and e.get("tool") == "code_task"
+               for e in audit.read_all() if e.get("event") == "security")
 
 
 def test_patch_role_blocks_direct_code_task_apply(tmp_path):
@@ -264,7 +272,10 @@ def test_patch_role_blocks_direct_code_task_apply(tmp_path):
     assert result.ok is False
     assert "fora do escopo" in result.output or "não tem permissão" in result.output
     security = [event for event in audit.read_all() if event.get("event") == "security"]
-    assert any("microagente não tem permissão para aplicar" in str(s.get("detail", "")) for s in security)
+    assert any(e.get("code") == "micro_agent_tool_denied"
+               and e.get("role") == "patch"
+               and e.get("tool") == "code_task"
+               for e in security)
 
 
 def test_browser_agent_allows_structured_read_actions(tmp_path):
