@@ -6,6 +6,7 @@ Usage: python tools/evaluate_agent_reliability.py
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 import tempfile
@@ -20,6 +21,7 @@ from core.llm_client import OfflineLLM  # noqa: E402
 from core.task_reliability import StepEvidence  # noqa: E402
 from core.task_runner import TaskRunner  # noqa: E402
 from tools.registry import ToolRegistry, ToolResult, ToolSpec  # noqa: E402
+from tools.file_tool import FileTool  # noqa: E402
 
 
 def answer(tool="none", params=None, speech="Conclusão"):
@@ -28,11 +30,11 @@ def answer(tool="none", params=None, speech="Conclusão"):
                        "requires_confirmation": False}, ensure_ascii=False)
 
 
-def prepare(root, replies):
+def prepare(root, replies, *, acceptance_roots=()):
     registry = ToolRegistry()
     llm = OfflineLLM(replies)
     loop = AgentLoop(llm, registry, AuditLogger(root / "logs"))
-    return TaskRunner(loop), registry, llm, loop
+    return TaskRunner(loop, acceptance_roots=acceptance_roots), registry, llm, loop
 
 
 def evaluate(root: Path) -> list[dict]:
@@ -116,6 +118,54 @@ def evaluate(root: Path) -> list[dict]:
     runner.start("Leia dois arquivos", cancel_after_first)
     record("cancel_between_effects", len(actions) == 1 and not runner.active,
            executed=len(actions))
+
+    # Scenario 7: end-to-end approved file write with independent SHA goal.
+    target = root / "contract_answer.txt"
+    payload = "verifiable\n"
+    spec = {"kind": "file_sha256", "path": str(target),
+            "sha256": hashlib.sha256(payload.encode()).hexdigest()}
+    runner, registry, _, _ = prepare(root / "case-goal", [
+        answer("write_file", {"path": str(target), "content": payload}),
+        answer(speech="Arquivo pronto"),
+    ], acceptance_roots=[root])
+    file_tool = FileTool([root])
+    registry.register(ToolSpec("write_file", "write", sensitive=True), file_tool.write_file)
+    approval = runner.start("Grave a resposta", acceptance=spec)
+    finished = runner.resume(approval.pending_action, True) if approval.needs_confirmation else approval
+    record("verified_goal_after_approval",
+           bool(approval.needs_confirmation) and target.read_text() == payload and
+           runner.goal_verdict["status"] == "VERIFIED" and
+           "NÃO verificada" not in finished.response.speech_output,
+           goal_verdict=runner.goal_verdict["status"])
+
+    # Scenario 8: an already-existing file must NOT masquerade as this task's output.
+    runner, registry, _, _ = prepare(root / "case-old", [
+        answer(speech="O arquivo foi criado"),
+    ], acceptance_roots=[root])
+    result = runner.start("Grave a resposta", acceptance=spec)
+    record("preexisting_file_is_not_proof",
+           runner.goal_verdict["reason"] == "no_verified_write" and
+           "NÃO verificada" in result.response.speech_output,
+           goal_verdict=runner.goal_verdict["status"])
+
+    # Scenario 9: deletion requires destructive approval and real absence.
+    doomed = root / "doomed.txt"
+    doomed.write_text("discard")
+    runner, registry, _, _ = prepare(root / "case-delete", [
+        answer("delete_file", {"path": str(doomed)}),
+        answer(speech="Excluído"),
+    ], acceptance_roots=[root])
+    registry.register(ToolSpec("delete_file", "delete", destructive=True),
+                      file_tool.delete_file)
+    approval = runner.start("Exclua o arquivo", acceptance={
+        "kind": "file_absent", "path": str(doomed),
+    })
+    finished = runner.resume(approval.pending_action, True) if approval.needs_confirmation else approval
+    record("approved_delete_has_independent_proof",
+           approval.needs_confirmation and not doomed.exists() and
+           runner.goal_verdict["status"] == "VERIFIED" and
+           "NÃO verificada" not in finished.response.speech_output,
+           goal_verdict=runner.goal_verdict["status"])
 
     return checks
 
