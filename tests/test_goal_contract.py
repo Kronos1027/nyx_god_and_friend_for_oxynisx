@@ -1,7 +1,5 @@
 """Independent artifact postconditions; no LLM/model invocation."""
 import hashlib
-import os
-from pathlib import Path
 
 import pytest
 
