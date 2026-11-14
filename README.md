@@ -30,6 +30,8 @@ O [protótipo Rust nativo — Lote 04](docs/NYX_RUST_MIGRATION_BATCH04.md) acele
 
 O [Lote 05 de desempenho](docs/NYX_PERFORMANCE_BATCH05.md) introduz cache limitado de memória, menos consultas desnecessárias ao Ollama e métricas de espera na fila. São otimizações locais verificadas por CI, não prova de aceleração do Qwen real.
 
+O [Lote 06 de objetivos e diagnóstico](docs/NYX_EVOLUTION_BATCH06.md) acrescenta verificação de até oito entregas de arquivo, relatórios de conclusão baseados em evidência, consulta segura do diário SQLite e minimização de dados pessoais na auditoria. Nada disso concede novas permissões ao modelo ou instala a versão experimental no Windows.
+
 A [arquitetura adaptativa](docs/EVOLUTION_ARCHITECTURE.md) separa o que está implementado das próximas etapas de pesquisa ociosa, testes isolados, promoção de código e aprendizado de modelos. A [meta completa](docs/PRODUCT_GOAL.md) permanece ativa.
 
 ## Executar no Windows
