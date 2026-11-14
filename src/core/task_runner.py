@@ -313,7 +313,8 @@ class TaskRunner:
                 if (proposed.parse_ok and proposed.action.type == "none" and
                         self.goal_contract is not None and self.auto_extend and
                         self.goal_attempts < 1 and not self.uncertain and not self.inflight and
-                        "write_file" in {item["name"] for item in tools}):
+                        ("write_file" if self.goal_contract.kind == "file_sha256" else "delete_file")
+                        in {item["name"] for item in tools}):
                     goal_check = self.goal_contract.evaluate(self.steps, self.acceptance_roots)
                     if not goal_check.passed:
                         self.goal_attempts += 1
