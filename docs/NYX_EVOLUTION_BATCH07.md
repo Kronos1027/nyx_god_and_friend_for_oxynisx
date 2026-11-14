@@ -97,3 +97,34 @@ A resposta JSON não revela conteúdo dos arquivos.
    comparar quantidade de correções válidas e custo de inferência.
 3. Só permitir promoção depois de testes no Windows alvo,
    confirmação de política de autorização e revisão humana.
+
+
+### 07-E — `src/tools/code_patch_integrity.py`
+- Calcula SHA-256 e comprimento exato em bytes UTF-8 das edições
+  aprovadas pelo fluxo de código; nenhum conteúdo entra no manifesto.
+- O fluxo `apply=True` grava **bytes exatos** de modo portátil,
+  sem conversão silenciosa de LF para CRLF no Windows.
+- Antes de executar o executor de testes injetado, verifica se o patch
+  está aplicado. Depois de retorno com código 0, verifica novamente.
+- Se o executor modificar algum arquivo do patch, remover a saída,
+  substituir por symlink ou alterar os bytes esperados, a Nyx
+  **não** declara sucesso e tenta restaurar os backups.
+- Durante a recuperação, evita escrever através de symlinks
+  alterados ou diretórios redirecionados; uma recuperação parcial
+  continua identificada explicitamente como `reverted=False`.
+
+Essa proteção tem limite importante: não é isolamento contra código
+malicioso capaz de alterar arquivos fora do conjunto aprovado, nem
+garante rollback integral de arquivos adicionais produzidos por testes.
+Há possibilidade de corrida entre verificar caminho e gravar;
+a futura execução isolada por sistema operacional continua necessária.
+
+### 07-F — `tools/benchmark_code_preflight.py`
+
+Benchmark repetível com cinco arquivos **sintéticos** (quatro
+analisáveis, um sem parser), nove rodadas por padrão. Mede mediana/p95
+de tempo e pico de alocações Python via `tracemalloc` nos runners
+Linux e Windows do CI. Não roda aplicativos, Ollama, repositórios
+pessoais ou scripts de usuário. Os resultados permitem avaliar
+o pequeno custo extra da inspeção antes de promover a proteção,
+sem confundir o tempo do parser com a velocidade de inferência.
