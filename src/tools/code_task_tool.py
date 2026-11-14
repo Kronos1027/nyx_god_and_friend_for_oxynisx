@@ -172,8 +172,10 @@ class CodeTaskRunner:
                             "rounds": rounds, "applied": False},
                     )
                 for edit in edits:
-                    backups.setdefault(edit.path, edit.path.read_bytes() if edit.path.exists() else None)
                     edit.path.parent.mkdir(parents=True, exist_ok=True)
+                    if edit.path.is_symlink() or edit.path.resolve() != edit.path:
+                        raise CodeTaskError("Destino alterado ou redirecionado desde a proposta.")
+                    backups.setdefault(edit.path, edit.path.read_bytes() if edit.path.exists() else None)
                     # Write exact model bytes on Linux and Windows. Text-mode
                     # newline conversion would break cross-platform SHA-256.
                     edit.path.write_bytes(edit.content.encode("utf-8"))
@@ -338,6 +340,12 @@ class CodeTaskRunner:
         ok = True
         for path, original in backups.items():
             try:
+                # A crashed test may have replaced a parent with a symlink.
+                # Never restore through a redirected directory.
+                if path.parent.resolve() != path.parent:
+                    raise OSError("Diretório do patch redirecionado por link.")
+                if path.is_symlink():
+                    path.unlink()
                 if original is None:
                     path.unlink(missing_ok=True)
                 else:
