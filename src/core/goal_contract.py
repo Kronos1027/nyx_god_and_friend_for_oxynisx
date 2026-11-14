@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 MAX_VERIFY_BYTES = 8 * 1024 * 1024
-_ALLOWED_KIND = "file_sha256"
+_ALLOWED_KINDS = frozenset(("file_sha256", "file_absent"))
 
 
 @dataclass(frozen=True)
@@ -32,30 +32,36 @@ class GoalVerdict:
 class GoalContract:
     kind: str
     path: str
-    sha256: str
+    sha256: str | None = None
 
     @classmethod
     def parse(cls, value: Mapping, roots: Sequence[str | Path]) -> "GoalContract":
-        if not isinstance(value, dict) or set(value) != {"kind", "path", "sha256"}:
-            raise ValueError("Contrato deve conter apenas kind, path e sha256.")
-        if value["kind"] != _ALLOWED_KIND:
+        if not isinstance(value, dict) or value.get("kind") not in _ALLOWED_KINDS:
             raise ValueError("Pós-condição desconhecida.")
-        path, digest = value["path"], value["sha256"]
+        required = {"kind", "path", "sha256"} if value["kind"] == "file_sha256" else {"kind", "path"}
+        if set(value) != required:
+            raise ValueError("Campos inválidos para a pós-condição.")
+        path, digest = value["path"], value.get("sha256")
         if not isinstance(path, str) or not 1 <= len(path) <= 4096:
             raise ValueError("Caminho inválido.")
         if not os.path.isabs(path):
             raise ValueError("Caminho da pós-condição precisa ser absoluto.")
-        if not isinstance(digest, str) or re.fullmatch(r"[0-9a-fA-F]{64}", digest) is None:
+        if value["kind"] == "file_sha256" and (
+            not isinstance(digest, str) or re.fullmatch(r"[0-9a-fA-F]{64}", digest) is None
+        ):
             raise ValueError("SHA-256 inválido.")
         if not isinstance(roots, (tuple, list)) or not roots:
             raise ValueError("Pós-condição exige raízes autorizadas do aplicativo.")
         destination = Path(path).resolve()
         if not any(destination.is_relative_to(Path(root).resolve()) for root in roots):
             raise ValueError("Pós-condição fora das raízes autorizadas.")
-        return cls(_ALLOWED_KIND, str(destination), digest.lower())
+        return cls(value["kind"], str(destination), digest.lower() if digest is not None else None)
 
     def as_dict(self) -> dict:
-        return {"kind": self.kind, "path": self.path, "sha256": self.sha256}
+        result = {"kind": self.kind, "path": self.path}
+        if self.sha256 is not None:
+            result["sha256"] = self.sha256
+        return result
 
     def evaluate(self, steps: Sequence[Mapping], roots: Sequence[str | Path]) -> GoalVerdict:
         # Revalidate persisted contracts: roots and symlink targets may change
@@ -65,11 +71,12 @@ class GoalContract:
         except (ValueError, OSError, RuntimeError):
             return GoalVerdict("UNVERIFIED", "outside_authorized_roots", self.kind)
 
-        # A preexisting artifact, or a model assertion, does not prove that
-        # this *task* created it; a verified write is required as provenance.
+        # A preexisting state, or a model assertion, does not prove that
+        # this *task* made the requested change.
+        witness_tool = "write_file" if self.kind == "file_sha256" else "delete_file"
         witnessed = False
         for step in steps:
-            if (step.get("tool") != "write_file" or step.get("ok") is not True
+            if (step.get("tool") != witness_tool or step.get("ok") is not True
                     or step.get("verified") is not True):
                 continue
             params = step.get("params", {})
@@ -84,13 +91,20 @@ class GoalContract:
             except (ValueError, OSError, RuntimeError):
                 continue
         if not witnessed:
-            return GoalVerdict("UNVERIFIED", "no_verified_write", self.kind)
+            reason = "no_verified_write" if self.kind == "file_sha256" else "no_verified_delete"
+            return GoalVerdict("UNVERIFIED", reason, self.kind)
 
         try:
+            target = Path(current.path)
+            if self.kind == "file_absent":
+                try:
+                    target.lstat()
+                except FileNotFoundError:
+                    return GoalVerdict("VERIFIED", "file_absent", self.kind)
+                return GoalVerdict("UNVERIFIED", "file_still_exists", self.kind)
             # Limit reads and reject directories or giant files. Opening on
             # Windows remains subject to normal filesystem ACLs; this is not
             # an OS-level sandbox or protection from concurrent TOCTOU races.
-            target = Path(current.path)
             if not target.is_file():
                 return GoalVerdict("UNVERIFIED", "file_missing", self.kind)
             size = target.stat().st_size
