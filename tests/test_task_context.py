@@ -95,3 +95,19 @@ def test_compacted_ledger_redacts_secret_parameters_and_output():
     assert "HIDDEN" not in ledger
     assert "sk-12345678901234567890" not in ledger
     assert "[protegido]" in ledger
+
+
+def test_short_runner_ledger_redacts_sensitive_params_and_output():
+    class Loop:
+        history = []
+    runner = TaskRunner(Loop())
+    runner.steps = [{
+        "tool": "read_file",
+        "params": {"password": "NEVER_INCLUDE", "path": "normal.txt"},
+        "output": "password=ALSO_NEVER",
+        "ok": True, "verified": True, "output_truncated": False,
+    }]
+    raw = runner._planning_history()[-1]["content"]
+    assert "NEVER_INCLUDE" not in raw
+    assert "ALSO_NEVER" not in raw
+    assert "[protegido]" in raw
