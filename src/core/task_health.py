@@ -24,7 +24,7 @@ def task_health(record: Mapping) -> dict:
     if not isinstance(state, str) or state not in _SAFE_STATES:
         state = "UNKNOWN"
     steps = record.get("steps", [])
-    if not isinstance(steps, list) or len(steps) > 48:
+    if not isinstance(steps, list) or len(steps) > 48 or any(not isinstance(step, dict) for step in steps):
         raise ValueError("Histórico de passos fora dos limites da Nyx.")
     evidence = StepEvidence.inspect(steps)
     verdict = record.get("goal_verdict")
