@@ -36,3 +36,10 @@ def test_graph_budget_is_explicit_only():
                             {"arquivos": object()})
     assert [item["max_steps"] for item in tasks] == [2, 6]
     assert team_timeout_seconds(tasks) == 270
+
+
+def test_legacy_timeout_override_for_fault_injection():
+    assert team_timeout_seconds([{"max_steps": 2}], base_seconds=0.12) == 0.12
+    assert team_timeout_seconds([{"max_steps": 6}], base_seconds=0.12) == 120.12
+    with pytest.raises(ValueError):
+        team_timeout_seconds([{"max_steps": 2}], base_seconds=float("nan"))
