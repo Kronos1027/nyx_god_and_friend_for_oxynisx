@@ -13,6 +13,8 @@ _OMITTED = "[conteúdo omitido por privacidade]"
 _PRIVATE_TEXT_FIELDS = frozenset((
     "user_input", "llm_raw", "result_output", "raw_response",
     "prompt", "response_raw", "goal", "message_content",
+    "summary", "preview", "observation", "tool_result",
+    "error", "error_text", "traceback", "text", "content",
 ))
 _PRIVATE_PARAMS_FIELDS = frozenset(("params", "action_params", "arguments"))
 _PRIVATE_LIST_FIELDS = frozenset(("steps", "observations", "history"))
