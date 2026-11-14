@@ -26,6 +26,8 @@ O [programa modular Nyx Evolution](docs/NYX_EVOLUTION_PROGRAM.md) define critér
 
 A [pesquisa de agentes com Ollama local — Lote 03](docs/NYX_RESEARCH_BATCH03.md) adiciona métricas de tokens, tempo, RAM e uma comparação A/B opt-in em arquivos temporários. O script `python tools/benchmark_local_nyx.py` apenas mostra o plano; nenhuma execução real do Qwen foi feita na CI, e a pesquisa não baixa modelos nem acessa projetos pessoais.
 
+O [protótipo Rust nativo — Lote 04](docs/NYX_RUST_MIGRATION_BATCH04.md) acelera experimentalmente a seleção de memória, mantendo Python como padrão e fallback. Não muda o motor de inferência Qwen, não é instalado automaticamente e requer paridade/benchmark Windows antes de promoção.
+
 A [arquitetura adaptativa](docs/EVOLUTION_ARCHITECTURE.md) separa o que está implementado das próximas etapas de pesquisa ociosa, testes isolados, promoção de código e aprendizado de modelos. A [meta completa](docs/PRODUCT_GOAL.md) permanece ativa.
 
 ## Executar no Windows
